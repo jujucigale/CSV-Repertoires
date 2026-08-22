@@ -1,0 +1,2825 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiche de chanson</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --ink:#1E2A38;
+    --ink-soft:#5B6B7A;
+    --paper:#F7F8F6;
+    --surface:#FFFFFF;
+    --petrol:#2F6F6B;
+    --petrol-dark:#234F4C;
+    --highlight:#ADD8E6;
+    --highlight-deep:#79B7CC;
+    --border:#DDE2DE;
+    --danger:#B5533E;
+    --danger-soft:#F3E4E0;
+    --radius:12px;
+    --shadow:0 1px 2px rgba(30,42,56,.06), 0 4px 14px rgba(30,42,56,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+  a{color:var(--petrol-dark);}
+  button{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--petrol); outline-offset:2px;}
+
+  .shell{max-width:980px;margin:0 auto;padding:20px 18px 64px;}
+  .hidden{display:none !important;}
+
+  .top{
+    display:flex;align-items:baseline;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;margin-bottom:22px;
+  }
+  .brand h1{
+    font-family:'Fraunces',serif;font-weight:600;font-size:28px;
+    margin:0 0 2px;letter-spacing:-.01em;
+  }
+  .brand p{margin:0;color:var(--ink-soft);font-size:14px;}
+
+  .tabs{
+    display:inline-flex;background:var(--surface);border:1px solid var(--border);
+    border-radius:999px;padding:4px;gap:2px;box-shadow:var(--shadow);
+  }
+  .tab-btn{
+    border:none;background:transparent;padding:9px 18px;border-radius:999px;
+    font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;
+    transition:background .15s,color .15s;
+  }
+  .tab-btn.active{background:var(--petrol);color:#fff;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .grid{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start;
+  }
+  @media (max-width: 760px){ .grid{grid-template-columns:1fr;} }
+  .grid2-equal{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+  @media (max-width: 760px){ .grid2-equal{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);
+  }
+  .card + .card{margin-top:16px;}
+  .card h2{
+    font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin:0 0 14px;
+  }
+  .card h3{
+    font-family:'Fraunces',serif;font-size:15px;font-weight:600;margin:18px 0 10px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+    margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;
+  }
+  .field input, .field textarea, .field select{
+    width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;
+    font-size:14.5px;font-family:inherit;color:var(--ink);background:#fff;
+    transition:border-color .15s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus{
+    border-color:var(--petrol);
+  }
+  .field input[readonly]{background:#F1F4F1;color:var(--ink-soft);}
+  .field.invalid input{border-color:var(--danger);}
+  .field .err{color:var(--danger);font-size:12px;margin-top:4px;display:none;}
+  .field.invalid .err{display:block;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:520px){ .row2{grid-template-columns:1fr;} }
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  @media (max-width:600px){ .row3{grid-template-columns:1fr;} }
+
+  .note{
+    background:#EEF6F5;border:1px solid #CFE4E2;color:var(--petrol-dark);
+    border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:16px;
+  }
+  .note.warn{background:#FBF0EC;border-color:#E7CFC3;color:var(--danger);}
+
+  .section-card{
+    border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;
+    background:#FBFCFA;position:relative;
+  }
+  .section-card .chip-input{
+    display:inline-block;font-size:13px;font-weight:600;padding:3px 9px;border-radius:5px;
+    background:var(--highlight);border:none;color:var(--ink);margin-bottom:8px;
+    width:auto;min-width:90px;
+  }
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .chip-suggest{
+    font-size:11.5px;border:1px solid var(--highlight-deep);background:#fff;color:var(--petrol-dark);
+    border-radius:999px;padding:3px 10px;cursor:pointer;
+  }
+  .chip-suggest:hover{background:var(--highlight);}
+  .section-card textarea{min-height:70px;resize:vertical;font-size:15px;}
+  .remove-section{
+    position:absolute;top:10px;right:10px;border:none;background:none;color:var(--ink-soft);
+    font-size:16px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:5px;
+  }
+  .remove-section:hover{background:var(--danger-soft);color:var(--danger);}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;
+    padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--petrol);color:#fff;}
+  .btn-primary:hover{background:var(--petrol-dark);}
+  .btn-ghost{background:transparent;color:var(--petrol-dark);border:1.5px solid var(--petrol);}
+  .btn-ghost:hover{background:#EEF6F5;}
+  .btn-danger-ghost{background:transparent;color:var(--danger);border:1.5px solid var(--danger);padding:6px 10px;font-size:12.5px;}
+  .btn-danger-ghost:hover{background:var(--danger-soft);}
+  .btn-sm{padding:6px 10px;font-size:12.5px;}
+  .btn[disabled]{opacity:.55;cursor:not-allowed;}
+  .btn-block{width:100%;justify-content:center;}
+  .link-btn{background:none;border:none;color:var(--petrol-dark);font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;padding:0;}
+
+  .add-section-btn{
+    width:100%;border:1.5px dashed var(--highlight-deep);background:#fff;color:var(--petrol-dark);
+    border-radius:10px;padding:11px;font-weight:600;font-size:13.5px;cursor:pointer;
+  }
+  .add-section-btn:hover{background:#EEF6F5;}
+
+  .submit-row{display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap;}
+
+  .preview{position:sticky;top:20px;}
+  .preview-doc{
+    background:#fff;border:1px solid var(--border);border-radius:8px;padding:20px 18px;
+    font-family:Arial,sans-serif;min-height:120px;
+  }
+  .preview-title{font-weight:700;font-size:19px;margin:0 0 4px;color:#000;}
+  .preview-meta{font-size:11.5px;color:#000;line-height:1.5;}
+  .preview-empty{color:var(--ink-soft);font-size:13px;font-style:italic;}
+  .preview-chip{
+    display:inline-block;background:var(--highlight);font-size:11px;font-weight:600;
+    padding:2px 7px;border-radius:4px;margin:10px 0 3px;color:#000;
+  }
+  .preview-lyrics{font-size:15px;color:#000;line-height:1.35;white-space:pre-wrap;}
+
+  .inv-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;justify-content:space-between;}
+  .inv-search{display:flex;gap:8px;flex:1;min-width:220px;}
+  .inv-search input, .inv-search select{
+    padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;
+  }
+  .inv-search input{flex:1;}
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:#fff;}
+  table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12.5px;min-width:600px;}
+  table.tight{min-width:0;}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+  th{background:#F1F4F1;color:var(--ink-soft);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;}
+  tr:last-child td{border-bottom:none;}
+  .col-sticky{
+    position:sticky;left:0;z-index:2;
+    background:#fff;box-shadow:2px 0 4px rgba(30,42,56,.08);
+    max-width:220px;white-space:normal;
+  }
+  th.col-sticky{background:#F1F4F1;z-index:3;}
+  tr:nth-child(even) td.col-sticky{background:#FAFBFA;}
+  tr.section-banner td.col-sticky{position:static;box-shadow:none;background:transparent;}
+  .col-vote{background:#DCEEF5 !important;}
+  th.col-vote{background:#CFE7F0 !important;color:#1B5A70 !important;}
+  td.col-vote strong{color:#1B5A70;}
+  .badge-paroles{
+    background:var(--highlight);padding:2px 7px;border-radius:5px;font-size:11px;font-weight:600;
+  }
+  .row-actions{display:flex;gap:6px;}
+  .empty-state{padding:40px 20px;text-align:center;color:var(--ink-soft);}
+  .empty-state strong{display:block;color:var(--ink);font-family:'Fraunces',serif;font-size:16px;margin-bottom:4px;}
+  .loading-state{padding:30px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
+
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:13.5px;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    max-width:90vw;text-align:center;z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.error{background:var(--danger);}
+
+  .privacy-note{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  .session-badge{
+    display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
+    border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--ink-soft);box-shadow:var(--shadow);
+  }
+  .session-badge strong{color:var(--ink);}
+
+  .gate-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .gate-box{max-width:820px;width:100%;}
+  .gate-title{text-align:center;margin-bottom:26px;}
+  .gate-title h1{font-family:'Fraunces',serif;font-size:30px;margin:0 0 6px;}
+  .gate-title p{color:var(--ink-soft);margin:0;font-size:14.5px;}
+  .coord-row{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;background:#fff;}
+  .coord-row .coord-name{font-weight:600;}
+  .seance-card{border:2.5px solid var(--petrol);border-radius:12px;padding:0;margin-bottom:16px;background:#fff;overflow:hidden;}
+  .seance-card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px;background:#EAF3F2;border-bottom:2.5px solid var(--petrol);}
+  .seance-card-header input[type="date"]{padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:13.5px;font-weight:600;}
+  .absences-box{background:#FDF3EC;border:1.5px solid #E8C9AE;border-radius:0;padding:10px 16px;margin:0;}
+  .absence-chip{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #E8C9AE;border-radius:999px;padding:3px 9px;font-size:12px;margin:2px 4px 2px 0;}
+  .absence-chip button{background:none;border:none;cursor:pointer;font-size:12px;line-height:1;padding:0;color:#8A4B1E;}
+  .bloc-card{border:1.5px solid #B9C7C5;border-radius:9px;margin:12px 12px 0;background:#FCFDFC;}
+  .bloc-card:last-child{margin-bottom:12px;}
+  .bloc-card-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:#F1F4F1;border-bottom:1.5px solid #B9C7C5;border-radius:7px 7px 0 0;}
+  .bloc-card-header input[type="time"]{padding:5px 7px;border:1px solid var(--border);border-radius:6px;font-size:13px;width:90px;}
+  table.bloc-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.bloc-table th{background:#fff;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;text-align:left;padding:6px 10px;border-bottom:1.5px solid var(--border);}
+  table.bloc-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+  table.bloc-table tr:last-child td{border-bottom:none;}
+  table.bloc-table .col-activite{min-width:130px;}
+  table.bloc-table .col-qui{min-width:110px;}
+  table.bloc-table .col-suivi{min-width:140px;}
+  table.bloc-table input[type="text"]{width:100%;padding:5px 7px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;}
+  table.bloc-table textarea{width:100%;min-height:44px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;}
+  .tache-list{display:flex;flex-direction:column;gap:2px;}
+  .tache-item{display:flex;align-items:flex-start;gap:5px;font-size:12px;}
+  .tache-item input[type="checkbox"]{margin-top:2px;width:auto;flex-shrink:0;}
+  .tache-item span{flex:1;}
+  .tache-item.done span{text-decoration:line-through;color:var(--ink-soft);}
+  .tache-item button{background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;padding:0;flex-shrink:0;}
+  .group-manage-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .group-manage-row input{flex:1;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(30,42,56,.45);display:flex;align-items:center;justify-content:center;
+    z-index:100;padding:20px;
+  }
+  .modal-box{
+    background:#fff;border-radius:var(--radius);padding:22px;max-width:420px;width:100%;box-shadow:var(--shadow);
+  }
+  .modal-box input{
+    width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:14.5px;font-family:inherit;
+  }
+  tr.section-banner td{
+    background:#FBF0D9;color:#6B4A00;font-weight:700;font-size:13px;text-align:center;
+    padding:8px 12px;border-bottom:1.5px solid #E9D5A0;
+  }
+</style>
+
+<script>
+  window.storageReady = new Promise(resolve => { window.storageReadyResolve = resolve; });
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, deleteDoc,
+    collection, getDocs
+  } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCKSnHIyl7lhOTZXBpfy6tkdgFNR6lH9Ws",
+    authDomain: "csv-repertoires.firebaseapp.com",
+    projectId: "csv-repertoires",
+    storageBucket: "csv-repertoires.firebasestorage.app",
+    messagingSenderId: "280027470791",
+    appId: "1:280027470791:web:da0c73c10bc00eb11917e2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.storage = {
+    async get(key){
+      const snap = await getDoc(doc(db, "storage", key));
+      return snap.exists() ? { key, value: snap.data().value } : null;
+    },
+    async set(key, value){
+      await setDoc(doc(db, "storage", key), { value });
+      return { key, value };
+    },
+    async delete(key){
+      await deleteDoc(doc(db, "storage", key));
+      return { key, deleted: true };
+    },
+    async list(prefix){
+      const snap = await getDocs(collection(db, "storage"));
+      const keys = [];
+      snap.forEach(d => { if (!prefix || d.id.startsWith(prefix)) keys.push(d.id); });
+      return { keys, prefix };
+    }
+  };
+
+  window.storageReadyResolve();
+</script>
+</head>
+<body>
+
+<!-- ===================== ÉCRAN D'ACCÈS ===================== -->
+<div class="gate-wrap" id="gate-screen">
+  <div class="gate-box">
+    <div class="gate-title">
+      <h1>Fiche de chanson</h1>
+      <p>Accédez à votre espace pour remplir ou consulter le répertoire.</p>
+    </div>
+    <div class="grid2-equal">
+      <div class="card">
+        <h2>Espace élève</h2>
+        <div id="gate-eleve-normal">
+          <div class="field">
+            <label for="gate-groupe">Mon groupe</label>
+            <select id="gate-groupe"><option value="">— Choisir —</option></select>
+          </div>
+          <div class="field">
+            <label for="gate-code-eleve">Code de groupe</label>
+            <input id="gate-code-eleve" type="password" placeholder="Fourni par votre enseignante">
+          </div>
+          <button class="btn btn-primary btn-block" id="gate-eleve-btn" type="button">Accéder à mon groupe</button>
+        </div>
+        <div id="gate-eleve-empty" class="hidden note">Aucun groupe n'a encore été configuré. Demandez à votre enseignante d'ouvrir l'administration pour en créer un.</div>
+        <div id="gate-eleve-err" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
+      </div>
+      <div class="card">
+        <h2>Administration</h2>
+        <div id="gate-admin-first" class="hidden">
+          <div class="note">Première utilisation : créez votre code administrateur (vous seule le connaîtrez).</div>
+          <div class="field">
+            <label for="gate-code-admin-new">Nouveau code administrateur</label>
+            <input id="gate-code-admin-new" type="password" placeholder="Au moins 4 caractères">
+          </div>
+          <button class="btn btn-primary btn-block" id="gate-admin-create-btn" type="button">Créer et accéder</button>
+        </div>
+        <div id="gate-admin-normal">
+          <div class="field">
+            <label for="gate-code-admin">Code administrateur</label>
+            <input id="gate-code-admin" type="password" placeholder="Votre code">
+          </div>
+          <button class="btn btn-ghost btn-block" id="gate-admin-btn" type="button">Accéder à l'administration</button>
+        </div>
+        <div id="gate-admin-err" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APPLICATION PRINCIPALE ===================== -->
+<div class="shell hidden" id="main-app">
+
+  <div class="top">
+    <div class="brand">
+      <h1>Fiche de chanson</h1>
+      <p>Remplissez les informations de votre chanson — le document est généré automatiquement.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+      <div class="tabs" id="main-tabs"></div>
+      <div class="session-badge">
+        <span id="session-label">—</span>
+        <button class="link-btn" id="change-access-btn" type="button">Changer d'accès</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONGLET FORMULAIRE (élève) ===================== -->
+  <div class="panel" id="panel-form">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Informations de la chanson</h2>
+          <div class="field" id="f-titre">
+            <label for="titre">Titre de la chanson *</label>
+            <input id="titre" type="text" placeholder="Ex. L'essentiel">
+            <div class="err">Le titre est requis.</div>
+          </div>
+          <div class="row2">
+            <div class="field" id="f-interprete">
+              <label for="interprete">Interprète *</label>
+              <input id="interprete" type="text" placeholder="Ex. Ginette Reno">
+              <div class="err">L'interprète est requis.</div>
+            </div>
+            <div class="field" id="f-annee">
+              <label for="annee">Année de sortie originale *</label>
+              <input id="annee" type="text" placeholder="Ex. 1991">
+              <p class="privacy-note" style="margin-top:4px;">L'année où la chanson est sortie pour la première fois — cherchez « [nom de l'artiste] année de sortie ». Si vraiment introuvable, écrivez « à confirmer ».</p>
+              <div class="err">L'année de sortie est requise (ou « à confirmer »).</div>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field" id="f-paroliers">
+              <label for="paroliers">Parolier(s) *</label>
+              <input id="paroliers" type="text" placeholder="Ex. Michel Jourdan">
+              <div class="err">Le(s) parolier(s) sont requis (ou « à confirmer »).</div>
+            </div>
+            <div class="field" id="f-compositeurs">
+              <label for="compositeurs">Compositeur(s) *</label>
+              <input id="compositeurs" type="text" placeholder="Ex. Charles Aznavour">
+              <div class="err">Le(s) compositeur(s) sont requis (ou « à confirmer »).</div>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="tonOrigine">Tonalité d'origine</label>
+              <input id="tonOrigine" type="text" placeholder="Ex. Sol majeur">
+            </div>
+            <div class="field">
+              <label for="tonChoisie">Tonalité choisie</label>
+              <input id="tonChoisie" type="text" placeholder="Ex. Ré majeur">
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="statutTrame">Trame sonore</label>
+              <select id="statutTrame">
+                <option value="">— Non déterminé —</option>
+                <option value="À trouver">À trouver</option>
+                <option value="Version préliminaire soumise">Version préliminaire soumise</option>
+                <option value="Confirmée">Confirmée</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="statutPartition">Partition</label>
+              <select id="statutPartition">
+                <option value="">— Non déterminé —</option>
+                <option value="À trouver">À trouver</option>
+                <option value="Version préliminaire soumise">Version préliminaire soumise</option>
+                <option value="Confirmée">Confirmée</option>
+              </select>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="bpmOriginal">BPM original</label>
+              <input id="bpmOriginal" type="text" placeholder="Ex. 92 (laisser vide si inconnu)">
+            </div>
+            <div class="field">
+              <label for="bpmChoisi">BPM choisi</label>
+              <input id="bpmChoisi" type="text" placeholder="Ex. 90 (laisser vide si inconnu)">
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="lienChante">Lien YouTube — version chantée</label>
+              <input id="lienChante" type="url" placeholder="https://youtube.com/...">
+            </div>
+            <div class="field">
+              <label for="lienAccompagnement">Lien YouTube — accompagnement / karaoké</label>
+              <input id="lienAccompagnement" type="url" placeholder="https://youtube.com/...">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0;">Suivi de groupe</h3>
+          <div class="field" id="f-proposePar">
+            <label for="proposePar">Proposée par *</label>
+            <input id="proposePar" type="text" placeholder="Ex. Judith ou Nom de l'élève qui propose la chanson">
+            <div class="err">Le nom de la personne qui propose la chanson est requis.</div>
+          </div>
+          <div class="field" id="f-raisonChoix">
+            <label for="raisonChoix">Raison du choix *</label>
+            <textarea id="raisonChoix" rows="4" placeholder="Explique en quelques mots (ou plus si tu veux!) pourquoi tu proposes cette chanson..."></textarea>
+            <div class="err">Une raison, même courte, est requise.</div>
+          </div>
+          <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
+            <input type="checkbox" id="soloCheckbox" style="width:auto;margin-top:3px;">
+            <label for="soloCheckbox" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Cette suggestion de chanson est destinée à être chantée en solo ou duo, hors cours, au spectacle, mais ne sera pas pratiquée en classe.</label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Informations de l'élève</h2>
+          <div class="row2">
+            <div class="field" id="f-eleve">
+              <label for="eleve">Nom de l'élève *</label>
+              <input id="eleve" type="text" placeholder="Ex. Camille Tremblay">
+              <div class="err">Le nom de l'élève est requis.</div>
+            </div>
+            <div class="field">
+              <label for="groupeAffiche">Groupe</label>
+              <input id="groupeAffiche" type="text" readonly>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Paroles</h2>
+          <div class="note">Nommez chaque section (ex. Couplet 1, Refrain, Pont), puis collez les paroles correspondantes. Utilisez les suggestions rapides pour aller plus vite.</div>
+          <div id="sections-list"></div>
+          <button class="add-section-btn" id="add-section-btn" type="button">+ Ajouter une section</button>
+        </div>
+
+        <div class="submit-row">
+          <button class="btn btn-primary" id="submit-btn" type="button">Générer la fiche (.docx)</button>
+          <span id="submit-status" style="font-size:13px;color:var(--ink-soft);"></span>
+        </div>
+        <p class="privacy-note">Cette fiche est ajoutée au répertoire de votre groupe uniquement — visible par les personnes ayant le code de votre groupe.</p>
+      </div>
+
+      <div class="preview">
+        <div class="card">
+          <h2>Aperçu</h2>
+          <div class="preview-doc" id="preview-doc">
+            <div class="preview-empty">L'aperçu de votre fiche apparaîtra ici au fur et à mesure que vous la remplissez.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONGLET RÉPERTOIRE DE MON GROUPE (élève) ===================== -->
+  <div class="panel" id="panel-mygroup">
+    <div class="card">
+      <div class="inv-toolbar">
+        <h2 style="margin:0;" id="mygroup-title">Répertoire de mon groupe</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" id="mygroup-refresh-btn" type="button">Actualiser</button>
+          <button class="btn btn-ghost btn-sm" id="mygroup-zip-btn" type="button">Télécharger tous les fichiers Paroles (.zip)</button>
+          <button class="btn btn-primary btn-sm" id="mygroup-export-btn" type="button">Exporter mon répertoire (Excel)</button>
+        </div>
+      </div>
+      <h3>Chansons</h3>
+      <div class="table-wrap" id="mygroup-chansons-wrap"><div class="loading-state">Chargement…</div></div>
+
+      <h3>Horaire</h3>
+      <div id="mygroup-horaire-wrap"><div class="loading-state">Chargement…</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Coordonnées (partage volontaire entre vous)</h2>
+      <div class="note">Ce partage est entièrement optionnel et sert seulement à échanger vos coordonnées avec les autres élèves de votre groupe. Votre enseignante ne rend jamais cette liste publique.</div>
+      <div id="coord-list"></div>
+      <h3>Ajouter mes coordonnées</h3>
+      <div class="row3">
+        <div class="field"><label for="coord-nom">Nom, prénom</label><input id="coord-nom" type="text"></div>
+        <div class="field"><label for="coord-courriel">Courriel</label><input id="coord-courriel" type="email"></div>
+        <div class="field"><label for="coord-telephone">Téléphone</label><input id="coord-telephone" type="tel"></div>
+      </div>
+      <div class="row3">
+        <div class="field"><label for="coord-choix1">Choix de chanson 1</label><input id="coord-choix1" type="text"></div>
+        <div class="field"><label for="coord-choix2">Choix de chanson 2</label><input id="coord-choix2" type="text"></div>
+        <div class="field"><label for="coord-pin">Code personnel (4 chiffres, pour modifier/retirer plus tard)</label><input id="coord-pin" type="password" maxlength="4" placeholder="Ex. 1234"></div>
+      </div>
+      <button class="btn btn-primary" id="coord-add-btn" type="button">Ajouter mes coordonnées</button>
+      <span id="coord-status" style="font-size:13px;color:var(--ink-soft);margin-left:10px;"></span>
+    </div>
+  </div>
+
+  <!-- ===================== ONGLET VUE D'ENSEMBLE (admin) ===================== -->
+  <div class="panel" id="panel-inventory">
+    <div class="card">
+      <div class="inv-toolbar">
+        <div class="inv-search">
+          <input type="text" id="inv-search-input" placeholder="Rechercher par titre, interprète ou élève...">
+          <select id="inv-group-filter"><option value="">Tous les groupes</option></select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" id="refresh-btn" type="button">Actualiser</button>
+          <button class="btn btn-ghost btn-sm" id="inv-zip-btn" type="button" title="Respecte le filtre de groupe ci-dessus.">Télécharger en lot (.zip)</button>
+          <button class="btn btn-primary btn-sm" id="export-excel-btn" type="button" title="Sélectionnez un groupe pour un fichier dédié, ou laissez « Tous les groupes » pour un onglet par groupe.">Exporter en Excel</button>
+        </div>
+      </div>
+      <div class="note">Cette vue regroupe les chansons de tous les groupes. Les coordonnées personnelles des élèves n'apparaissent jamais ici — elles restent visibles uniquement à l'intérieur de chaque groupe.</div>
+      <div class="table-wrap" id="inv-table-wrap">
+        <div class="loading-state">Chargement du répertoire…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONGLET ADMINISTRATION (admin) ===================== -->
+  <div class="panel" id="panel-admin">
+    <div class="card">
+      <h2>Groupes et codes d'accès</h2>
+      <div class="note">Communiquez le code élève à tout le groupe. Le code assistant·e (optionnel) donne les mêmes droits que vous, mais seulement pour ce groupe. « Contenu visible » détermine si les élèves voient le déroulement détaillé de l'horaire (voir onglet Horaire).</div>
+      <div id="groups-list"></div>
+      <h3>Ajouter un groupe</h3>
+      <div class="group-manage-row">
+        <input id="new-group-name" type="text" placeholder="Nom du groupe (ex. Groupe 1)">
+        <input id="new-group-code" type="text" placeholder="Code d'accès élève">
+        <button class="btn btn-primary btn-sm" id="add-group-btn" type="button">Ajouter</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Rappels reçus des élèves</h2>
+      <div class="note">Les élèves peuvent vous envoyer un rappel directement depuis un bloc de l'horaire. Cochez « traité » une fois le suivi fait.</div>
+      <div id="rappels-list"><div class="loading-state">Chargement…</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Suivis admin. à faire (aide-mémoire)</h2>
+      <div class="note">Toutes les tâches « Suivis admin. » ajoutées dans l'horaire, regroupées par groupe. Cocher ici coche aussi dans l'horaire (et vice versa). « Supprimer » retire seulement la tâche de cette liste — elle reste intacte dans l'horaire.</div>
+      <div id="suivis-admin-list"><div class="loading-state">Chargement…</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Charte des permissions</h2>
+      <div class="note">Décidez qui peut faire quoi dans l'horaire. Vous (administratrice) avez toujours tous les droits. Ces réglages s'appliquent à tous les groupes.</div>
+      <div id="permissions-chart"><div class="loading-state">Chargement…</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Horaire par groupe</h2>
+      <div class="field" style="max-width:300px;">
+        <label for="horaire-group-select">Groupe à afficher</label>
+        <select id="horaire-group-select"><option value="">— Choisir un groupe —</option></select>
+      </div>
+
+      <div id="horaire-group-tools" class="hidden">
+        <div class="note">Génération automatique d'une série de séances récurrentes — chaque séance générée reste ensuite modifiable, déplaçable ou annulable individuellement.</div>
+        <div class="row3">
+          <div class="field">
+            <label for="serie-jour">Jour de la semaine</label>
+            <select id="serie-jour">
+              <option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option>
+              <option value="4">Jeudi</option><option value="5">Vendredi</option><option value="6">Samedi</option><option value="0">Dimanche</option>
+            </select>
+          </div>
+          <div class="field"><label for="serie-heure">Heure de début</label><input id="serie-heure" type="time" value="19:00"></div>
+          <div class="field"><label for="serie-duree">Durée du 1er bloc (min)</label><input id="serie-duree" type="number" value="120" min="10" step="5"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="serie-debut">Date de début</label><input id="serie-debut" type="date"></div>
+          <div class="field"><label for="serie-fin">Date de fin</label><input id="serie-fin" type="date"></div>
+        </div>
+        <div class="submit-row" style="margin-top:0;">
+          <button class="btn btn-ghost btn-sm" id="serie-generer-btn" type="button">Générer la série de séances</button>
+          <button class="btn btn-primary btn-sm" id="seance-add-btn" type="button">+ Ajouter une séance</button>
+          <span id="horaire-status" style="font-size:13px;color:var(--ink-soft);"></span>
+        </div>
+        <div id="horaire-editor" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal-box">
+    <p id="modal-message" style="margin:0 0 12px;font-size:14.5px;"></p>
+    <div class="field hidden" id="modal-input-wrap" style="margin-bottom:14px;">
+      <input type="text" id="modal-input">
+      <textarea id="modal-textarea" class="hidden" rows="7" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:14.5px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-ghost btn-sm" id="modal-cancel-btn" type="button">Annuler</button>
+      <button class="btn btn-primary btn-sm" id="modal-ok-btn" type="button">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   TEMPLATE DOCX (base64) — gabarit "feuille de paroles" avec jetons
+   ===================================================================== */
+const TEMPLATE_B64 = "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";
+const MARKER_XML = '<w:p><w:pPr><w:spacing w:after="40" w:before="360"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/><w:color w:val="000000"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:shd w:fill="ADD8E6" w:val="clear"/></w:rPr><w:t xml:space="preserve">@@SECTIONS_MARKER@@</w:t></w:r></w:p>';
+
+/* ===================================================================== */
+function escXml(s){
+  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function fmtDateTime(iso){
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString('fr-CA') + " " + d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+}
+const VISEE_OPTIONS = ["", "Grand groupe", "Petit groupe", "Solo ou duo, hors cours"];
+const VISEE_SECTION_ORDER = [
+  { key: "", label: "Non classé" },
+  { key: "Grand groupe", label: "Grand groupe" },
+  { key: "Petit groupe", label: "Petit groupe" },
+  { key: "Solo ou duo, hors cours", label: "Solo ou duo, hors cours" },
+];
+function groupEntriesByVisee(entries){
+  const buckets = { "": [], "Grand groupe": [], "Petit groupe": [], "Solo ou duo, hors cours": [] };
+  entries.forEach(e => {
+    const key = Object.prototype.hasOwnProperty.call(buckets, e.visee) ? e.visee : "";
+    buckets[key].push(e);
+  });
+  Object.keys(buckets).forEach(k => buckets[k].sort((a,b) => (a.dateAjout||"").localeCompare(b.dateAjout||"")));
+  return VISEE_SECTION_ORDER
+    .map(s => ({ label: s.label, key: s.key, entries: buckets[s.key] }))
+    .filter(s => s.entries.length > 0);
+}
+function sectionBannerRow(label, totalCols){
+  const segs = xlsxColSegments(totalCols);
+  const cells = segs.map(span => `<td colspan="${span}">${escXml(label)}</td>`).join("");
+  return `<tr class="section-banner">${cells}</tr>`;
+}
+function base64ToBytes(b64){
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}function sanitizeFileName(s){
+  return String(s||"").replace(/[\/\\:*?"<>|]/g,"").trim();
+}function genId(){
+  return Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
+}
+// Les clés de stockage n'acceptent pas les espaces ni certains caractères.
+// Cette fonction convertit un nom de groupe (ex. "Groupe 1") en une clé sûre (ex. "Groupe_1").
+function safeKeyPart(s){
+  return String(s || "").trim().replace(/[\s\/\\'"]+/g, "_");
+}async function generateDocxBlob(entry){
+  const zip = await JSZip.loadAsync(base64ToBytes(TEMPLATE_B64));
+  let xml = await zip.file("word/document.xml").async("string");
+
+  const interpreteAnnee = [entry.interprete, entry.annee].filter(Boolean).join(", ");
+
+  const applyTokens = (str) => {
+    str = str.split("@@TITRE@@").join(escXml(entry.titre));
+    str = str.split("@@INTERPRETE_ANNEE@@").join(escXml(interpreteAnnee || "—"));
+    str = str.split("@@AUTEURS@@").join(escXml(entry.auteurs || "—"));
+    str = str.split("@@TON_ORIGINE@@").join(escXml(entry.tonOrigine || "—"));
+    str = str.split("@@TON_CHOISIE@@").join(escXml(entry.tonChoisie || "—"));
+    return str;
+  };
+
+  xml = applyTokens(xml);
+
+  const sectionsXml = (entry.sections || []).map(sec => {
+    const labelP = `<w:p><w:pPr><w:spacing w:after="40" w:before="360"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/><w:color w:val="000000"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:shd w:fill="ADD8E6" w:val="clear"/></w:rPr><w:t xml:space="preserve">[${escXml(sec.label || "Section")}]</w:t></w:r></w:p>`;
+    const lines = (sec.lyrics || "").split("\n");
+    const runs = lines.map(l => `<w:t xml:space="preserve">${escXml(l)}</w:t>`).join("<w:br/>");
+    const lyricsP = `<w:p><w:pPr><w:spacing w:after="0" w:line="288" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr>${runs}</w:r></w:p>`;
+    return labelP + lyricsP;
+  }).join("");
+
+  xml = xml.replace(MARKER_XML, sectionsXml);
+  zip.file("word/document.xml", xml);
+
+  // Le titre et la pagination du pied de page vivent dans des fichiers XML séparés
+  // (word/footer1.xml, footer2.xml, ...) — on y applique les mêmes jetons.
+  const footerFiles = Object.keys(zip.files).filter(name => /^word\/footer\d*\.xml$/.test(name));
+  for (const fname of footerFiles) {
+    let fxml = await zip.file(fname).async("string");
+    fxml = applyTokens(fxml);
+    zip.file(fname, fxml);
+  }
+
+  const content = await zip.generateAsync({ type: "blob" });
+  return new Blob([content], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+}function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+}function buildFileName(entry){
+  const t = sanitizeFileName(entry.titre) || "Sans titre";
+  const i = sanitizeFileName(entry.interprete) || "Interprete";
+  return `${t} - ${i} - ${entry.typeFichier}.docx`;
+}
+/* ---------------- Session ---------------- */
+let session = null; // {type:'eleve', groupe:'Groupe 1'} ou {type:'admin'}
+let groupesConfig = {}; // { "Groupe 1": {code:"1234"}, ... }
+let adminConfig = null; // {code:"..."} ou null si jamais configuré
+
+async function storageGet(key){
+  try { const r = await window.storage.get(key, true); return r && r.value ? JSON.parse(r.value) : null; }
+  catch(e){ return null; }
+}
+async function storageSet(key, obj){
+  try { await window.storage.set(key, JSON.stringify(obj), true); return true; }
+  catch(e){ console.error(e); return false; }
+}
+
+function showToast(msg, isError){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (isError ? " error" : "");
+  setTimeout(() => { t.className = "toast"; }, 3600);
+}
+
+/* ---------------- Fenêtre modale maison (remplace prompt()/confirm() natifs,
+   souvent bloqués silencieusement dans les aperçus/iframes) ---------------- */
+let modalResolve = null;
+let modalMode = "none"; // "none" | "text" | "long"
+function showModal(message, mode, defaultValue){
+  document.getElementById("modal-message").textContent = message;
+  const inputWrap = document.getElementById("modal-input-wrap");
+  const input = document.getElementById("modal-input");
+  const textarea = document.getElementById("modal-textarea");
+  modalMode = mode;
+  if (mode === "text"){
+    inputWrap.classList.remove("hidden");
+    input.classList.remove("hidden");
+    textarea.classList.add("hidden");
+    input.value = defaultValue || "";
+  } else if (mode === "long"){
+    inputWrap.classList.remove("hidden");
+    input.classList.add("hidden");
+    textarea.classList.remove("hidden");
+    textarea.value = defaultValue || "";
+  } else {
+    inputWrap.classList.add("hidden");
+  }
+  document.getElementById("modal-overlay").classList.remove("hidden");
+  if (mode === "text") setTimeout(() => input.focus(), 30);
+  if (mode === "long") setTimeout(() => textarea.focus(), 30);
+  return new Promise(resolve => { modalResolve = resolve; });
+}
+function closeModal(result){
+  document.getElementById("modal-overlay").classList.add("hidden");
+  if (modalResolve){ modalResolve(result); modalResolve = null; }
+}
+function customPrompt(message, defaultValue){
+  return showModal(message, "text", defaultValue);
+}
+function customPromptLong(message, defaultValue){
+  return showModal(message, "long", defaultValue);
+}
+function customConfirm(message){
+  return showModal(message, "none").then(r => r === true);
+}
+document.getElementById("modal-ok-btn").addEventListener("click", () => {
+  if (modalMode === "text") closeModal(document.getElementById("modal-input").value);
+  else if (modalMode === "long") closeModal(document.getElementById("modal-textarea").value);
+  else closeModal(true);
+});
+document.getElementById("modal-cancel-btn").addEventListener("click", () => closeModal(null));
+document.getElementById("modal-overlay").addEventListener("click", (e) => { if (e.target.id === "modal-overlay") closeModal(null); });
+document.getElementById("modal-input").addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); document.getElementById("modal-ok-btn").click(); } });
+
+/* ---------------- Chargement config au démarrage ---------------- */
+async function loadGateConfig(){
+  groupesConfig = (await storageGet("config:groupes")) || {};
+  adminConfig = await storageGet("config:admin");
+
+  const sel = document.getElementById("gate-groupe");
+  const names = Object.keys(groupesConfig).sort();
+  sel.innerHTML = '<option value="">— Choisir —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
+
+  const hasGroups = names.length > 0;
+  document.getElementById("gate-eleve-normal").classList.toggle("hidden", !hasGroups);
+  document.getElementById("gate-eleve-empty").classList.toggle("hidden", hasGroups);
+
+  const firstRun = !adminConfig;
+  document.getElementById("gate-admin-first").classList.toggle("hidden", !firstRun);
+  document.getElementById("gate-admin-normal").classList.toggle("hidden", firstRun);
+}
+
+document.getElementById("gate-eleve-btn").addEventListener("click", () => {
+  const groupe = document.getElementById("gate-groupe").value;
+  const code = document.getElementById("gate-code-eleve").value;
+  const errEl = document.getElementById("gate-eleve-err");
+  if (!groupe){ errEl.textContent = "Choisissez votre groupe."; return; }
+  const cfg = groupesConfig[groupe];
+  if (!cfg){ errEl.textContent = "Groupe introuvable."; return; }
+  if (cfg.codeAssistant && code === cfg.codeAssistant){
+    errEl.textContent = "";
+    session = { type: "assistant", groupe };
+    enterApp();
+    return;
+  }
+  if (cfg.code !== code){
+    errEl.textContent = "Code de groupe incorrect.";
+    return;
+  }
+  errEl.textContent = "";
+  session = { type: "eleve", groupe };
+  enterApp();
+});
+
+document.getElementById("gate-admin-create-btn").addEventListener("click", async () => {
+  const code = document.getElementById("gate-code-admin-new").value;
+  const errEl = document.getElementById("gate-admin-err");
+  if (!code || code.length < 4){ errEl.textContent = "Le code doit contenir au moins 4 caractères."; return; }
+  const ok = await storageSet("config:admin", { code });
+  if (!ok){ errEl.textContent = "Erreur lors de la création du code. Réessayez."; return; }
+  adminConfig = { code };
+  errEl.textContent = "";
+  session = { type: "admin" };
+  enterApp();
+});
+
+document.getElementById("gate-admin-btn").addEventListener("click", () => {
+  const code = document.getElementById("gate-code-admin").value;
+  const errEl = document.getElementById("gate-admin-err");
+  if (!adminConfig || adminConfig.code !== code){
+    errEl.textContent = "Code administrateur incorrect.";
+    return;
+  }
+  errEl.textContent = "";
+  session = { type: "admin" };
+  enterApp();
+});
+
+document.getElementById("change-access-btn").addEventListener("click", () => {
+  session = null;
+  document.getElementById("main-app").classList.add("hidden");
+  document.getElementById("gate-screen").classList.remove("hidden");
+  document.getElementById("gate-code-eleve").value = "";
+  document.getElementById("gate-code-admin").value = "";
+  document.getElementById("gate-eleve-err").textContent = "";
+  document.getElementById("gate-admin-err").textContent = "";
+  loadGateConfig();
+});
+
+/* ---------------- Entrée dans l'application ---------------- */
+function buildTabsForSession(){
+  const tabs = document.getElementById("main-tabs");
+  tabs.innerHTML = "";
+  const defs = (session.type === "eleve" || session.type === "assistant")
+    ? [["form","Nouvelle fiche"],["mygroup","Mon répertoire"]]
+    : [["admin","Administration"],["inventory","Vue d'ensemble"]];
+  defs.forEach(([key, label], i) => {
+    const btn = document.createElement("button");
+    btn.className = "tab-btn" + (i === 0 ? " active" : "");
+    btn.dataset.tab = key;
+    btn.textContent = label;
+    btn.addEventListener("click", () => activateTab(key));
+    tabs.appendChild(btn);
+  });
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("panel-" + defs[0][0]).classList.add("active");
+}
+
+function activateTab(key){
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === key));
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("panel-" + key).classList.add("active");
+  if (key === "mygroup") loadMyGroupPanel();
+  if (key === "inventory") loadInventory();
+  if (key === "admin") loadAdminPanel();
+}
+
+function enterApp(){
+  document.getElementById("gate-screen").classList.add("hidden");
+  document.getElementById("main-app").classList.remove("hidden");
+  const label = document.getElementById("session-label");
+  if (session.type === "eleve" || session.type === "assistant"){
+    label.innerHTML = `Groupe : <strong>${escXml(session.groupe)}</strong>` + (session.type === "assistant" ? ' <span style="opacity:.65;">(assistant·e)</span>' : "");
+    document.getElementById("groupeAffiche").value = session.groupe;
+  } else {
+    label.innerHTML = `Mode <strong>administration</strong>`;
+  }
+  buildTabsForSession();
+  if (session.type === "eleve" || session.type === "assistant"){ renderSections(); updatePreview(); }
+  else { loadAdminPanel(); }
+}
+
+/* ---------------- État du formulaire (sections de paroles) ---------------- */
+let sections = [
+  { id: genId(), label: "Couplet 1", lyrics: "" },
+  { id: genId(), label: "Refrain", lyrics: "" }
+];
+
+const els = {
+  titre: document.getElementById("titre"),
+  interprete: document.getElementById("interprete"),
+  annee: document.getElementById("annee"),
+  paroliers: document.getElementById("paroliers"),
+  compositeurs: document.getElementById("compositeurs"),
+  tonOrigine: document.getElementById("tonOrigine"),
+  tonChoisie: document.getElementById("tonChoisie"),
+  lienChante: document.getElementById("lienChante"),
+  lienAccompagnement: document.getElementById("lienAccompagnement"),
+  proposePar: document.getElementById("proposePar"),
+  raisonChoix: document.getElementById("raisonChoix"),
+  soloCheckbox: document.getElementById("soloCheckbox"),
+  statutTrame: document.getElementById("statutTrame"),
+  statutPartition: document.getElementById("statutPartition"),
+  bpmOriginal: document.getElementById("bpmOriginal"),
+  bpmChoisi: document.getElementById("bpmChoisi"),
+  eleve: document.getElementById("eleve"),
+};
+
+function renderSections(){
+  const list = document.getElementById("sections-list");
+  list.innerHTML = "";
+  sections.forEach((sec) => {
+    const card = document.createElement("div");
+    card.className = "section-card";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "remove-section";
+    removeBtn.type = "button";
+    removeBtn.title = "Retirer cette section";
+    removeBtn.innerHTML = "&times;";
+    removeBtn.onclick = () => { sections = sections.filter(s => s.id !== sec.id); renderSections(); updatePreview(); };
+    if (sections.length <= 1) removeBtn.style.display = "none";
+    card.appendChild(removeBtn);
+
+    const labelInput = document.createElement("input");
+    labelInput.className = "chip-input";
+    labelInput.value = sec.label;
+    labelInput.placeholder = "Nom de la section";
+    labelInput.oninput = (e) => { sec.label = e.target.value; updatePreview(); };
+    card.appendChild(labelInput);
+
+    const chipsRow = document.createElement("div");
+    chipsRow.className = "chips";
+    ["Couplet","Pré-refrain","Refrain","Post-refrain","Pont","Intro","Outro","Solo","Interlude","Verse","Chorus","Pre-chorus","Bridge"].forEach(type => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip-suggest";
+      chip.textContent = type;
+      chip.onclick = () => {
+        const countSame = sections.filter(s => s.label.toLowerCase().startsWith(type.toLowerCase())).length;
+        const needsNumber = (type === "Couplet" || type === "Refrain" || type === "Verse" || type === "Chorus");
+        sec.label = needsNumber ? `${type} ${countSame + (sec.label.toLowerCase().startsWith(type.toLowerCase()) ? 0 : 1)}` : type;
+        renderSections(); updatePreview();
+      };
+      chipsRow.appendChild(chip);
+    });
+    card.appendChild(chipsRow);
+
+    const textarea = document.createElement("textarea");
+    textarea.placeholder = "Collez ou tapez les paroles de cette section ici...";
+    textarea.value = sec.lyrics;
+    textarea.oninput = (e) => { sec.lyrics = e.target.value; updatePreview(); };
+    card.appendChild(textarea);
+
+    list.appendChild(card);
+  });
+}
+
+document.getElementById("add-section-btn").addEventListener("click", () => {
+  sections.push({ id: genId(), label: "", lyrics: "" });
+  renderSections();
+  updatePreview();
+  const cards = document.querySelectorAll(".section-card");
+  const last = cards[cards.length - 1];
+  if (last) last.querySelector(".chip-input").focus();
+});
+
+/* ---------------- Aperçu en direct ---------------- */
+function updatePreview(){
+  const box = document.getElementById("preview-doc");
+  const titre = els.titre.value.trim();
+  const interprete = els.interprete.value.trim();
+
+  if (!titre && !interprete && sections.every(s => !s.lyrics.trim())) {
+    box.innerHTML = "<div class=\"preview-empty\">L'aperçu de votre fiche apparaîtra ici au fur et à mesure que vous la remplissez.</div>";
+    return;
+  }
+
+  let html = "";
+  html += `<div class="preview-title">${escXml(titre) || "[Titre de la chanson]"}</div>`;
+  const meta1 = [interprete, els.annee.value.trim()].filter(Boolean).join(", ");
+  if (meta1) html += `<div class="preview-meta">${escXml(meta1)}</div>`;
+  const parolStr = els.paroliers.value.trim();
+  const compoStr = els.compositeurs.value.trim();
+  const auteursDisplay = (parolStr || compoStr) ? `${parolStr || "—"} / ${compoStr || "—"}` : "—";
+  html += `<div class="preview-meta">Paroles et musique : ${escXml(auteursDisplay)}</div>`;
+  html += `<div class="preview-meta">Tonalité d'origine : ${escXml(els.tonOrigine.value.trim() || "—")}&nbsp;&nbsp;&nbsp;&nbsp;Tonalité choisie : ${escXml(els.tonChoisie.value.trim() || "—")}</div>`;
+
+  sections.forEach(sec => {
+    if (!sec.label && !sec.lyrics.trim()) return;
+    html += `<div class="preview-chip">[${escXml(sec.label || "Section")}]</div>`;
+    html += `<div class="preview-lyrics">${escXml(sec.lyrics.trim() || "…")}</div>`;
+  });
+
+  box.innerHTML = html;
+}
+Object.values(els).forEach(el => el.addEventListener("input", updatePreview));
+
+/* ---------------- Validation + soumission ---------------- */
+function validateForm(){
+  let ok = true;
+  [["f-titre",els.titre],["f-interprete",els.interprete],["f-eleve",els.eleve],["f-annee",els.annee],["f-paroliers",els.paroliers],["f-compositeurs",els.compositeurs],["f-proposePar",els.proposePar],["f-raisonChoix",els.raisonChoix]].forEach(([fid, el]) => {
+    const wrap = document.getElementById(fid);
+    if (!el.value.trim()) { wrap.classList.add("invalid"); ok = false; }
+    else wrap.classList.remove("invalid");
+  });
+  return ok;
+}
+
+document.getElementById("submit-btn").addEventListener("click", async () => {
+  if (!validateForm()){
+    showToast("Veuillez remplir les champs obligatoires (*).", true);
+    return;
+  }
+  const btn = document.getElementById("submit-btn");
+  const status = document.getElementById("submit-status");
+  btn.disabled = true;
+  status.textContent = "Génération en cours…";
+
+  const entry = {
+    id: genId(),
+    titre: els.titre.value.trim(),
+    interprete: els.interprete.value.trim(),
+    annee: els.annee.value.trim(),
+    paroliers: els.paroliers.value.trim(),
+    compositeurs: els.compositeurs.value.trim(),
+    tonOrigine: els.tonOrigine.value.trim(),
+    tonChoisie: els.tonChoisie.value.trim(),
+    eleve: els.eleve.value.trim(),
+    groupe: session.groupe,
+    lienChante: els.lienChante.value.trim(),
+    lienAccompagnement: els.lienAccompagnement.value.trim(),
+    lienPartition: "",
+    proposePar: els.proposePar.value.trim(),
+    raisonChoix: els.raisonChoix.value.trim(),
+    visee: els.soloCheckbox.checked ? "Solo ou duo, hors cours" : "",
+    statutParoles: "Fait",
+    statutTrame: els.statutTrame.value,
+    statutPartition: els.statutPartition.value,
+    bpmOriginal: els.bpmOriginal.value.trim(),
+    bpmChoisi: els.bpmChoisi.value.trim(),
+    sections: sections.map(s => ({ label: s.label, lyrics: s.lyrics })),
+    typeFichier: "Paroles",
+    dateAjout: new Date().toISOString(),
+  };
+  entry.auteurs = (entry.paroliers || entry.compositeurs) ? `${entry.paroliers || "—"} / ${entry.compositeurs || "—"}` : "";
+  entry.nomFichier = buildFileName(entry);
+
+  try {
+    const blob = await generateDocxBlob(entry);
+    downloadBlob(blob, entry.nomFichier);
+
+    const saved = await storageSet("chanson:" + entry.id, entry);
+    showToast(saved ? "Fiche générée et ajoutée au répertoire ✓" : "Fiche générée, mais l'ajout au répertoire a échoué.", !saved);
+
+    els.titre.value = ""; els.interprete.value = ""; els.annee.value = "";
+    els.paroliers.value = ""; els.compositeurs.value = ""; els.tonOrigine.value = ""; els.tonChoisie.value = "";
+    els.lienChante.value = ""; els.lienAccompagnement.value = "";
+    els.proposePar.value = ""; els.raisonChoix.value = ""; els.soloCheckbox.checked = false;
+    els.statutTrame.value = ""; els.statutPartition.value = "";
+    els.bpmOriginal.value = ""; els.bpmChoisi.value = "";
+    sections = [{ id: genId(), label: "Couplet 1", lyrics: "" }, { id: genId(), label: "Refrain", lyrics: "" }];
+    renderSections();
+    updatePreview();
+  } catch(e){
+    console.error(e);
+    showToast("Une erreur est survenue lors de la génération du document.", true);
+  } finally {
+    btn.disabled = false;
+    status.textContent = "";
+  }
+});
+
+/* ---------------- Répertoire de mon groupe (élève) ---------------- */
+let myGroupEntries = [];
+let myGroupVoteNames = [];
+
+function bindVoteAddName(){
+  const btn = document.getElementById("vote-add-name-btn");
+  const input = document.getElementById("vote-new-name");
+  if (!btn || !input) return;
+  const addName = async () => {
+    const name = input.value.trim();
+    if (!name){ showToast("Entrez votre prénom.", true); return; }
+    if (myGroupVoteNames.some(n => n.toLowerCase() === name.toLowerCase())){
+      showToast("Ce nom est déjà dans le classement.", true);
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const updated = myGroupVoteNames.concat([name]);
+      const ok = await storageSet("voteNames:" + safeKeyPart(session.groupe), updated);
+      if (ok) {
+        myGroupVoteNames = updated;
+        showToast(`« ${name} » ajouté ✓`);
+        await loadMyGroupChansons();
+      } else {
+        showToast("Erreur lors de l'ajout. Réessayez.", true);
+      }
+    } catch(e){
+      console.error(e);
+      showToast("Erreur lors de l'ajout. Réessayez.", true);
+    } finally {
+      btn.disabled = false;
+    }
+  };
+  btn.addEventListener("click", addName);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); addName(); } });
+}
+
+async function loadMyGroupPanel(){
+  document.getElementById("mygroup-title").textContent = "Répertoire de " + session.groupe;
+  await Promise.all([loadMyGroupChansons(), loadMyGroupHoraire(), loadCoordList()]);
+}
+
+async function loadMyGroupChansons(){
+  const wrap = document.getElementById("mygroup-chansons-wrap");
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const listRes = await window.storage.list("chanson:", true);
+    const keys = (listRes && listRes.keys) || [];
+    const entries = [];
+    for (const k of keys) {
+      const e = await storageGet(k);
+      if (e && e.groupe === session.groupe) entries.push(e);
+    }
+    myGroupEntries = entries;
+    myGroupVoteNames = (await storageGet("voteNames:" + safeKeyPart(session.groupe))) || [];
+
+    const addNameRow = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+      <input id="vote-new-name" type="text" placeholder="Votre prénom (pour classer vos choix)" style="max-width:260px;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;">
+      <button class="btn btn-ghost btn-sm" id="vote-add-name-btn" type="button">Ajouter mon nom au classement</button>
+    </div>`;
+
+    const voteInstruction = myGroupVoteNames.length ? `<div class="note">Attribue un pointage à cette chanson, entre 0 et 5, selon ton intérêt personnel à y participer comme chanteur. (0 = aucun intérêt et 5 = Je veux absolument la chanter)</div>` : "";
+
+    if (!entries.length){
+      wrap.innerHTML = addNameRow + '<div class="empty-state"><strong>Aucune chanson pour l\u2019instant</strong>Les fiches soumises par votre groupe apparaîtront ici.</div>';
+      bindVoteAddName();
+      return;
+    }
+
+    const voteTip = "Pointage entre 0 et 5 : 0 = aucun intérêt, 5 = je veux absolument la chanter.";
+    const totalOf = (e) => {
+      if (!myGroupVoteNames.some(n => e.votes && e.votes[n] != null)) return "—";
+      return myGroupVoteNames.reduce((sum, n) => sum + (Number(e.votes && e.votes[n]) || 0), 0);
+    };
+    const statusOptions = ["", "À trouver", "Version préliminaire soumise", "Confirmée"];
+    const linkCell = (e, field, label) => `<span data-linkcell="${field}-${e.id}">${e[field] ? `<a href="${escXml(e[field])}" target="_blank" rel="noopener">${label}</a>` : '<span style="color:var(--ink-soft);">—</span>'}</span> <button class="link-btn" data-editfield="${field}" data-edit-id="${e.id}" title="Modifier le lien">✎</button>`;
+    const textCell = (e, field, width, placeholder) => `<input type="text" placeholder="${placeholder||""}" style="width:${width||90}px;padding:5px 6px;border:1px solid var(--border);border-radius:5px;" data-editfield-text="${field}" data-edit-id="${e.id}" value="${escXml(e[field] || "")}">`;
+    const selectCell = (e, field, options) => `<select data-editfield-select="${field}" data-edit-id="${e.id}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${(options||statusOptions).map(o => `<option value="${escXml(o)}" ${e[field] === o ? "selected" : ""}>${o || "— Non déterminé —"}</option>`).join("")}</select>`;
+    const raisonCell = (e) => `<button class="btn btn-ghost btn-sm" data-raison-id="${e.id}">📝 ${e.raisonChoix ? "Voir/modifier" : "Ajouter"}</button>`;
+
+    const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi"]
+      .concat(myGroupVoteNames)
+      .concat(myGroupVoteNames.length ? ["Total intérêt"] : [])
+      .concat(["Proposée par","Raison du choix","Chantée en classe par","Statut","","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"]);
+
+    const sections = groupEntriesByVisee(entries);
+    const rowHtml = (e) => `<tr>
+        <td class="col-sticky">${escXml(e.titre)}</td>
+        <td>${linkCell(e, "lienChante", "Version chantée")}</td>
+        <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
+        <td>${selectCell(e, "statutTrame")}</td>
+        <td>${textCell(e, "interprete", 110)}</td>
+        <td>${textCell(e, "paroliers", 110)}</td>
+        <td>${textCell(e, "compositeurs", 110)}</td>
+        <td>${textCell(e, "annee", 70)}</td>
+        <td>${textCell(e, "tonOrigine", 100)}</td>
+        <td>${textCell(e, "tonChoisie", 100)}</td>
+        <td>${textCell(e, "bpmOriginal", 70)}</td>
+        <td>${textCell(e, "bpmChoisi", 70)}</td>
+        ${myGroupVoteNames.map(n => `<td class="col-vote"><input type="number" min="0" max="5" title="${escXml(voteTip)}" style="width:52px;padding:5px 6px;border:1px solid var(--border);border-radius:5px;" data-vote-id="${e.id}" data-vote-name="${escXml(n)}" value="${(e.votes && e.votes[n] != null) ? e.votes[n] : ""}"></td>`).join("")}
+        ${myGroupVoteNames.length ? `<td class="col-vote"><strong data-total-id="${e.id}">${totalOf(e)}</strong></td>` : ""}
+        <td>${textCell(e, "proposePar", 100)}</td>
+        <td>${raisonCell(e)}</td>
+        <td>${textCell(e, "chanteePar", 120, "Ex. Tous ou Nom des élèves impliqués")}</td>
+        <td><span class="badge-paroles">Paroles: ${escXml(e.statutParoles||"Fait")}</span></td>
+        <td><button class="btn btn-ghost btn-sm" data-dl="${e.id}">Télécharger</button></td>
+        <td>${linkCell(e, "lienPartition", "Partition")}</td>
+        <td>${selectCell(e, "statutPartition")}</td>
+        <td>${selectCell(e, "visee", VISEE_OPTIONS)}</td>
+        <td>${e.dateAjout ? new Date(e.dateAjout).toLocaleDateString('fr-CA') : "—"}</td>
+        <td data-maj-id="${e.id}">${fmtDateTime(e.dateMaj)}</td>
+      </tr>`;
+
+    const bodyHtml = sections.map(sec => `${sectionBannerRow(sec.label, headers.length)}${sec.entries.map(rowHtml).join("")}`).join("");
+
+    wrap.innerHTML = addNameRow + voteInstruction + `<table class="tight"><thead><tr>
+      ${headers.map((h, hi) => {
+        const isVoteCol = hi >= 12 && hi < 12 + myGroupVoteNames.length + (myGroupVoteNames.length ? 1 : 0);
+        return `<th class="${hi === 0 ? "col-sticky" : (isVoteCol ? "col-vote" : "")}">${escXml(h)}</th>`;
+      }).join("")}
+    </tr></thead><tbody>${bodyHtml}</tbody></table>`;
+
+    wrap.querySelectorAll("[data-dl]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const entry = myGroupEntries.find(e => e.id === btn.dataset.dl);
+        if (!entry) return;
+        try { downloadBlob(await generateDocxBlob(entry), entry.nomFichier || buildFileName(entry)); }
+        catch(e){ showToast("Erreur lors de la génération du fichier.", true); }
+      });
+    });
+    wrap.querySelectorAll("[data-raison-id]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const entry = myGroupEntries.find(e => e.id === btn.dataset.raisonId);
+        if (!entry) return;
+        const val = await customPromptLong(`Raison du choix — « ${entry.titre} »`, entry.raisonChoix || "");
+        if (val === null) return;
+        entry.raisonChoix = val.trim();
+        entry.dateMaj = new Date().toISOString();
+        const ok = await storageSet("chanson:" + entry.id, entry);
+        if (ok){ showToast("Raison du choix mise à jour ✓"); loadMyGroupChansons(); }
+        else showToast("Erreur lors de la mise à jour.", true);
+      });
+    });
+
+    const linkLabels = { lienChante: "Lien YouTube — version chantée :", lienAccompagnement: "Lien YouTube — version d'accompagnement / karaoké :", lienPartition: "Lien vers la partition :" };
+    const linkDisplay = { lienChante: "Version chantée", lienAccompagnement: "Accompagnement", lienPartition: "Partition" };
+    wrap.querySelectorAll("[data-editfield]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const field = btn.dataset.editfield, id = btn.dataset.editId;
+        const entry = myGroupEntries.find(e => e.id === id);
+        if (!entry) return;
+        const val = await customPrompt(linkLabels[field], entry[field] || "");
+        if (val === null) return;
+        entry[field] = val.trim();
+        entry.dateMaj = new Date().toISOString();
+        const ok = await storageSet("chanson:" + entry.id, entry);
+        if (!ok){ showToast("Erreur lors de la mise à jour.", true); return; }
+        showToast("Lien mis à jour ✓");
+        const cell = wrap.querySelector(`[data-linkcell="${field}-${id}"]`);
+        if (cell) cell.innerHTML = entry[field] ? `<a href="${escXml(entry[field])}" target="_blank" rel="noopener">${linkDisplay[field]}</a>` : '<span style="color:var(--ink-soft);">—</span>';
+        const majCell = wrap.querySelector(`[data-maj-id="${id}"]`);
+        if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj);
+      });
+    });
+    wrap.querySelectorAll("[data-editfield-text]").forEach(inp => {
+      inp.addEventListener("change", async () => {
+        const field = inp.dataset.editfieldText, id = inp.dataset.editId;
+        const entry = myGroupEntries.find(e => e.id === id);
+        if (!entry) return;
+        entry[field] = inp.value.trim();
+        entry.dateMaj = new Date().toISOString();
+        const ok = await storageSet("chanson:" + entry.id, entry);
+        if (ok){ const majCell = wrap.querySelector(`[data-maj-id="${id}"]`); if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj); }
+        else showToast("Erreur lors de l'enregistrement.", true);
+      });
+    });
+    wrap.querySelectorAll("[data-editfield-select]").forEach(sel => {
+      sel.addEventListener("change", async () => {
+        const field = sel.dataset.editfieldSelect, id = sel.dataset.editId;
+        const entry = myGroupEntries.find(e => e.id === id);
+        if (!entry) return;
+        entry[field] = sel.value;
+        entry.dateMaj = new Date().toISOString();
+        const ok = await storageSet("chanson:" + entry.id, entry);
+        if (!ok){ showToast("Erreur lors de la mise à jour.", true); return; }
+        if (field === "visee"){ loadMyGroupChansons(); return; }
+        const majCell = wrap.querySelector(`[data-maj-id="${id}"]`);
+        if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj);
+      });
+    });
+    wrap.querySelectorAll("[data-vote-id]").forEach(inp => {
+      inp.addEventListener("change", async () => {
+        const entry = myGroupEntries.find(e => e.id === inp.dataset.voteId);
+        if (!entry) return;
+        let val = inp.value.trim();
+        if (val !== "" && (Number(val) < 0 || Number(val) > 5)){
+          showToast("Le pointage doit être entre 0 et 5.", true);
+          val = "";
+          inp.value = "";
+        }
+        entry.votes = entry.votes || {};
+        if (val === "") delete entry.votes[inp.dataset.voteName];
+        else entry.votes[inp.dataset.voteName] = Number(val);
+        entry.dateMaj = new Date().toISOString();
+        const totalCell = wrap.querySelector(`[data-total-id="${entry.id}"]`);
+        if (totalCell) totalCell.textContent = totalOf(entry);
+        const majCell = wrap.querySelector(`[data-maj-id="${entry.id}"]`);
+        if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj);
+        const ok = await storageSet("chanson:" + entry.id, entry);
+        if (!ok) showToast("Erreur lors de l'enregistrement du classement.", true);
+      });
+    });
+    bindVoteAddName();
+
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<div class="empty-state"><strong>Impossible de charger</strong>Réessayez plus tard.</div>';
+  }
+}
+
+/* ---------------- Horaire : séances flexibles (blocs → lignes) ---------------- */
+const JOURS_SEMAINE = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+
+/* ---- Charte de permissions (configurable en Administration) ---- */
+const DEFAULT_PERMISSIONS = {
+  seance_date:            { eleve: false, assistant: true },
+  bloc_ajouter_retirer:   { eleve: false, assistant: true },
+  bloc_heure:             { eleve: false, assistant: true },
+  bloc_deplacer:          { eleve: false, assistant: true },
+  ligne_ajouter_retirer:  { eleve: false, assistant: true },
+  ligne_qui:              { eleve: true,  assistant: true },
+  ligne_activite:         { eleve: true,  assistant: true },
+  serie_generer:          { eleve: false, assistant: true },
+  serie_supprimer:        { eleve: false, assistant: true },
+  suivi_admin_ajouter:    { eleve: true,  assistant: true },
+  suivi_admin_cocher:     { eleve: false, assistant: true },
+  suivi_progres:          { eleve: true,  assistant: true },
+  suivi_pedagogique:      { eleve: true,  assistant: true },
+  absences_gerer:         { eleve: true,  assistant: true },
+  rappel_envoyer:         { eleve: true,  assistant: true },
+  rappel_gerer:           { eleve: false, assistant: true },
+};
+const PERMISSION_LABELS = {
+  seance_date: "Date de la séance",
+  bloc_ajouter_retirer: "Ajouter / retirer un bloc",
+  bloc_heure: "Heure de début / fin d'un bloc",
+  bloc_deplacer: "Déplacer un bloc vers une autre séance",
+  ligne_ajouter_retirer: "Ajouter / retirer une ligne",
+  ligne_qui: "« Qui? » de la ligne",
+  ligne_activite: "« Chanson/activité » de la ligne",
+  serie_generer: "Générer une série récurrente",
+  serie_supprimer: "Supprimer une séance / gérer la série",
+  suivi_admin_ajouter: "Ajouter une tâche « Suivi admin. »",
+  suivi_admin_cocher: "Cocher un « Suivi admin. » comme traité",
+  suivi_progres: "Notions abordées / progrès réalisés",
+  suivi_pedagogique: "Objectifs prochaine séance",
+  absences_gerer: "S'inscrire / se retirer des absences",
+  rappel_envoyer: "Envoyer un rappel",
+  rappel_gerer: "Cocher / supprimer un rappel",
+};
+let permissionsConfig = {};
+async function loadPermissionsConfig(){
+  const stored = await storageGet("config:permissions");
+  permissionsConfig = Object.assign({}, DEFAULT_PERMISSIONS, stored || {});
+}
+function hasPerm(key, role){
+  if (role === "admin") return true;
+  const p = permissionsConfig[key] || DEFAULT_PERMISSIONS[key] || { eleve: false, assistant: true };
+  return role === "assistant" ? !!p.assistant : !!p.eleve;
+}
+function roleFromSession(){
+  if (!session) return "eleve";
+  return session.type === "admin" ? "admin" : session.type === "assistant" ? "assistant" : "eleve";
+}
+const SUIVI_KEYS = new Set(["suivi_admin_ajouter","suivi_admin_cocher","suivi_progres","suivi_pedagogique"]);
+function buildHoraireCtx(role, contenuVisible){
+  return {
+    role,
+    visible(key){
+      if (role === "eleve" && !contenuVisible && SUIVI_KEYS.has(key)) return false;
+      return true;
+    },
+    can(key){
+      if (!this.visible(key)) return false;
+      return hasPerm(key, role);
+    },
+  };
+}
+
+function fmtDateFr(iso){
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return iso;
+  return `${JOURS_SEMAINE[d.getDay()]} ${d.toLocaleDateString('fr-CA')}`;
+}
+function computeEndTime(heureDebut, dureeMin){
+  const [h, m] = (heureDebut || "19:00").split(":").map(Number);
+  const total = h * 60 + m + (Number(dureeMin) || 0);
+  const hh = Math.floor((total % (24*60)) / 60);
+  const mm = total % 60;
+  return String(hh).padStart(2,"0") + ":" + String(mm).padStart(2,"0");
+}
+function newLigne(){
+  return { id: genId(), activite: "", qui: "", suiviAdmin: [], suiviProgres: "", suiviPedagogique: "" };
+}
+function newBloc(){
+  return { id: genId(), heureDebut: "", heureFin: "", lignes: [newLigne()] };
+}
+function newSeance(groupe, date, seriesId){
+  return { id: genId(), groupe, date: date || "", seriesId: seriesId || null, dateMaj: null, absences: [], blocs: [newBloc()] };
+}
+function newTache(texte){
+  return { id: genId(), texte, traite: false, masque: false };
+}
+
+/* Normalisation défensive : migre en mémoire les anciennes séances (format
+   bloc.sousGroupes / bloc.activite) vers le nouveau format (bloc.lignes),
+   pour éviter qu'une vieille donnée fasse planter tout le chargement. */
+function normalizeLigne(l){
+  l = l || {};
+  let suiviAdmin = l.suiviAdmin;
+  if (!Array.isArray(suiviAdmin)){
+    suiviAdmin = suiviAdmin ? [{ id: genId(), texte: String(suiviAdmin), traite: false, masque: false }] : [];
+  }
+  return {
+    id: l.id || genId(),
+    activite: l.activite || "",
+    qui: l.qui || l.nom || "",
+    suiviAdmin,
+    suiviProgres: l.suiviProgres || "",
+    suiviPedagogique: l.suiviPedagogique || "",
+  };
+}
+function normalizeBloc(b){
+  b = b || {};
+  let lignes;
+  if (Array.isArray(b.lignes) && b.lignes.length){
+    lignes = b.lignes.map(normalizeLigne);
+  } else if (Array.isArray(b.sousGroupes) && b.sousGroupes.length){
+    lignes = b.sousGroupes.map(normalizeLigne);
+  } else if (b.activite || b.suiviAdmin || b.suiviProgres || b.suiviPedagogique){
+    lignes = [normalizeLigne({ activite: b.activite, suiviAdmin: b.suiviAdmin, suiviProgres: b.suiviProgres, suiviPedagogique: b.suiviPedagogique })];
+  } else {
+    lignes = [newLigne()];
+  }
+  return { id: b.id || genId(), heureDebut: b.heureDebut || "", heureFin: b.heureFin || "", lignes };
+}
+function normalizeSeance(s){
+  return Object.assign({}, s, {
+    blocs: (Array.isArray(s.blocs) && s.blocs.length) ? s.blocs.map(normalizeBloc) : [newBloc()],
+    absences: Array.isArray(s.absences) ? s.absences : [],
+  });
+}
+
+function tacheListHtml(seance, ligne, ctx){
+  if (!ctx.visible("suivi_admin_ajouter")) return `<div style="font-size:12px;color:var(--ink-soft);">—</div>`;
+  const items = (ligne.suiviAdmin || []).filter(t => !t.masque);
+  const canCheck = ctx.can("suivi_admin_cocher");
+  const canAdd = ctx.can("suivi_admin_ajouter");
+  const itemsHtml = items.map(t => `
+    <div class="tache-item ${t.traite ? "done" : ""}">
+      <input type="checkbox" ${t.traite ? "checked" : ""} ${canCheck ? "" : "disabled"} data-tache-check="${t.id}" data-seance="${seance.id}" data-ligne="${ligne.id}">
+      <span>${escXml(t.texte)}</span>
+      ${canAdd ? `<button data-tache-del="${t.id}" data-seance="${seance.id}" data-ligne="${ligne.id}" title="Retirer">&times;</button>` : ""}
+    </div>`).join("");
+  const addHtml = canAdd ? `
+    <div style="display:flex;gap:4px;margin-top:4px;">
+      <input type="text" placeholder="+ tâche..." style="flex:1;min-width:0;font-size:11.5px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;" data-tache-new="${ligne.id}" data-seance="${seance.id}">
+    </div>` : "";
+  return `<div class="tache-list">${itemsHtml}${addHtml}</div>`;
+}
+
+function ligneRowHtml(seance, bloc, ligne, ctx){
+  const canQui = ctx.can("ligne_qui");
+  const canActivite = ctx.can("ligne_activite");
+  const canRemoveLigne = ctx.can("ligne_ajouter_retirer") && bloc.lignes.length > 1;
+
+  const textareaOrText = (permKey, objField, val) => {
+    if (!ctx.visible(permKey)) return `<div style="font-size:12px;color:var(--ink-soft);">—</div>`;
+    return ctx.can(permKey)
+      ? `<textarea data-suivi-field="${objField}" data-seance="${seance.id}" data-bloc="${bloc.id}" data-ligne="${ligne.id}">${escXml(val || "")}</textarea>`
+      : `<div style="font-size:12px;white-space:pre-wrap;color:${val ? "var(--ink)" : "var(--ink-soft)"};">${escXml(val || "—")}</div>`;
+  };
+
+  return `<tr data-ligne="${ligne.id}">
+    <td class="col-activite">
+      ${canActivite ? `<input type="text" placeholder="Chanson / activité" data-field="activite" data-seance="${seance.id}" data-bloc="${bloc.id}" data-ligne="${ligne.id}" value="${escXml(ligne.activite)}">` : escXml(ligne.activite || "—")}
+      ${canRemoveLigne ? `<button class="remove-section" data-remove-ligne="${ligne.id}" data-bloc="${bloc.id}" data-seance="${seance.id}" title="Retirer cette ligne" style="position:static;margin-left:4px;">&times;</button>` : ""}
+    </td>
+    <td class="col-qui">
+      ${canQui ? `<input type="text" placeholder="Tous / noms" data-field="qui" data-seance="${seance.id}" data-bloc="${bloc.id}" data-ligne="${ligne.id}" value="${escXml(ligne.qui)}">` : escXml(ligne.qui || "—")}
+    </td>
+    <td class="col-suivi">${tacheListHtml(seance, ligne, ctx)}</td>
+    <td class="col-suivi">${textareaOrText("suivi_progres", "suiviProgres", ligne.suiviProgres)}</td>
+    <td class="col-suivi">${textareaOrText("suivi_pedagogique", "suiviPedagogique", ligne.suiviPedagogique)}</td>
+  </tr>`;
+}
+
+function renderSeanceCard(seance, ctx){
+  const canEditDate = ctx.can("seance_date");
+  const canAddBloc = ctx.can("bloc_ajouter_retirer");
+  const canDeplacer = ctx.can("bloc_deplacer");
+  const canSerieGerer = ctx.can("serie_supprimer");
+  const canAbsences = ctx.can("absences_gerer");
+  const canRappel = ctx.can("rappel_envoyer");
+
+  const blocsHtml = seance.blocs.map(bloc => {
+    const rows = bloc.lignes.map(l => ligneRowHtml(seance, bloc, l, ctx)).join("");
+    return `<div class="bloc-card" data-bloc="${bloc.id}">
+      <div class="bloc-card-header">
+        ${canAddBloc
+          ? `<input type="time" data-field="heureDebut" data-seance="${seance.id}" data-bloc="${bloc.id}" value="${escXml(bloc.heureDebut)}">
+             <span style="color:var(--ink-soft);">à</span>
+             <input type="time" data-field="heureFin" data-seance="${seance.id}" data-bloc="${bloc.id}" value="${escXml(bloc.heureFin)}">`
+          : `<strong>${escXml(bloc.heureDebut || "?")} à ${escXml(bloc.heureFin || "?")}</strong>`}
+        <span style="flex:1;"></span>
+        ${canDeplacer ? `<button class="link-btn" data-move-bloc="${bloc.id}" data-seance="${seance.id}" title="Déplacer vers une autre séance">↦ Déplacer</button>` : ""}
+        ${canAddBloc ? `<button class="remove-section" data-remove-bloc="${bloc.id}" data-seance="${seance.id}" title="Retirer ce bloc" style="position:static;">&times;</button>` : ""}
+      </div>
+      <div class="table-wrap" style="border:none;">
+        <table class="bloc-table"><thead><tr>
+          <th>Chanson/activité</th><th>Qui?</th><th>Suivis admin.</th><th>Notions abordées / progrès réalisés</th><th>Objectifs prochaine séance</th>
+        </tr></thead><tbody>${rows}</tbody></table>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 10px;">
+        ${ctx.can("ligne_ajouter_retirer") ? `<button class="btn btn-ghost btn-sm" data-add-ligne="${bloc.id}" data-seance="${seance.id}">+ Ajouter une ligne</button>` : ""}
+        ${canRappel ? `<button class="btn btn-ghost btn-sm" data-rappel-bloc="${bloc.id}" data-seance="${seance.id}">🔔 Envoyer un rappel</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  const absencesHtml = `
+    <div class="absences-box">
+      <div style="font-weight:700;color:#8A4B1E;font-size:12px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;">⚠ Absences prévues</div>
+      <div style="margin-bottom:8px;">
+        ${(seance.absences||[]).map(nom => `<span class="absence-chip">${escXml(nom)} ${canAbsences ? `<button data-remove-absence="${escXml(nom)}" data-seance="${seance.id}">&times;</button>` : ""}</span>`).join("") || '<span style="color:var(--ink-soft);font-size:12.5px;">Aucune absence inscrite.</span>'}
+      </div>
+      ${canAbsences ? `
+      <div style="display:flex;gap:6px;">
+        <input type="text" placeholder="Votre prénom" style="max-width:180px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" data-absence-input="${seance.id}">
+        <button class="btn btn-ghost btn-sm" data-add-absence="${seance.id}">Inscrire une absence</button>
+      </div>` : ""}
+    </div>`;
+
+  return `<div class="seance-card" data-seance="${seance.id}">
+    <div class="seance-card-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${canEditDate ? `<input type="date" data-field="date" data-seance="${seance.id}" value="${escXml(seance.date)}">` : `<strong>${fmtDateFr(seance.date)}</strong>`}
+        ${seance.seriesId ? '<span style="font-size:11px;color:var(--ink-soft);">(série)</span>' : ""}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink-soft);flex-wrap:wrap;">
+        ${seance.dateMaj ? `Mis à jour : ${fmtDateTime(seance.dateMaj)}` : ""}
+        ${canAddBloc ? `<button class="btn btn-ghost btn-sm" data-add-bloc="${seance.id}">+ Ajouter un bloc</button>` : ""}
+        ${canSerieGerer && seance.seriesId ? `<button class="btn btn-ghost btn-sm" data-manage-series="${seance.id}">Gérer la série</button>` : ""}
+        ${canSerieGerer ? `<button class="btn btn-danger-ghost" data-delete-seance="${seance.id}">Supprimer</button>` : ""}
+      </div>
+    </div>
+    ${absencesHtml}
+    ${blocsHtml}
+  </div>`;
+}
+
+async function loadGroupSeances(groupe){
+  const arr = await storageGet("seances:" + safeKeyPart(groupe));
+  return (Array.isArray(arr) ? arr : []).map(normalizeSeance);
+}
+async function saveGroupSeances(groupe, seances, touchedSeance){
+  if (touchedSeance) touchedSeance.dateMaj = new Date().toISOString();
+  return storageSet("seances:" + safeKeyPart(groupe), seances);
+}
+
+function bindSeanceEvents(wrap, seances, groupe, ctx, reload){
+  const findSeance = (id) => seances.find(s => s.id === id);
+  const findBloc = (seance, id) => seance.blocs.find(b => b.id === id);
+  const findLigne = (bloc, id) => bloc.lignes.find(l => l.id === id);
+
+  wrap.querySelectorAll("[data-field]").forEach(inp => {
+    inp.addEventListener("change", async () => {
+      const seance = findSeance(inp.dataset.seance);
+      if (!seance) return;
+      if (inp.dataset.field === "date"){ seance.date = inp.value; }
+      else {
+        const bloc = findBloc(seance, inp.dataset.bloc);
+        if (!bloc) return;
+        if (inp.dataset.ligne){
+          const ligne = findLigne(bloc, inp.dataset.ligne);
+          if (ligne) ligne[inp.dataset.field] = inp.value;
+        } else {
+          bloc[inp.dataset.field] = inp.value;
+        }
+      }
+      await saveGroupSeances(groupe, seances, seance);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-suivi-field]").forEach(ta => {
+    ta.addEventListener("change", async () => {
+      const seance = findSeance(ta.dataset.seance);
+      const bloc = seance && findBloc(seance, ta.dataset.bloc);
+      const ligne = bloc && findLigne(bloc, ta.dataset.ligne);
+      if (!ligne) return;
+      ligne[ta.dataset.suiviField] = ta.value;
+      await saveGroupSeances(groupe, seances, seance);
+    });
+  });
+  wrap.querySelectorAll("[data-add-bloc]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.addBloc);
+      if (!seance) return;
+      seance.blocs.push(newBloc());
+      await saveGroupSeances(groupe, seances, seance);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-remove-bloc]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.seance);
+      if (!seance) return;
+      if (!(await customConfirm("Retirer ce bloc et tout son contenu ?"))) return;
+      seance.blocs = seance.blocs.filter(b => b.id !== btn.dataset.removeBloc);
+      await saveGroupSeances(groupe, seances, seance);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-move-bloc]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.seance);
+      const bloc = seance && findBloc(seance, btn.dataset.moveBloc);
+      if (!bloc) return;
+      const dateCible = await customPrompt("Déplacer ce bloc vers la séance du (AAAA-MM-JJ) :", "");
+      if (dateCible === null || !dateCible.trim()) return;
+      const date = dateCible.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)){ showToast("Format de date invalide (attendu : AAAA-MM-JJ).", true); return; }
+
+      seance.blocs = seance.blocs.filter(b => b.id !== bloc.id);
+      seance.dateMaj = new Date().toISOString();
+
+      let cible = seances.find(s => s.date === date);
+      if (cible){
+        cible.blocs.push(bloc);
+        cible.dateMaj = new Date().toISOString();
+        showToast(`Bloc déplacé vers le ${fmtDateFr(date)} ✓`);
+      } else {
+        const nouvelle = newSeance(groupe, date, null);
+        nouvelle.blocs = [bloc];
+        seances.push(nouvelle);
+        showToast(`Bloc déplacé vers une nouvelle séance le ${fmtDateFr(date)} ✓`);
+      }
+      await saveGroupSeances(groupe, seances);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-add-ligne]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.seance);
+      const bloc = seance && findBloc(seance, btn.dataset.addLigne);
+      if (!bloc) return;
+      bloc.lignes.push(newLigne());
+      await saveGroupSeances(groupe, seances, seance);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-remove-ligne]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.seance);
+      const bloc = seance && findBloc(seance, btn.dataset.bloc);
+      if (!bloc) return;
+      bloc.lignes = bloc.lignes.filter(l => l.id !== btn.dataset.removeLigne);
+      if (!bloc.lignes.length) bloc.lignes.push(newLigne());
+      await saveGroupSeances(groupe, seances, seance);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-tache-new]").forEach(inp => {
+    inp.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const texte = inp.value.trim();
+      if (!texte) return;
+      const seance = findSeance(inp.dataset.seance);
+      const bloc = seance && seance.blocs.find(b => b.lignes.some(l => l.id === inp.dataset.tacheNew));
+      const ligne = bloc && findLigne(bloc, inp.dataset.tacheNew);
+      if (!ligne) return;
+      ligne.suiviAdmin = ligne.suiviAdmin || [];
+      ligne.suiviAdmin.push(newTache(texte));
+      await saveGroupSeances(groupe, seances, seance);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-tache-check]").forEach(chk => {
+    chk.addEventListener("change", async () => {
+      const seance = findSeance(chk.dataset.seance);
+      const bloc = seance && seance.blocs.find(b => b.lignes.some(l => l.id === chk.dataset.ligne));
+      const ligne = bloc && findLigne(bloc, chk.dataset.ligne);
+      const tache = ligne && (ligne.suiviAdmin||[]).find(t => t.id === chk.dataset.tacheCheck);
+      if (!tache) return;
+      tache.traite = chk.checked;
+      await saveGroupSeances(groupe, seances, seance);
+    });
+  });
+  wrap.querySelectorAll("[data-tache-del]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.seance);
+      const bloc = seance && seance.blocs.find(b => b.lignes.some(l => l.id === btn.dataset.ligne));
+      const ligne = bloc && findLigne(bloc, btn.dataset.ligne);
+      if (!ligne) return;
+      ligne.suiviAdmin = (ligne.suiviAdmin||[]).filter(t => t.id !== btn.dataset.tacheDel);
+      await saveGroupSeances(groupe, seances, seance);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-delete-seance]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!(await customConfirm("Supprimer définitivement cette séance ?"))) return;
+      const updated = seances.filter(s => s.id !== btn.dataset.deleteSeance);
+      await saveGroupSeances(groupe, updated);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-manage-series]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.manageSeries);
+      if (!seance) return;
+      if (!(await customConfirm("Supprimer TOUTES les séances à venir (à partir d'aujourd'hui) de cette série ? Les séances passées ne seront pas touchées."))) return;
+      const today = new Date().toISOString().slice(0,10);
+      const toDeleteCount = seances.filter(s => s.seriesId === seance.seriesId && s.date >= today).length;
+      const updated = seances.filter(s => !(s.seriesId === seance.seriesId && s.date >= today));
+      await saveGroupSeances(groupe, updated);
+      showToast(`${toDeleteCount} séance(s) à venir supprimée(s).`);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-add-absence]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.addAbsence);
+      const input = wrap.querySelector(`[data-absence-input="${btn.dataset.addAbsence}"]`);
+      const nom = input.value.trim();
+      if (!nom) { showToast("Entrez votre prénom.", true); return; }
+      seance.absences = seance.absences || [];
+      if (!seance.absences.includes(nom)) seance.absences.push(nom);
+      await saveGroupSeances(groupe, seances, null);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-remove-absence]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.seance);
+      if (!seance) return;
+      seance.absences = (seance.absences||[]).filter(n => n !== btn.dataset.removeAbsence);
+      await saveGroupSeances(groupe, seances, null);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-rappel-bloc]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.seance);
+      const bloc = seance && findBloc(seance, btn.dataset.rappelBloc);
+      if (!bloc) return;
+      const premiereActivite = (bloc.lignes[0] && bloc.lignes[0].activite) || "bloc";
+      const val = await customPromptLong(`Rappel pour « ${fmtDateFr(seance.date)} — ${premiereActivite} » — décrivez ce dont vous voulez vous assurer que l'enseignante se souvienne (précisez la chanson si applicable) :`, "");
+      if (val === null || !val.trim()) return;
+      const rappel = {
+        id: genId(), groupe, seanceId: seance.id, seanceDate: seance.date,
+        blocLabel: premiereActivite, texte: val.trim(),
+        dateAjout: new Date().toISOString(), traite: false,
+      };
+      const ok = await storageSet("rappel:" + rappel.id, rappel);
+      showToast(ok ? "Rappel envoyé ✓" : "Erreur lors de l'envoi.", !ok);
+    });
+  });
+}
+
+async function loadMyGroupHoraire(){
+  const wrap = document.getElementById("mygroup-horaire-wrap");
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const seances = await loadGroupSeances(session.groupe);
+    seances.sort((a,b) => (a.date||"").localeCompare(b.date||""));
+
+    if (!seances.length){
+      wrap.innerHTML = '<div class="empty-state"><strong>Aucune séance planifiée</strong>Votre enseignante n\u2019a pas encore ajouté l\u2019horaire de ce groupe.</div>';
+      return;
+    }
+
+    const cfg = groupesConfig[session.groupe] || {};
+    const contenuVisible = !!cfg.contenuVisible;
+    const role = roleFromSession();
+    await loadPermissionsConfig();
+    const ctx = buildHoraireCtx(role, contenuVisible);
+
+    if (role === "eleve" && !contenuVisible){
+      wrap.innerHTML = '<div class="note">Votre enseignante n\u2019a pas activé l\u2019affichage détaillé de l\u2019horaire pour votre groupe — vous pouvez tout de même vous inscrire absent·e ci-dessous.</div>' +
+        seances.map(s => renderSeanceCard(s, ctx)).join("");
+    } else {
+      wrap.innerHTML = seances.map(s => renderSeanceCard(s, ctx)).join("");
+    }
+    bindSeanceEvents(wrap, seances, session.groupe, ctx, loadMyGroupHoraire);
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<div class="empty-state"><strong>Impossible de charger l\u2019horaire</strong>Réessayez plus tard.</div>';
+  }
+}
+
+/* ---------------- Coordonnées (opt-in, PIN, groupe uniquement) ---------------- */
+async function loadCoordList(){
+  const wrap = document.getElementById("coord-list");
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const listRes = await window.storage.list("coord:" + safeKeyPart(session.groupe) + ":", true);
+    const keys = (listRes && listRes.keys) || [];
+    const rows = [];
+    for (const k of keys) {
+      const r = await storageGet(k);
+      if (r) rows.push(Object.assign({ key: k }, r));
+    }
+    if (!rows.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Personne n\u2019a encore partagé ses coordonnées dans ce groupe.</p>';
+      return;
+    }
+    wrap.innerHTML = rows.map(r => `
+      <div class="coord-row">
+        <div class="coord-name">${escXml(r.nom)}</div>
+        <div>${escXml(r.courriel || "—")} · ${escXml(r.telephone || "—")}</div>
+        <div>Choix : ${escXml(r.choix1 || "—")}${r.choix2 ? ", " + escXml(r.choix2) : ""}</div>
+        <div class="row-actions" style="margin-top:6px;">
+          <button class="btn btn-danger-ghost" data-remove="${r.key}">Retirer (avec mon code)</button>
+        </div>
+      </div>`).join("");
+    wrap.querySelectorAll("[data-remove]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const pin = await customPrompt("Entrez votre code personnel (4 chiffres) pour retirer cette entrée :", "");
+        if (pin === null) return;
+        const r = await storageGet(btn.dataset.remove);
+        if (!r || String(r.pin) !== String(pin)){ showToast("Code incorrect.", true); return; }
+        try { await window.storage.delete(btn.dataset.remove, true); showToast("Coordonnées retirées."); loadCoordList(); }
+        catch(e){ showToast("Erreur lors du retrait.", true); }
+      });
+    });
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger la liste.</p>';
+  }
+}
+
+document.getElementById("coord-add-btn").addEventListener("click", async () => {
+  const nom = document.getElementById("coord-nom").value.trim();
+  const pin = document.getElementById("coord-pin").value.trim();
+  const status = document.getElementById("coord-status");
+  if (!nom || !/^[0-9]{4}$/.test(pin)){
+    showToast("Nom requis, et code personnel = 4 chiffres.", true);
+    return;
+  }
+  const entry = {
+    nom,
+    courriel: document.getElementById("coord-courriel").value.trim(),
+    telephone: document.getElementById("coord-telephone").value.trim(),
+    choix1: document.getElementById("coord-choix1").value.trim(),
+    choix2: document.getElementById("coord-choix2").value.trim(),
+    pin,
+  };
+  status.textContent = "Ajout en cours…";
+  const ok = await storageSet("coord:" + safeKeyPart(session.groupe) + ":" + genId(), entry);
+  status.textContent = "";
+  if (ok){
+    showToast("Coordonnées ajoutées ✓");
+    ["coord-nom","coord-courriel","coord-telephone","coord-choix1","coord-choix2","coord-pin"].forEach(id => document.getElementById(id).value = "");
+    loadCoordList();
+  } else {
+    showToast("Erreur lors de l'ajout.", true);
+  }
+});
+
+async function buildZipAndDownload(entries, zipFilename, groupByFolder, btn){
+  if (!entries.length){ showToast("Aucun fichier à télécharger.", true); return; }
+  const originalText = btn ? btn.textContent : "";
+  if (btn){ btn.disabled = true; btn.textContent = "Préparation…"; }
+  try {
+    const zip = new JSZip();
+    const usedPaths = new Set();
+    for (const e of entries) {
+      const blob = await generateDocxBlob(e);
+      const buf = await blob.arrayBuffer();
+      const folder = groupByFolder ? sanitizeSheetName(e.groupe || "Sans groupe") + "/" : "";
+      let path = folder + (e.nomFichier || buildFileName(e));
+      let suffix = 2;
+      while (usedPaths.has(path)) { path = folder + (e.nomFichier || buildFileName(e)).replace(/\.docx$/, "") + `-${suffix++}.docx`; }
+      usedPaths.add(path);
+      zip.file(path, buf);
+    }
+    const content = await zip.generateAsync({ type: "blob" });
+    downloadBlob(content, zipFilename);
+    showToast(`${entries.length} fichier${entries.length > 1 ? "s" : ""} téléchargé${entries.length > 1 ? "s" : ""} (.zip) ✓`);
+  } catch(e){
+    console.error(e);
+    showToast("Erreur lors de la création du fichier .zip.", true);
+  } finally {
+    if (btn){ btn.disabled = false; btn.textContent = originalText; }
+  }
+}
+
+document.getElementById("mygroup-zip-btn").addEventListener("click", (e) => {
+  buildZipAndDownload(myGroupEntries, `Paroles_${sanitizeSheetName(session.groupe)}.zip`, false, e.target);
+});
+
+document.getElementById("inv-zip-btn").addEventListener("click", (e) => {
+  const groupFilter = document.getElementById("inv-group-filter").value;
+  const q = document.getElementById("inv-search-input").value.trim().toLowerCase();
+  let entries = allEntries.filter(en => {
+    if (groupFilter && en.groupe !== groupFilter) return false;
+    if (!q) return true;
+    return [en.titre, en.interprete, en.eleve].some(f => (f||"").toLowerCase().includes(q));
+  });
+  const filename = groupFilter ? `Paroles_${sanitizeSheetName(groupFilter)}.zip` : "Paroles_tous_les_groupes.zip";
+  buildZipAndDownload(entries, filename, !groupFilter, e.target);
+});
+
+document.getElementById("mygroup-refresh-btn").addEventListener("click", loadMyGroupPanel);
+
+/* ---------------- Vue d'ensemble (admin) — chansons de tous les groupes ---------------- */
+let allEntries = [];
+
+async function loadInventory(){
+  const wrap = document.getElementById("inv-table-wrap");
+  wrap.innerHTML = '<div class="loading-state">Chargement du répertoire…</div>';
+  try {
+    const listRes = await window.storage.list("chanson:", true);
+    const keys = (listRes && listRes.keys) || [];
+    const entries = [];
+    for (const k of keys) {
+      const e = await storageGet(k);
+      if (e) entries.push(e);
+    }
+    entries.sort((a,b) => (b.dateAjout||"").localeCompare(a.dateAjout||""));
+    allEntries = entries;
+    populateGroupFilter(entries);
+    renderInventoryTable(entries);
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<div class="empty-state"><strong>Impossible de charger le répertoire</strong>Vérifiez la connexion et réessayez.</div>';
+  }
+}
+
+function populateGroupFilter(entries){
+  const sel = document.getElementById("inv-group-filter");
+  const current = sel.value;
+  const fromConfig = Object.keys(groupesConfig);
+  const fromEntries = entries.map(e => e.groupe).filter(Boolean);
+  const groups = Array.from(new Set([...fromConfig, ...fromEntries])).sort();
+  sel.innerHTML = '<option value="">Tous les groupes</option>' + groups.map(g => `<option value="${escXml(g)}">${escXml(g)}</option>`).join("");
+  sel.value = current;
+}
+
+function renderInventoryTable(entries){
+  const wrap = document.getElementById("inv-table-wrap");
+  const q = document.getElementById("inv-search-input").value.trim().toLowerCase();
+  const groupFilter = document.getElementById("inv-group-filter").value;
+
+  let filtered = entries.filter(e => {
+    if (groupFilter && e.groupe !== groupFilter) return false;
+    if (!q) return true;
+    return [e.titre, e.interprete, e.eleve].some(f => (f||"").toLowerCase().includes(q));
+  });
+
+  if (filtered.length === 0){
+    wrap.innerHTML = "<div class=\"empty-state\"><strong>Aucune fiche pour l'instant</strong>Les fiches soumises par les élèves apparaîtront ici.</div>";
+    return;
+  }
+
+  const statusOptions = ["", "À trouver", "Version préliminaire soumise", "Confirmée"];
+  const linkCell = (e, field, label) => `<span data-linkcell="${field}-${e.id}">${e[field] ? `<a href="${escXml(e[field])}" target="_blank" rel="noopener">${label}</a>` : '<span style="color:var(--ink-soft);">—</span>'}</span> <button class="link-btn" data-editfield="${field}" data-edit-id="${e.id}" title="Modifier le lien">✎</button>`;
+  const textCell = (e, field, width, placeholder) => `<input type="text" placeholder="${placeholder||""}" style="width:${width||90}px;padding:5px 6px;border:1px solid var(--border);border-radius:5px;" data-editfield-text="${field}" data-edit-id="${e.id}" value="${escXml(e[field] || "")}">`;
+  const selectCell = (e, field, options) => `<select data-editfield-select="${field}" data-edit-id="${e.id}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${(options||statusOptions).map(o => `<option value="${escXml(o)}" ${e[field] === o ? "selected" : ""}>${o || "— Non déterminé —"}</option>`).join("")}</select>`;
+  const raisonCell = (e) => `<button class="btn btn-ghost btn-sm" data-raison-id="${e.id}">📝 ${e.raisonChoix ? "Voir/modifier" : "Ajouter"}</button>`;
+
+  const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Élève","Groupe","Proposée par","Raison du choix","Chantée en classe par","Actions","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
+
+  const sections = groupEntriesByVisee(filtered);
+  const rowHtml = (e) => `<tr>
+      <td class="col-sticky">${escXml(e.titre)}</td>
+      <td>${linkCell(e, "lienChante", "Version chantée")}</td>
+      <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
+      <td>${selectCell(e, "statutTrame")}</td>
+      <td>${textCell(e, "interprete", 110)}</td>
+      <td>${textCell(e, "paroliers", 110)}</td>
+      <td>${textCell(e, "compositeurs", 110)}</td>
+      <td>${textCell(e, "annee", 70)}</td>
+      <td>${textCell(e, "tonOrigine", 100)}</td>
+      <td>${textCell(e, "tonChoisie", 100)}</td>
+      <td>${textCell(e, "bpmOriginal", 70)}</td>
+      <td>${textCell(e, "bpmChoisi", 70)}</td>
+      <td>${escXml(e.eleve)}</td>
+      <td>${escXml(e.groupe)}</td>
+      <td>${textCell(e, "proposePar", 100)}</td>
+      <td>${raisonCell(e)}</td>
+      <td>${textCell(e, "chanteePar", 110, "Ex. Tous ou Nom des élèves impliqués")}</td>
+      <td class="row-actions">
+        <button class="btn btn-ghost btn-sm" data-action="dl" data-id="${e.id}">Télécharger</button>
+        <button class="btn btn-ghost btn-sm" data-action="copy" data-id="${e.id}">Copier</button>
+        <button class="btn btn-danger-ghost" data-action="del" data-id="${e.id}">Supprimer</button>
+      </td>
+      <td>${linkCell(e, "lienPartition", "Partition")}</td>
+      <td>${selectCell(e, "statutPartition")}</td>
+      <td>${selectCell(e, "visee", VISEE_OPTIONS)}</td>
+      <td>${e.dateAjout ? new Date(e.dateAjout).toLocaleDateString('fr-CA') : "—"}</td>
+      <td data-maj-id="${e.id}">${fmtDateTime(e.dateMaj)}</td>
+    </tr>`;
+
+  const bodyHtml = sections.map(sec => `${sectionBannerRow(sec.label, headers.length)}${sec.entries.map(rowHtml).join("")}`).join("");
+
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>${headers.map((h, hi) => `<th class="${hi === 0 ? "col-sticky" : ""}">${escXml(h)}</th>`).join("")}</tr></thead>
+      <tbody>${bodyHtml}</tbody>
+    </table>`;
+
+  wrap.querySelectorAll("[data-raison-id]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const entry = allEntries.find(e => e.id === btn.dataset.raisonId);
+      if (!entry) return;
+      const val = await customPromptLong(`Raison du choix — « ${entry.titre} »`, entry.raisonChoix || "");
+      if (val === null) return;
+      entry.raisonChoix = val.trim();
+      entry.dateMaj = new Date().toISOString();
+      const ok = await storageSet("chanson:" + entry.id, entry);
+      if (ok){ showToast("Raison du choix mise à jour ✓"); loadInventory(); }
+      else showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+
+  const linkLabels = { lienChante: "Lien YouTube — version chantée :", lienAccompagnement: "Lien YouTube — version d'accompagnement / karaoké :", lienPartition: "Lien vers la partition :" };
+  const linkDisplay = { lienChante: "Version chantée", lienAccompagnement: "Accompagnement", lienPartition: "Partition" };
+  wrap.querySelectorAll('[data-editfield]').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const field = btn.dataset.editfield, id = btn.dataset.editId;
+      const entry = allEntries.find(e => e.id === id);
+      if (!entry) return;
+      const val = await customPrompt(linkLabels[field], entry[field] || "");
+      if (val === null) return;
+      entry[field] = val.trim();
+      entry.dateMaj = new Date().toISOString();
+      const ok = await storageSet("chanson:" + entry.id, entry);
+      if (!ok){ showToast("Erreur lors de la mise à jour.", true); return; }
+      showToast("Lien mis à jour ✓");
+      const cell = wrap.querySelector(`[data-linkcell="${field}-${id}"]`);
+      if (cell) cell.innerHTML = entry[field] ? `<a href="${escXml(entry[field])}" target="_blank" rel="noopener">${linkDisplay[field]}</a>` : '<span style="color:var(--ink-soft);">—</span>';
+      const majCell = wrap.querySelector(`[data-maj-id="${id}"]`);
+      if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj);
+    });
+  });
+  wrap.querySelectorAll('[data-editfield-text]').forEach(inp => {
+    inp.addEventListener("change", async () => {
+      const field = inp.dataset.editfieldText, id = inp.dataset.editId;
+      const entry = allEntries.find(e => e.id === id);
+      if (!entry) return;
+      entry[field] = inp.value.trim();
+      entry.dateMaj = new Date().toISOString();
+      const ok = await storageSet("chanson:" + entry.id, entry);
+      if (ok){ const majCell = wrap.querySelector(`[data-maj-id="${id}"]`); if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj); }
+      else showToast("Erreur lors de l'enregistrement.", true);
+    });
+  });
+  wrap.querySelectorAll('[data-editfield-select]').forEach(sel => {
+    sel.addEventListener("change", async () => {
+      const field = sel.dataset.editfieldSelect, id = sel.dataset.editId;
+      const entry = allEntries.find(e => e.id === id);
+      if (!entry) return;
+      entry[field] = sel.value;
+      entry.dateMaj = new Date().toISOString();
+      const ok = await storageSet("chanson:" + entry.id, entry);
+      if (!ok){ showToast("Erreur lors de la mise à jour.", true); return; }
+      if (field === "visee"){ loadInventory(); return; }
+      const majCell = wrap.querySelector(`[data-maj-id="${id}"]`);
+      if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj);
+    });
+  });
+
+  wrap.querySelectorAll('[data-action="dl"]').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const entry = allEntries.find(e => e.id === btn.dataset.id);
+      if (!entry) return;
+      btn.disabled = true; btn.textContent = "…";
+      try { downloadBlob(await generateDocxBlob(entry), entry.nomFichier || buildFileName(entry)); }
+      catch(e){ showToast("Erreur lors de la génération du fichier.", true); }
+      btn.disabled = false; btn.textContent = "Télécharger";
+    });
+  });
+  wrap.querySelectorAll('[data-action="copy"]').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const entry = allEntries.find(e => e.id === btn.dataset.id);
+      if (!entry) return;
+      const groupNames = Object.keys(groupesConfig).filter(n => n !== entry.groupe);
+      if (!groupNames.length){ showToast("Aucun autre groupe vers lequel copier.", true); return; }
+      const dest = await customPrompt(`Copier « ${entry.titre} » vers quel groupe ? (${groupNames.join(", ")})`, "");
+      if (dest === null || !dest.trim()) return;
+      const groupeDest = dest.trim();
+      if (!groupesConfig[groupeDest]){ showToast(`Groupe « ${groupeDest} » introuvable.`, true); return; }
+
+      const copie = Object.assign({}, entry, {
+        id: genId(),
+        groupe: groupeDest,
+        eleve: "",
+        proposePar: "",
+        raisonChoix: "",
+        chanteePar: "",
+        visee: "",
+        votes: {},
+        dateAjout: new Date().toISOString(),
+        dateMaj: null,
+        sections: (entry.sections || []).map(s => ({ label: s.label, lyrics: s.lyrics })),
+      });
+      copie.nomFichier = buildFileName(copie);
+
+      const ok = await storageSet("chanson:" + copie.id, copie);
+      if (ok){ showToast(`« ${entry.titre} » copiée vers ${groupeDest} ✓`); loadInventory(); }
+      else showToast("Erreur lors de la copie.", true);
+    });
+  });
+  wrap.querySelectorAll('[data-action="del"]').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!(await customConfirm("Supprimer définitivement cette fiche du répertoire ?"))) return;
+      try { await window.storage.delete("chanson:" + btn.dataset.id, true); showToast("Fiche supprimée."); loadInventory(); }
+      catch(e){ showToast("Erreur lors de la suppression.", true); }
+    });
+  });
+}
+
+document.getElementById("inv-search-input").addEventListener("input", () => renderInventoryTable(allEntries));
+document.getElementById("inv-group-filter").addEventListener("change", () => renderInventoryTable(allEntries));
+document.getElementById("refresh-btn").addEventListener("click", loadInventory);
+
+function sanitizeSheetName(name){
+  let n = String(name || "Groupe").replace(/[\\\/\?\*\[\]:]/g, "-").trim();
+  if (!n) n = "Groupe";
+  return n.slice(0, 31);
+}
+
+function appBaseUrl(){
+  return window.location.origin + window.location.pathname;
+}
+
+function buildChansonsSheet(entries, voteNames){
+  voteNames = voteNames || [];
+  const headers = ["Chanson","Version chantée","Accompagnement","Statut trame sonore","Interprète d'origine","Année de sortie","Parolier(s)","Compositeur(s)","Proposée par","Raison du choix","Chantée en classe par"]
+    .concat(voteNames)
+    .concat(voteNames.length ? ["Total intérêt"] : [])
+    .concat(["Tonalité d'origine","Tonalité modifiée","BPM original","BPM choisi","Nom du fichier","Statut paroles","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"]);
+  const totalOf = (e) => {
+    if (!voteNames.some(n => e.votes && e.votes[n] != null)) return "";
+    return voteNames.reduce((sum, n) => sum + (Number(e.votes && e.votes[n]) || 0), 0);
+  };
+  const rowOf = (e) => [
+    e.titre,
+    e.lienChante ? { text: "Version chantée", link: e.lienChante } : "",
+    e.lienAccompagnement ? { text: "Accompagnement", link: e.lienAccompagnement } : "",
+    e.statutTrame || "—",
+    e.interprete, e.annee, e.paroliers, e.compositeurs, e.proposePar, e.raisonChoix, e.chanteePar,
+  ].concat(voteNames.map(n => (e.votes && e.votes[n] != null) ? e.votes[n] : ""))
+   .concat(voteNames.length ? [totalOf(e)] : [])
+   .concat([
+    e.tonOrigine, e.tonChoisie, e.bpmOriginal, e.bpmChoisi,
+    e.nomFichier ? { text: e.nomFichier, link: appBaseUrl() + "?dl=" + encodeURIComponent(e.id) } : "",
+    e.statutParoles || "Fait",
+    e.lienPartition ? { text: "Partition", link: e.lienPartition } : "",
+    e.statutPartition || "—",
+    e.visee || "",
+    e.dateAjout ? new Date(e.dateAjout).toLocaleDateString('fr-CA') : "",
+    fmtDateTime(e.dateMaj) === "—" ? "" : fmtDateTime(e.dateMaj),
+  ]);
+  const sections = groupEntriesByVisee(entries);
+  const rows = [];
+  sections.forEach(sec => {
+    rows.push({ banner: sec.label });
+    sec.entries.forEach(e => rows.push(rowOf(e)));
+  });
+  return { headers, rows };
+}
+
+function buildHoraireSheet(seances){
+  const headers = ["Date","Bloc","Heure début","Heure fin","Chanson/activité","Qui?","Suivis admin.","Notions abordées / progrès réalisés","Objectifs prochaine séance","Absences prévues"];
+  const rows = [];
+  (seances||[]).slice().sort((a,b) => (a.date||"").localeCompare(b.date||"")).forEach(s => {
+    const absences = (s.absences||[]).join(", ");
+    (s.blocs||[]).forEach((b, i) => {
+      (b.lignes||[]).forEach((l, j) => {
+        const taches = (l.suiviAdmin||[]).filter(t => !t.masque).map(t => (t.traite ? "[x] " : "[ ] ") + t.texte).join("\n");
+        rows.push([
+          (i===0 && j===0) ? fmtDateFr(s.date) : "",
+          j===0 ? i+1 : "",
+          j===0 ? b.heureDebut : "",
+          j===0 ? b.heureFin : "",
+          l.activite, l.qui, taches, l.suiviProgres, l.suiviPedagogique,
+          (i===0 && j===0) ? absences : ""
+        ]);
+      });
+    });
+  });
+  return { headers, rows };
+}
+
+function buildCoordSheet(rows){
+  const headers = ["Nom, prénom","Courriel","Téléphone","Choix de chanson 1","Choix de chanson 2"];
+  const data = (rows||[]).map(r => [r.nom, r.courriel, r.telephone, r.choix1, r.choix2]);
+  return { headers, rows: data };
+}
+
+/* =====================================================================
+   MOTEUR XLSX STYLÉ (OOXML fabriqué à la main via JSZip)
+   La librairie SheetJS gratuite ne permet pas d'écrire des couleurs/du
+   gras — on construit donc le fichier .xlsx nous-mêmes, avec en-têtes
+   colorés, lignes alternées, bordures, volet figé et filtres.
+   ===================================================================== */
+function xlsxColName(n){
+  let s = "";
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function xlsxEsc(s){
+  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r?\n/g, " ");
+}
+
+const XLSX_CONTENT_TYPES_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+const XLSX_RELS_ROOT = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+const XLSX_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="5"><font><sz val="12"/><name val="Calibri"/></font><font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><u/><sz val="12"/><color rgb="FF0563C1"/><name val="Calibri"/></font><font><b/><sz val="12"/><color rgb="FF6B4A00"/><name val="Calibri"/></font><font><b/><sz val="12"/><color rgb="FF1B5A70"/><name val="Calibri"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2F6F6B"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF3F2"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFBF0D9"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDCEEF5"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDDDDD"/></left><right style="thin"><color rgb="FFDDDDDD"/></right><top style="thin"><color rgb="FFDDDDDD"/></top><bottom style="thin"><color rgb="FFDDDDDD"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="1" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="4" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+function xlsxColSegments(totalCols){
+  const c1 = Math.max(1, Math.ceil(totalCols / 3));
+  const remaining = totalCols - c1;
+  const c2 = Math.max(1, Math.ceil(remaining / 2));
+  const c3 = Math.max(1, totalCols - c1 - c2);
+  return [c1, c2, c3];
+}
+
+function xlsxBuildSheetXml(headers, rows, wrapHeaderNames, tintHeaderNames){
+  const isBanner = (r) => r != null && typeof r === "object" && !Array.isArray(r) && Object.prototype.hasOwnProperty.call(r, "banner");
+  const wrapSet = new Set(headers.map((h, i) => (wrapHeaderNames && wrapHeaderNames.has(h)) ? i : -1).filter(i => i >= 0));
+  const tintSet = new Set(headers.map((h, i) => (tintHeaderNames && tintHeaderNames.has(h)) ? i : -1).filter(i => i >= 0));
+
+  const widths = headers.map((h, i) => {
+    let maxlen = String(h).length;
+    if (wrapSet.has(i)) return 40; // colonnes à retour à la ligne : largeur fixe généreuse
+    rows.forEach(r => {
+      if (isBanner(r)) return;
+      const v = r[i];
+      const text = (v != null && typeof v === "object") ? v.text : v;
+      if (text != null) maxlen = Math.max(maxlen, String(text).length);
+    });
+    return Math.min(40, Math.max(10, maxlen + 2));
+  });
+  const colsXml = "<cols>" + widths.map((w, i) => `<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("") + "</cols>";
+
+  const hyperlinks = []; // { ref, url }
+  const mergeCells = [];
+  const lastCol = xlsxColName(headers.length);
+  const segments = xlsxColSegments(headers.length);
+
+  let rowsXml = "<row r=\"1\" ht=\"22\" customHeight=\"1\">" +
+    headers.map((h, i) => `<c r="${xlsxColName(i+1)}1" t="inlineStr" s="1"><is><t>${xlsxEsc(h)}</t></is></c>`).join("") +
+    "</row>";
+  let dataRowCount = 0;
+  rows.forEach((row, ridx) => {
+    const rownum = ridx + 2;
+    if (isBanner(row)){
+      let colStart = 1;
+      let cellsXml = "";
+      segments.forEach(span => {
+        const colEnd = colStart + span - 1;
+        const startRef = xlsxColName(colStart) + rownum;
+        const endRef = xlsxColName(colEnd) + rownum;
+        cellsXml += `<c r="${startRef}" t="inlineStr" s="5"><is><t>${xlsxEsc(row.banner)}</t></is></c>`;
+        if (colEnd > colStart) mergeCells.push(`${startRef}:${endRef}`);
+        colStart = colEnd + 1;
+      });
+      rowsXml += `<row r="${rownum}" ht="22" customHeight="1">${cellsXml}</row>`;
+      return;
+    }
+    const isAlt = (dataRowCount % 2 === 1);
+    dataRowCount++;
+    const normalStyle = isAlt ? 2 : 0;
+    const linkStyle = isAlt ? 4 : 3;
+    const wrapStyle = isAlt ? 7 : 6;
+    const cells = headers.map((_, i) => {
+      const v = row[i];
+      const ref = `${xlsxColName(i+1)}${rownum}`;
+      const styleForPlain = tintSet.has(i) ? 8 : (wrapSet.has(i) ? wrapStyle : normalStyle);
+      if (v != null && typeof v === "object"){
+        const text = v.text || "";
+        if (v.link) hyperlinks.push({ ref, url: v.link });
+        if (!text && !v.link) return "";
+        return `<c r="${ref}" t="inlineStr" s="${v.link ? linkStyle : styleForPlain}"><is><t>${xlsxEsc(text)}</t></is></c>`;
+      }
+      if (v == null || v === "") return "";
+      if (typeof v === "number") return `<c r="${ref}" s="${styleForPlain}"><v>${v}</v></c>`;
+      return `<c r="${ref}" t="inlineStr" s="${styleForPlain}"><is><t>${xlsxEsc(v)}</t></is></c>`;
+    }).join("");
+    rowsXml += `<row r="${rownum}">${cells}</row>`;
+  });
+
+  let hyperlinksXml = "";
+  if (hyperlinks.length){
+    hyperlinksXml = "<hyperlinks>" + hyperlinks.map((h, i) => `<hyperlink ref="${h.ref}" r:id="rId${i+1}"/>`).join("") + "</hyperlinks>";
+  }
+  const mergeCellsXml = mergeCells.length ? `<mergeCells count="${mergeCells.length}">${mergeCells.map(ref => `<mergeCell ref="${ref}"/>`).join("")}</mergeCells>` : "";
+  const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"><pane xSplit="1" ySplit="1" topLeftCell="B2" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>${colsXml}<sheetData>${rowsXml}</sheetData><autoFilter ref="A1:${lastCol}1"/>${mergeCellsXml}${hyperlinksXml}</worksheet>`;
+  return { xml, hyperlinks };
+}
+
+async function buildStyledXlsxBlob(sheets){
+  // sheets: [{ name, headers, rows, wrapColumns?, tintColumns? }] — une cellule peut être { text, link } pour un hyperlien
+  const zip = new JSZip();
+  const usedNames = new Set();
+  const safeSheets = sheets.map(s => {
+    let name = sanitizeSheetName(s.name);
+    let suffix = 2;
+    while (usedNames.has(name)) { name = sanitizeSheetName(s.name).slice(0, 28) + "-" + suffix++; }
+    usedNames.add(name);
+    return { name, headers: s.headers, rows: s.rows, wrapColumns: s.wrapColumns, tintColumns: s.tintColumns };
+  });
+
+  let contentTypes = XLSX_CONTENT_TYPES_HEAD;
+  const sheetTags = [];
+  const relTags = [`<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`];
+
+  safeSheets.forEach((s, i) => {
+    const idx = i + 1;
+    const { xml, hyperlinks } = xlsxBuildSheetXml(s.headers, s.rows, s.wrapColumns, s.tintColumns);
+    zip.file(`xl/worksheets/sheet${idx}.xml`, xml);
+    if (hyperlinks.length){
+      const hRels = hyperlinks.map((h, j) => `<Relationship Id="rId${j+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xlsxEsc(h.url)}" TargetMode="External"/>`).join("");
+      zip.file(`xl/worksheets/_rels/sheet${idx}.xml.rels`, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${hRels}</Relationships>`);
+    }
+    contentTypes += `<Override PartName="/xl/worksheets/sheet${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`;
+    sheetTags.push(`<sheet name="${xlsxEsc(s.name)}" sheetId="${idx}" r:id="rId${idx}"/>`);
+    relTags.push(`<Relationship Id="rId${idx}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${idx}.xml"/>`);
+  });
+  contentTypes += "</Types>";
+
+  const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheetTags.join("")}</sheets></workbook>`;
+  const workbookRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relTags.join("")}</Relationships>`;
+
+  zip.file("[Content_Types].xml", contentTypes);
+  zip.file("_rels/.rels", XLSX_RELS_ROOT);
+  zip.file("xl/workbook.xml", workbookXml);
+  zip.file("xl/_rels/workbook.xml.rels", workbookRels);
+  zip.file("xl/styles.xml", XLSX_STYLES);
+
+  const content = await zip.generateAsync({ type: "blob" });
+  return new Blob([content], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+document.getElementById("mygroup-export-btn").addEventListener("click", async (evt) => {
+  const btn = evt.target;
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = "Génération…";
+  try {
+    const chansons = buildChansonsSheet(myGroupEntries, myGroupVoteNames);
+
+    let seances = [];
+    try { seances = await loadGroupSeances(session.groupe); } catch(e){ console.error(e); }
+    const horaire = buildHoraireSheet(seances);
+
+    let coordRows = [];
+    try {
+      const listRes = await window.storage.list("coord:" + safeKeyPart(session.groupe) + ":", true);
+      const keys = (listRes && listRes.keys) || [];
+      for (const k of keys) { const r = await storageGet(k); if (r) coordRows.push(r); }
+    } catch(e){ console.error(e); }
+    const coord = buildCoordSheet(coordRows);
+
+    const blob = await buildStyledXlsxBlob([
+      { name: "Chansons", headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]), tintColumns: new Set(myGroupVoteNames.concat(myGroupVoteNames.length ? ["Total intérêt"] : [])) },
+      { name: "Horaire", headers: horaire.headers, rows: horaire.rows, wrapColumns: new Set(["Suivis admin.","Notions abordées / progrès réalisés","Objectifs prochaine séance"]) },
+      { name: "Coordonnées", headers: coord.headers, rows: coord.rows },
+    ]);
+    downloadBlob(blob, `Repertoire_${sanitizeSheetName(session.groupe)}.xlsx`);
+    showToast("Répertoire exporté ✓");
+  } catch(e){
+    console.error(e);
+    showToast("Erreur lors de l'export Excel. Réessayez.", true);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+});
+
+document.getElementById("export-excel-btn").addEventListener("click", async (evt) => {
+  if (!allEntries.length){ showToast("Le répertoire est vide.", true); return; }
+  const btn = evt.target;
+  const original = btn.textContent;
+  const groupFilter = document.getElementById("inv-group-filter").value;
+  btn.disabled = true; btn.textContent = "Génération…";
+
+  try {
+    if (groupFilter) {
+      const entries = allEntries.filter(e => e.groupe === groupFilter);
+      if (!entries.length){ showToast("Aucune fiche pour ce groupe.", true); return; }
+      const voteNames = (await storageGet("voteNames:" + safeKeyPart(groupFilter))) || [];
+      const chansons = buildChansonsSheet(entries, voteNames);
+      const blob = await buildStyledXlsxBlob([{ name: sanitizeSheetName(groupFilter), headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]), tintColumns: new Set(voteNames.concat(voteNames.length ? ["Total intérêt"] : [])) }]);
+      downloadBlob(blob, `Repertoire_${sanitizeSheetName(groupFilter)}.xlsx`);
+      showToast(`Répertoire exporté pour « ${groupFilter} ».`);
+      return;
+    }
+
+    const groups = Array.from(new Set(allEntries.map(e => e.groupe || "Sans groupe"))).sort();
+    const sheets = [];
+    for (const g of groups) {
+      const entries = allEntries.filter(e => (e.groupe || "Sans groupe") === g);
+      const voteNames = (await storageGet("voteNames:" + safeKeyPart(g))) || [];
+      const chansons = buildChansonsSheet(entries, voteNames);
+      sheets.push({ name: g, headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]), tintColumns: new Set(voteNames.concat(voteNames.length ? ["Total intérêt"] : [])) });
+    }
+    const blob = await buildStyledXlsxBlob(sheets);
+    downloadBlob(blob, "Repertoire_par_groupe.xlsx");
+    showToast(`Répertoire exporté (${groups.length} groupe${groups.length > 1 ? "s" : ""}, chansons seulement — sans coordonnées).`);
+  } catch(e){
+    console.error(e);
+    showToast("Erreur lors de l'export Excel. Réessayez.", true);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+});
+
+/* ---------------- Administration : groupes + horaire ---------------- */
+async function loadAdminPanel(){
+  groupesConfig = (await storageGet("config:groupes")) || {};
+  renderGroupsList();
+  loadRappelsList();
+  loadSuivisAdminList();
+  loadPermissionsChart();
+  const sel = document.getElementById("horaire-group-select");
+  const names = Object.keys(groupesConfig).sort();
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
+  sel.value = current;
+}
+
+function renderGroupsList(){
+  const wrap = document.getElementById("groups-list");
+  const names = Object.keys(groupesConfig).sort();
+  if (!names.length){
+    wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucun groupe configuré.</p>';
+    return;
+  }
+  wrap.innerHTML = names.map(n => {
+    const cfg = groupesConfig[n];
+    return `
+    <div class="group-manage-row">
+      <span style="flex:1;font-weight:600;">${escXml(n)}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12px;">Élève : ${escXml(cfg.code)}</span>
+      <button class="link-btn" data-editcode="${escXml(n)}" title="Modifier le code élève">✎</button>
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12px;">Assistant·e : ${cfg.codeAssistant ? escXml(cfg.codeAssistant) : "—"}</span>
+      <button class="link-btn" data-editassistant="${escXml(n)}" title="Modifier/ajouter le code assistant·e">✎</button>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;">
+        <input type="checkbox" data-togglevisible="${escXml(n)}" ${cfg.contenuVisible ? "checked" : ""} style="width:auto;"> Contenu horaire visible
+      </label>
+      <button class="btn btn-danger-ghost" data-remove-group="${escXml(n)}">Retirer</button>
+    </div>`;
+  }).join("");
+
+  wrap.querySelectorAll("[data-editcode]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const n = btn.dataset.editcode;
+      const val = await customPrompt(`Nouveau code élève pour « ${n} » :`, groupesConfig[n].code);
+      if (val === null || !val.trim()) return;
+      groupesConfig[n].code = val.trim();
+      const ok = await storageSet("config:groupes", groupesConfig);
+      if (ok){ showToast("Code élève mis à jour ✓"); renderGroupsList(); }
+      else showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  wrap.querySelectorAll("[data-editassistant]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const n = btn.dataset.editassistant;
+      const val = await customPrompt(`Code assistant·e pour « ${n} » (laisser vide pour retirer) :`, groupesConfig[n].codeAssistant || "");
+      if (val === null) return;
+      groupesConfig[n].codeAssistant = val.trim();
+      const ok = await storageSet("config:groupes", groupesConfig);
+      if (ok){ showToast("Code assistant·e mis à jour ✓"); renderGroupsList(); }
+      else showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  wrap.querySelectorAll("[data-togglevisible]").forEach(chk => {
+    chk.addEventListener("change", async () => {
+      const n = chk.dataset.togglevisible;
+      groupesConfig[n].contenuVisible = chk.checked;
+      const ok = await storageSet("config:groupes", groupesConfig);
+      if (!ok) showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  wrap.querySelectorAll("[data-remove-group]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!(await customConfirm(`Retirer le groupe « ${btn.dataset.removeGroup} » ? Les élèves n'auront plus accès avec ce code.`))) return;
+      delete groupesConfig[btn.dataset.removeGroup];
+      await storageSet("config:groupes", groupesConfig);
+      loadAdminPanel();
+      showToast("Groupe retiré.");
+    });
+  });
+}
+
+document.getElementById("add-group-btn").addEventListener("click", async () => {
+  const name = document.getElementById("new-group-name").value.trim();
+  const code = document.getElementById("new-group-code").value.trim();
+  if (!name || !code){ showToast("Nom et code requis.", true); return; }
+  groupesConfig[name] = { code };
+  const ok = await storageSet("config:groupes", groupesConfig);
+  if (ok){
+    document.getElementById("new-group-name").value = "";
+    document.getElementById("new-group-code").value = "";
+    loadAdminPanel();
+    showToast("Groupe ajouté ✓");
+  } else {
+    showToast("Erreur lors de l'ajout.", true);
+  }
+});
+
+/* ---------------- Rappels reçus des élèves (admin) ---------------- */
+async function loadRappelsList(){
+  const wrap = document.getElementById("rappels-list");
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const listRes = await window.storage.list("rappel:", true);
+    const keys = (listRes && listRes.keys) || [];
+    const rappels = [];
+    for (const k of keys) { const r = await storageGet(k); if (r) rappels.push(r); }
+    rappels.sort((a,b) => (a.traite === b.traite ? 0 : a.traite ? 1 : -1) || (b.dateAjout||"").localeCompare(a.dateAjout||""));
+    if (!rappels.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucun rappel pour l\u2019instant.</p>';
+      return;
+    }
+    wrap.innerHTML = rappels.map(r => `
+      <div class="coord-row" style="${r.traite ? 'opacity:.55;' : ''}">
+        <div class="coord-name">${escXml(r.groupe)} — ${fmtDateFr(r.seanceDate)} — ${escXml(r.blocLabel)}</div>
+        <div>${escXml(r.texte)}</div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:10px;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12.5px;">
+            <input type="checkbox" data-rappel-traite="${r.id}" ${r.traite ? "checked" : ""} style="width:auto;"> Traité
+          </label>
+          <button class="btn btn-danger-ghost" data-rappel-del="${r.id}">Supprimer</button>
+        </div>
+      </div>`).join("");
+    wrap.querySelectorAll("[data-rappel-traite]").forEach(chk => {
+      chk.addEventListener("change", async () => {
+        const r = await storageGet("rappel:" + chk.dataset.rappelTraite);
+        if (!r) return;
+        r.traite = chk.checked;
+        await storageSet("rappel:" + r.id, r);
+        loadRappelsList();
+      });
+    });
+    wrap.querySelectorAll("[data-rappel-del]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        await window.storage.delete("rappel:" + btn.dataset.rappelDel, true);
+        loadRappelsList();
+      });
+    });
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger les rappels.</p>';
+  }
+}
+
+/* ---------------- Suivis admin. consolidés (aide-mémoire) ---------------- */
+async function loadSuivisAdminList(){
+  const wrap = document.getElementById("suivis-admin-list");
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const groupNames = Object.keys(groupesConfig);
+    const seancesByGroup = {};
+    for (const g of groupNames) { seancesByGroup[g] = await loadGroupSeances(g); }
+
+    const items = [];
+    Object.keys(seancesByGroup).forEach(g => {
+      seancesByGroup[g].forEach(s => {
+        (s.blocs||[]).forEach(b => {
+          (b.lignes||[]).forEach(l => {
+            (l.suiviAdmin||[]).forEach(t => {
+              if (!t.masque) items.push({ task: t, seance: s, groupe: g, seanceDate: s.date, activite: l.activite || "(sans titre)" });
+            });
+          });
+        });
+      });
+    });
+
+    if (!items.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucun suivi admin. pour l\u2019instant.</p>';
+      return;
+    }
+
+    items.sort((a,b) => (a.task.traite === b.task.traite ? 0 : a.task.traite ? 1 : -1) || (a.seanceDate||"").localeCompare(b.seanceDate||""));
+    const groups = {};
+    items.forEach(it => { (groups[it.groupe] = groups[it.groupe] || []).push(it); });
+
+    wrap.innerHTML = Object.keys(groups).sort().map(g => `
+      <h3 style="margin-top:14px;">${escXml(g)}</h3>
+      ${groups[g].map(it => `
+        <div class="coord-row" style="${it.task.traite ? 'opacity:.55;' : ''}">
+          <div class="coord-name">${fmtDateFr(it.seanceDate)} — ${escXml(it.activite)}</div>
+          <div>${escXml(it.task.texte)}</div>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:10px;">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12.5px;">
+              <input type="checkbox" data-admtask-check="${it.task.id}" data-seance="${it.seance.id}" data-groupe="${escXml(g)}" ${it.task.traite ? "checked" : ""}> Traité
+            </label>
+            <button class="btn btn-danger-ghost" data-admtask-hide="${it.task.id}" data-seance="${it.seance.id}" data-groupe="${escXml(g)}">Supprimer (de cette liste)</button>
+          </div>
+        </div>`).join("")}
+    `).join("");
+
+    const findTask = (groupe, seanceId, taskId) => {
+      const seance = (seancesByGroup[groupe]||[]).find(s => s.id === seanceId);
+      if (!seance) return {};
+      let found = null;
+      (seance.blocs||[]).forEach(b => (b.lignes||[]).forEach(l => (l.suiviAdmin||[]).forEach(t => { if (t.id === taskId) found = t; })));
+      return { seance, task: found };
+    };
+    wrap.querySelectorAll("[data-admtask-check]").forEach(chk => {
+      chk.addEventListener("change", async () => {
+        const g = chk.dataset.groupe;
+        const { task } = findTask(g, chk.dataset.seance, chk.dataset.admtaskCheck);
+        if (!task) return;
+        task.traite = chk.checked;
+        await saveGroupSeances(g, seancesByGroup[g]);
+      });
+    });
+    wrap.querySelectorAll("[data-admtask-hide]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const g = btn.dataset.groupe;
+        const { task } = findTask(g, btn.dataset.seance, btn.dataset.admtaskHide);
+        if (!task) return;
+        task.masque = true;
+        await saveGroupSeances(g, seancesByGroup[g]);
+        loadSuivisAdminList();
+      });
+    });
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger les suivis admin.</p>';
+  }
+}
+
+/* ---------------- Charte de permissions ---------------- */
+async function loadPermissionsChart(){
+  await loadPermissionsConfig();
+  const wrap = document.getElementById("permissions-chart");
+  const keys = Object.keys(DEFAULT_PERMISSIONS);
+  wrap.innerHTML = `<div class="table-wrap"><table class="tight"><thead><tr><th>Action</th><th style="text-align:center;">Élève</th><th style="text-align:center;">Assistant·e</th></tr></thead><tbody>
+    ${keys.map(k => {
+      const p = permissionsConfig[k] || DEFAULT_PERMISSIONS[k];
+      return `<tr>
+        <td>${escXml(PERMISSION_LABELS[k] || k)}</td>
+        <td style="text-align:center;"><input type="checkbox" data-perm="${k}" data-role="eleve" ${p.eleve ? "checked" : ""} style="width:auto;"></td>
+        <td style="text-align:center;"><input type="checkbox" data-perm="${k}" data-role="assistant" ${p.assistant ? "checked" : ""} style="width:auto;"></td>
+      </tr>`;
+    }).join("")}
+  </tbody></table></div>`;
+  wrap.querySelectorAll("[data-perm]").forEach(chk => {
+    chk.addEventListener("change", async () => {
+      const key = chk.dataset.perm;
+      permissionsConfig[key] = permissionsConfig[key] || Object.assign({}, DEFAULT_PERMISSIONS[key]);
+      permissionsConfig[key][chk.dataset.role] = chk.checked;
+      const ok = await storageSet("config:permissions", permissionsConfig);
+      if (!ok) showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+}
+
+/* ---------------- Éditeur d'horaire admin (séances) ---------------- */
+document.getElementById("horaire-group-select").addEventListener("change", async (e) => {
+  const groupe = e.target.value;
+  document.getElementById("horaire-group-tools").classList.toggle("hidden", !groupe);
+  if (groupe) await loadAdminHoraire(groupe);
+});
+
+async function loadAdminHoraire(groupe){
+  const wrap = document.getElementById("horaire-editor");
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const seances = await loadGroupSeances(groupe);
+    seances.sort((a,b) => (a.date||"").localeCompare(b.date||""));
+
+    await loadPermissionsConfig();
+    const ctx = buildHoraireCtx("admin", true);
+
+    if (!seances.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune séance pour ce groupe pour l\u2019instant.</p>';
+      return;
+    }
+    wrap.innerHTML = seances.map(s => renderSeanceCard(s, ctx)).join("");
+    bindSeanceEvents(wrap, seances, groupe, ctx, () => loadAdminHoraire(groupe));
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger l\u2019horaire.</p>';
+  }
+}
+
+document.getElementById("seance-add-btn").addEventListener("click", async () => {
+  const groupe = document.getElementById("horaire-group-select").value;
+  if (!groupe){ showToast("Choisissez un groupe d'abord.", true); return; }
+  const seances = await loadGroupSeances(groupe);
+  const s = newSeance(groupe, new Date().toISOString().slice(0,10), null);
+  seances.push(s);
+  const ok = await saveGroupSeances(groupe, seances);
+  if (ok){ showToast("Séance ajoutée ✓"); loadAdminHoraire(groupe); }
+  else showToast("Erreur lors de l'ajout.", true);
+});
+
+document.getElementById("serie-generer-btn").addEventListener("click", async () => {
+  const groupe = document.getElementById("horaire-group-select").value;
+  const status = document.getElementById("horaire-status");
+  if (!groupe){ showToast("Choisissez un groupe d'abord.", true); return; }
+  const jour = Number(document.getElementById("serie-jour").value);
+  const heure = document.getElementById("serie-heure").value || "19:00";
+  const duree = Number(document.getElementById("serie-duree").value) || 120;
+  const dateDebut = document.getElementById("serie-debut").value;
+  const dateFin = document.getElementById("serie-fin").value;
+  if (!dateDebut || !dateFin){ showToast("Indiquez une date de début et de fin.", true); return; }
+  if (dateFin < dateDebut){ showToast("La date de fin doit être après la date de début.", true); return; }
+
+  const seriesId = genId();
+  const dates = [];
+  let d = new Date(dateDebut + "T00:00:00");
+  const end = new Date(dateFin + "T00:00:00");
+  while (d <= end) {
+    if (d.getDay() === jour) dates.push(d.toISOString().slice(0,10));
+    d.setDate(d.getDate() + 1);
+  }
+  if (!dates.length){ showToast("Aucune date ne correspond à ce jour dans cet intervalle.", true); return; }
+
+  status.textContent = `Génération de ${dates.length} séance(s)…`;
+  const seances = await loadGroupSeances(groupe);
+  dates.forEach(date => {
+    const s = newSeance(groupe, date, seriesId);
+    s.blocs[0].heureDebut = heure;
+    s.blocs[0].heureFin = computeEndTime(heure, duree);
+    seances.push(s);
+  });
+  const ok = await saveGroupSeances(groupe, seances);
+  status.textContent = "";
+  showToast(ok ? `${dates.length} séance(s) générée(s) ✓` : "Erreur lors de la génération.", !ok);
+  loadAdminHoraire(groupe);
+});
+
+/* ---------------- Téléchargement direct via lien (utilisé par les liens Excel) ---------------- */
+async function handleAutoDownloadFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("dl");
+  if (!id) return;
+  try {
+    const entry = await storageGet("chanson:" + id);
+    if (!entry){ showToast("Fichier introuvable (il a peut-être été supprimé du répertoire).", true); return; }
+    const blob = await generateDocxBlob(entry);
+    downloadBlob(blob, entry.nomFichier || buildFileName(entry));
+    showToast(`Téléchargement de « ${entry.titre} » en cours…`);
+  } catch(e){
+    console.error(e);
+    showToast("Erreur lors du téléchargement automatique.", true);
+  }
+}
+
+/* ---------------- Initialisation ---------------- */
+window.storageReady.then(() => {
+  loadGateConfig();
+  handleAutoDownloadFromUrl();
+});
+</script>
+</body>
+</html>
