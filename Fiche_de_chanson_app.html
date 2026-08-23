@@ -281,6 +281,11 @@
     getFirestore, doc, getDoc, setDoc, deleteDoc,
     collection, getDocs
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import {
+    getAuth, signInAnonymously, signInWithEmailAndPassword,
+    createUserWithEmailAndPassword, signOut, sendPasswordResetEmail,
+    GoogleAuthProvider, signInWithPopup
+  } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCKSnHIyl7lhOTZXBpfy6tkdgFNR6lH9Ws",
@@ -293,6 +298,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
 
   window.storage = {
     async get(key){
@@ -314,6 +320,27 @@
       return { keys, prefix };
     }
   };
+
+  // Fonctions d'authentification exposées pour le reste de l'application (script classique plus bas)
+  // Seuls ces courriels peuvent obtenir un accès administrateur, peu importe
+  // la méthode de connexion utilisée (Google ou courriel/mot de passe).
+  const ADMIN_ALLOWED_EMAILS = ["jujucigale@hotmail.com", "jujucigale@gmail.com"];
+
+  window.fbAuth = {
+    auth,
+    isAllowedAdmin(email){ return !!email && ADMIN_ALLOWED_EMAILS.includes(email.toLowerCase()); },
+    async signInAnon(){ return signInAnonymously(auth); },
+    async signIn(email, password){ return signInWithEmailAndPassword(auth, email, password); },
+    async signUp(email, password){ return createUserWithEmailAndPassword(auth, email, password); },
+    async signOutAdmin(){ await signOut(auth); return signInAnonymously(auth); },
+    async resetPassword(email){ return sendPasswordResetEmail(auth, email); },
+    async signInGoogle(){ return signInWithPopup(auth, new GoogleAuthProvider()); },
+  };
+
+  // Connexion anonyme automatique et invisible pour tous les visiteurs — nécessaire
+  // pour que les règles Firestore puissent exiger une preuve d'identité (request.auth != null)
+  // sans jamais demander quoi que ce soit aux élèves.
+  try { await signInAnonymously(auth); } catch(e){ console.error("Connexion anonyme échouée :", e); }
 
   window.storageReadyResolve();
 </script>
@@ -346,21 +373,19 @@
       </div>
       <div class="card">
         <h2>Administration</h2>
-        <div id="gate-admin-first" class="hidden">
-          <div class="note">Première utilisation : créez votre code administrateur (vous seule le connaîtrez).</div>
-          <div class="field">
-            <label for="gate-code-admin-new">Nouveau code administrateur</label>
-            <input id="gate-code-admin-new" type="password" placeholder="Au moins 4 caractères">
-          </div>
-          <button class="btn btn-primary btn-block" id="gate-admin-create-btn" type="button">Créer et accéder</button>
+        <button class="btn btn-primary btn-block" id="gate-admin-google-btn" type="button">🔵 Se connecter avec Google</button>
+        <div style="text-align:center;color:var(--ink-soft);font-size:12px;margin:12px 0;">— ou, en solution de secours —</div>
+        <div class="note">Accès réservé — seule l'adresse autorisée peut se connecter.</div>
+        <div class="field">
+          <label for="gate-admin-email">Courriel</label>
+          <input id="gate-admin-email" type="email" placeholder="vous@exemple.com">
         </div>
-        <div id="gate-admin-normal">
-          <div class="field">
-            <label for="gate-code-admin">Code administrateur</label>
-            <input id="gate-code-admin" type="password" placeholder="Votre code">
-          </div>
-          <button class="btn btn-ghost btn-block" id="gate-admin-btn" type="button">Accéder à l'administration</button>
+        <div class="field">
+          <label for="gate-admin-password">Mot de passe</label>
+          <input id="gate-admin-password" type="password" placeholder="Au moins 6 caractères">
         </div>
+        <button class="btn btn-ghost btn-block" id="gate-admin-btn" type="button">Se connecter</button>
+        <button class="link-btn" id="gate-admin-reset-btn" type="button" style="margin-top:10px;font-size:12.5px;">Mot de passe oublié?</button>
         <div id="gate-admin-err" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
       </div>
     </div>
@@ -780,7 +805,6 @@ function safeKeyPart(s){
 /* ---------------- Session ---------------- */
 let session = null; // {type:'eleve', groupe:'Groupe 1'} ou {type:'admin'}
 let groupesConfig = {}; // { "Groupe 1": {code:"1234"}, ... }
-let adminConfig = null; // {code:"..."} ou null si jamais configuré
 
 async function storageGet(key){
   try { const r = await window.storage.get(key, true); return r && r.value ? JSON.parse(r.value) : null; }
@@ -851,7 +875,6 @@ document.getElementById("modal-input").addEventListener("keydown", (e) => { if (
 /* ---------------- Chargement config au démarrage ---------------- */
 async function loadGateConfig(){
   groupesConfig = (await storageGet("config:groupes")) || {};
-  adminConfig = await storageGet("config:admin");
 
   const sel = document.getElementById("gate-groupe");
   const names = Object.keys(groupesConfig).sort();
@@ -860,10 +883,6 @@ async function loadGateConfig(){
   const hasGroups = names.length > 0;
   document.getElementById("gate-eleve-normal").classList.toggle("hidden", !hasGroups);
   document.getElementById("gate-eleve-empty").classList.toggle("hidden", hasGroups);
-
-  const firstRun = !adminConfig;
-  document.getElementById("gate-admin-first").classList.toggle("hidden", !firstRun);
-  document.getElementById("gate-admin-normal").classList.toggle("hidden", firstRun);
 }
 
 document.getElementById("gate-eleve-btn").addEventListener("click", () => {
@@ -888,38 +907,74 @@ document.getElementById("gate-eleve-btn").addEventListener("click", () => {
   enterApp();
 });
 
-document.getElementById("gate-admin-create-btn").addEventListener("click", async () => {
-  const code = document.getElementById("gate-code-admin-new").value;
+document.getElementById("gate-admin-google-btn").addEventListener("click", async () => {
   const errEl = document.getElementById("gate-admin-err");
-  if (!code || code.length < 4){ errEl.textContent = "Le code doit contenir au moins 4 caractères."; return; }
-  const ok = await storageSet("config:admin", { code });
-  if (!ok){ errEl.textContent = "Erreur lors de la création du code. Réessayez."; return; }
-  adminConfig = { code };
-  errEl.textContent = "";
-  session = { type: "admin" };
-  enterApp();
+  try {
+    const result = await window.fbAuth.signInGoogle();
+    if (!window.fbAuth.isAllowedAdmin(result.user.email)){
+      await window.fbAuth.signOutAdmin();
+      errEl.style.color = "var(--danger)";
+      errEl.textContent = "Ce compte Google n'est pas autorisé comme administrateur.";
+      return;
+    }
+    errEl.textContent = "";
+    session = { type: "admin" };
+    enterApp();
+  } catch(e){
+    console.error(e);
+    errEl.style.color = "var(--danger)";
+    errEl.textContent = "Erreur lors de la connexion Google. Réessayez.";
+  }
 });
 
-document.getElementById("gate-admin-btn").addEventListener("click", () => {
-  const code = document.getElementById("gate-code-admin").value;
+document.getElementById("gate-admin-btn").addEventListener("click", async () => {
+  const email = document.getElementById("gate-admin-email").value.trim();
+  const password = document.getElementById("gate-admin-password").value;
   const errEl = document.getElementById("gate-admin-err");
-  if (!adminConfig || adminConfig.code !== code){
-    errEl.textContent = "Code administrateur incorrect.";
+  if (!email || !password){ errEl.textContent = "Entrez votre courriel et votre mot de passe."; return; }
+  if (!window.fbAuth.isAllowedAdmin(email)){
+    errEl.style.color = "var(--danger)";
+    errEl.textContent = "Cette adresse courriel n'est pas autorisée comme administratrice.";
     return;
   }
-  errEl.textContent = "";
-  session = { type: "admin" };
-  enterApp();
+  try {
+    await window.fbAuth.signIn(email, password);
+    errEl.textContent = "";
+    session = { type: "admin" };
+    enterApp();
+  } catch(e){
+    console.error(e);
+    errEl.style.color = "var(--danger)";
+    errEl.textContent = "Courriel ou mot de passe incorrect.";
+  }
 });
 
-document.getElementById("change-access-btn").addEventListener("click", () => {
+document.getElementById("gate-admin-reset-btn").addEventListener("click", async () => {
+  const email = document.getElementById("gate-admin-email").value.trim();
+  const errEl = document.getElementById("gate-admin-err");
+  if (!email){ errEl.textContent = "Entrez d'abord votre courriel ci-dessus, puis cliquez de nouveau."; return; }
+  try {
+    await window.fbAuth.resetPassword(email);
+    errEl.style.color = "var(--petrol)";
+    errEl.textContent = "Courriel de réinitialisation envoyé ✓ Vérifiez votre boîte de réception.";
+  } catch(e){
+    console.error(e);
+    errEl.style.color = "var(--danger)";
+    errEl.textContent = "Erreur lors de l'envoi. Vérifiez l'adresse courriel.";
+  }
+});
+
+document.getElementById("change-access-btn").addEventListener("click", async () => {
+  const wasAdmin = session && session.type === "admin";
   session = null;
   document.getElementById("main-app").classList.add("hidden");
   document.getElementById("gate-screen").classList.remove("hidden");
   document.getElementById("gate-code-eleve").value = "";
-  document.getElementById("gate-code-admin").value = "";
+  document.getElementById("gate-admin-email").value = "";
+  document.getElementById("gate-admin-password").value = "";
   document.getElementById("gate-eleve-err").textContent = "";
   document.getElementById("gate-admin-err").textContent = "";
+  if (wasAdmin) { try { await window.fbAuth.signOutAdmin(); } catch(e){ console.error(e); } }
   loadGateConfig();
 });
 
