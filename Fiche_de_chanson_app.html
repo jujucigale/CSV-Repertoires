@@ -322,13 +322,13 @@
   };
 
   // Fonctions d'authentification exposées pour le reste de l'application (script classique plus bas)
-  // Seuls ces courriels peuvent obtenir un accès administrateur, peu importe
-  // la méthode de connexion utilisée (Google ou courriel/mot de passe).
-  const ADMIN_ALLOWED_EMAILS = ["jujucigale@hotmail.com", "jujucigale@gmail.com"];
+  // Repli de sécurité si jamais la liste ne peut pas être lue depuis la base de données —
+  // garantit que l'accès reste toujours possible même en cas de problème technique.
+  const ADMIN_EMAILS_FALLBACK = ["jujucigale@hotmail.com", "jujucigale@gmail.com"];
+  window.ADMIN_EMAILS_FALLBACK = ADMIN_EMAILS_FALLBACK;
 
   window.fbAuth = {
     auth,
-    isAllowedAdmin(email){ return !!email && ADMIN_ALLOWED_EMAILS.includes(email.toLowerCase()); },
     async signInAnon(){ return signInAnonymously(auth); },
     async signIn(email, password){ return signInWithEmailAndPassword(auth, email, password); },
     async signUp(email, password){ return createUserWithEmailAndPassword(auth, email, password); },
@@ -617,6 +617,18 @@
   <!-- ===================== ONGLET ADMINISTRATION (admin) ===================== -->
   <div class="panel" id="panel-admin">
     <div class="card">
+      <h2>Comptes administrateur autorisés</h2>
+      <div class="note">Seules les adresses listées ici peuvent accéder à l'Administration (par Google ou par courriel/mot de passe). Gardez toujours au moins une adresse à laquelle vous avez accès.</div>
+      <div id="admin-emails-list"></div>
+      <h3>Ajouter une adresse autorisée</h3>
+      <div class="group-manage-row">
+        <input id="new-admin-email" type="email" placeholder="nouveau.courriel@exemple.com">
+        <button class="btn btn-primary btn-sm" id="add-admin-email-btn" type="button">Ajouter</button>
+      </div>
+      <div id="admin-email-err" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
       <h2>Groupes et codes d'accès</h2>
       <div class="note">Communiquez le code élève à tout le groupe. Le code assistant·e (optionnel) donne les mêmes droits que vous, mais seulement pour ce groupe. « Contenu visible » détermine si les élèves voient le déroulement détaillé de l'horaire (voir onglet Horaire).</div>
       <div id="groups-list"></div>
@@ -805,6 +817,7 @@ function safeKeyPart(s){
 /* ---------------- Session ---------------- */
 let session = null; // {type:'eleve', groupe:'Groupe 1'} ou {type:'admin'}
 let groupesConfig = {}; // { "Groupe 1": {code:"1234"}, ... }
+let adminEmailsConfig = []; // liste des courriels autorisés comme administrateur
 
 async function storageGet(key){
   try { const r = await window.storage.get(key, true); return r && r.value ? JSON.parse(r.value) : null; }
@@ -876,6 +889,12 @@ document.getElementById("modal-input").addEventListener("keydown", (e) => { if (
 async function loadGateConfig(){
   groupesConfig = (await storageGet("config:groupes")) || {};
 
+  adminEmailsConfig = await storageGet("config:adminEmails");
+  if (!adminEmailsConfig || !adminEmailsConfig.length){
+    adminEmailsConfig = window.ADMIN_EMAILS_FALLBACK.slice();
+    storageSet("config:adminEmails", adminEmailsConfig); // auto-initialisation, ne bloque pas l'affichage
+  }
+
   const sel = document.getElementById("gate-groupe");
   const names = Object.keys(groupesConfig).sort();
   sel.innerHTML = '<option value="">— Choisir —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
@@ -883,6 +902,11 @@ async function loadGateConfig(){
   const hasGroups = names.length > 0;
   document.getElementById("gate-eleve-normal").classList.toggle("hidden", !hasGroups);
   document.getElementById("gate-eleve-empty").classList.toggle("hidden", hasGroups);
+}
+
+function isAllowedAdmin(email){
+  const list = (adminEmailsConfig && adminEmailsConfig.length) ? adminEmailsConfig : window.ADMIN_EMAILS_FALLBACK;
+  return !!email && list.map(e => e.toLowerCase()).includes(email.toLowerCase());
 }
 
 document.getElementById("gate-eleve-btn").addEventListener("click", () => {
@@ -911,7 +935,7 @@ document.getElementById("gate-admin-google-btn").addEventListener("click", async
   const errEl = document.getElementById("gate-admin-err");
   try {
     const result = await window.fbAuth.signInGoogle();
-    if (!window.fbAuth.isAllowedAdmin(result.user.email)){
+    if (!isAllowedAdmin(result.user.email)){
       await window.fbAuth.signOutAdmin();
       errEl.style.color = "var(--danger)";
       errEl.textContent = "Ce compte Google n'est pas autorisé comme administrateur.";
@@ -932,7 +956,7 @@ document.getElementById("gate-admin-btn").addEventListener("click", async () => 
   const password = document.getElementById("gate-admin-password").value;
   const errEl = document.getElementById("gate-admin-err");
   if (!email || !password){ errEl.textContent = "Entrez votre courriel et votre mot de passe."; return; }
-  if (!window.fbAuth.isAllowedAdmin(email)){
+  if (!isAllowedAdmin(email)){
     errEl.style.color = "var(--danger)";
     errEl.textContent = "Cette adresse courriel n'est pas autorisée comme administratrice.";
     return;
@@ -2537,6 +2561,7 @@ document.getElementById("export-excel-btn").addEventListener("click", async (evt
 async function loadAdminPanel(){
   groupesConfig = (await storageGet("config:groupes")) || {};
   renderGroupsList();
+  renderAdminEmailsList();
   loadRappelsList();
   loadSuivisAdminList();
   loadPermissionsChart();
@@ -2546,6 +2571,50 @@ async function loadAdminPanel(){
   sel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
   sel.value = current;
 }
+
+function renderAdminEmailsList(){
+  const wrap = document.getElementById("admin-emails-list");
+  if (!adminEmailsConfig || !adminEmailsConfig.length){
+    wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune adresse configurée.</p>';
+    return;
+  }
+  wrap.innerHTML = adminEmailsConfig.map(email => `
+    <div class="group-manage-row">
+      <span style="flex:1;font-weight:600;">${escXml(email)}</span>
+      <button class="btn btn-danger-ghost btn-sm" data-remove-admin-email="${escXml(email)}" type="button" ${adminEmailsConfig.length <= 1 ? "disabled title=\"Vous devez garder au moins une adresse\"" : ""}>Retirer</button>
+    </div>
+  `).join("");
+  wrap.querySelectorAll("[data-remove-admin-email]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const email = btn.dataset.removeAdminEmail;
+      if (adminEmailsConfig.length <= 1) return;
+      if (!(await customConfirm(`Retirer « ${email} » comme administratrice autorisée?`))) return;
+      adminEmailsConfig = adminEmailsConfig.filter(e => e !== email);
+      const ok = await storageSet("config:adminEmails", adminEmailsConfig);
+      if (ok){ showToast("Adresse retirée ✓"); renderAdminEmailsList(); }
+      else showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+}
+
+document.getElementById("add-admin-email-btn").addEventListener("click", async () => {
+  const input = document.getElementById("new-admin-email");
+  const errEl = document.getElementById("admin-email-err");
+  const email = input.value.trim().toLowerCase();
+  errEl.textContent = "";
+  if (!email || !email.includes("@") || !email.includes(".")){
+    errEl.textContent = "Entrez une adresse courriel valide.";
+    return;
+  }
+  if (adminEmailsConfig.map(e => e.toLowerCase()).includes(email)){
+    errEl.textContent = "Cette adresse est déjà autorisée.";
+    return;
+  }
+  adminEmailsConfig = adminEmailsConfig.concat([email]);
+  const ok = await storageSet("config:adminEmails", adminEmailsConfig);
+  if (ok){ input.value = ""; showToast("Adresse ajoutée ✓"); renderAdminEmailsList(); }
+  else { errEl.textContent = "Erreur lors de l'ajout. Réessayez."; adminEmailsConfig = adminEmailsConfig.filter(e => e !== email); }
+});
 
 function renderGroupsList(){
   const wrap = document.getElementById("groups-list");
