@@ -385,6 +385,7 @@
           <input id="gate-admin-password" type="password" placeholder="Au moins 6 caractères">
         </div>
         <button class="btn btn-ghost btn-block" id="gate-admin-btn" type="button">Se connecter</button>
+        <button class="btn btn-ghost btn-block" id="gate-admin-create-btn" type="button" style="margin-top:8px;">Créer mon compte (adresse déjà autorisée)</button>
         <button class="link-btn" id="gate-admin-reset-btn" type="button" style="margin-top:10px;font-size:12.5px;">Mot de passe oublié?</button>
         <div id="gate-admin-err" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
       </div>
@@ -948,6 +949,33 @@ document.getElementById("gate-admin-google-btn").addEventListener("click", async
     console.error(e);
     errEl.style.color = "var(--danger)";
     errEl.textContent = "Erreur lors de la connexion Google. Réessayez.";
+  }
+});
+
+document.getElementById("gate-admin-create-btn").addEventListener("click", async () => {
+  const email = document.getElementById("gate-admin-email").value.trim();
+  const password = document.getElementById("gate-admin-password").value;
+  const errEl = document.getElementById("gate-admin-err");
+  if (!email || !password || password.length < 6){
+    errEl.style.color = "var(--danger)";
+    errEl.textContent = "Entrez un courriel valide et un mot de passe d'au moins 6 caractères.";
+    return;
+  }
+  if (!isAllowedAdmin(email)){
+    errEl.style.color = "var(--danger)";
+    errEl.textContent = "Cette adresse n'est pas autorisée. Ajoutez-la d'abord dans « Comptes administrateur autorisés » (une fois connectée) avant de créer son mot de passe.";
+    return;
+  }
+  try {
+    await window.fbAuth.signUp(email, password);
+    errEl.textContent = "";
+    session = { type: "admin" };
+    enterApp();
+  } catch(e){
+    console.error(e);
+    errEl.style.color = "var(--danger)";
+    if (e.code === "auth/email-already-in-use") errEl.textContent = "Ce compte existe déjà — utilisez plutôt « Se connecter ».";
+    else errEl.textContent = "Erreur lors de la création du compte. Réessayez.";
   }
 });
 
