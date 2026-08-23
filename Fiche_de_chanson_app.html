@@ -901,7 +901,7 @@ async function loadGateConfig(){
   }
 
   const sel = document.getElementById("gate-groupe");
-  const names = Object.keys(groupesConfig).sort();
+  const names = Object.keys(groupesConfig).filter(n => groupesConfig[n].visible !== false).sort();
   sel.innerHTML = '<option value="">— Choisir —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
 
   const hasGroups = names.length > 0;
@@ -1067,10 +1067,12 @@ function enterApp(){
   document.getElementById("main-app").classList.remove("hidden");
   const label = document.getElementById("session-label");
   if (session.type === "eleve" || session.type === "assistant"){
-    label.innerHTML = `Groupe : <strong>${escXml(session.groupe)}</strong>` + (session.type === "assistant" ? ' <span style="opacity:.65;">(assistant·e)</span>' : "");
+    const roleLabel = session.type === "assistant" ? "assistant·e" : "élève";
+    label.innerHTML = `Connecté(e) en tant qu'<strong>${roleLabel}</strong>, dans le groupe : <strong>${escXml(session.groupe)}</strong>`;
     document.getElementById("groupeAffiche").value = session.groupe;
   } else {
-    label.innerHTML = `Mode <strong>administration</strong>`;
+    const email = (window.fbAuth && window.fbAuth.auth && window.fbAuth.auth.currentUser) ? window.fbAuth.auth.currentUser.email : "";
+    label.innerHTML = `Connecté(e) en tant qu'<strong>administratrice</strong>, à partir du compte : <strong>${escXml(email || "—")}</strong>`;
   }
   buildTabsForSession();
   if (session.type === "eleve" || session.type === "assistant"){ renderSections(); updatePreview(); }
@@ -2667,6 +2669,9 @@ function renderGroupsList(){
       <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;">
         <input type="checkbox" data-togglevisible="${escXml(n)}" ${cfg.contenuVisible ? "checked" : ""} style="width:auto;"> Contenu horaire visible
       </label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;">
+        <input type="checkbox" data-togglegroupvisible="${escXml(n)}" ${cfg.visible !== false ? "checked" : ""} style="width:auto;"> Visible pour les élèves
+      </label>
       <button class="btn btn-danger-ghost" data-remove-group="${escXml(n)}">Retirer</button>
     </div>`;
   }).join("");
@@ -2699,6 +2704,15 @@ function renderGroupsList(){
       groupesConfig[n].contenuVisible = chk.checked;
       const ok = await storageSet("config:groupes", groupesConfig);
       if (!ok) showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  wrap.querySelectorAll("[data-togglegroupvisible]").forEach(chk => {
+    chk.addEventListener("change", async () => {
+      const n = chk.dataset.togglegroupvisible;
+      groupesConfig[n].visible = chk.checked;
+      const ok = await storageSet("config:groupes", groupesConfig);
+      if (ok) showToast(chk.checked ? `« ${n} » visible pour les élèves ✓` : `« ${n} » caché du menu élève ✓`);
+      else showToast("Erreur lors de la mise à jour.", true);
     });
   });
   wrap.querySelectorAll("[data-remove-group]").forEach(btn => {
