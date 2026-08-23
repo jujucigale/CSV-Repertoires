@@ -334,7 +334,11 @@
     async signUp(email, password){ return createUserWithEmailAndPassword(auth, email, password); },
     async signOutAdmin(){ await signOut(auth); return signInAnonymously(auth); },
     async resetPassword(email){ return sendPasswordResetEmail(auth, email); },
-    async signInGoogle(){ return signInWithPopup(auth, new GoogleAuthProvider()); },
+    async signInGoogle(){
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      return signInWithPopup(auth, provider);
+    },
   };
 
   // Connexion anonyme automatique et invisible pour tous les visiteurs — nécessaire
@@ -386,7 +390,7 @@
         </div>
         <button class="btn btn-ghost btn-block" id="gate-admin-btn" type="button">Se connecter</button>
         <button class="btn btn-ghost btn-block" id="gate-admin-create-btn" type="button" style="margin-top:8px;">Créer mon compte (adresse déjà autorisée)</button>
-        <button class="link-btn" id="gate-admin-reset-btn" type="button" style="margin-top:10px;font-size:12.5px;">Mot de passe oublié?</button>
+        <button class="link-btn" id="gate-admin-reset-btn" type="button" style="margin-top:10px;font-size:12.5px;">Créer ou réinitialiser mon mot de passe</button>
         <div id="gate-admin-err" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
       </div>
     </div>
@@ -405,7 +409,7 @@
       <div class="tabs" id="main-tabs"></div>
       <div class="session-badge">
         <span id="session-label">—</span>
-        <button class="link-btn" id="change-access-btn" type="button">Changer d'accès</button>
+        <button class="link-btn" id="change-access-btn" type="button">Se déconnecter</button>
       </div>
     </div>
   </div>
@@ -974,7 +978,7 @@ document.getElementById("gate-admin-create-btn").addEventListener("click", async
   } catch(e){
     console.error(e);
     errEl.style.color = "var(--danger)";
-    if (e.code === "auth/email-already-in-use") errEl.textContent = "Ce compte existe déjà — utilisez plutôt « Se connecter ».";
+    if (e.code === "auth/email-already-in-use") errEl.textContent = "Ce compte existe déjà (peut-être via Google) — utilisez plutôt « Créer ou réinitialiser mon mot de passe » ci-dessous pour lui ajouter un mot de passe.";
     else errEl.textContent = "Erreur lors de la création du compte. Réessayez.";
   }
 });
@@ -997,7 +1001,7 @@ document.getElementById("gate-admin-btn").addEventListener("click", async () => 
   } catch(e){
     console.error(e);
     errEl.style.color = "var(--danger)";
-    errEl.textContent = "Courriel ou mot de passe incorrect.";
+    errEl.textContent = "Courriel ou mot de passe incorrect. Première connexion pour cette adresse? Utilisez « Créer ou réinitialiser mon mot de passe » ci-dessous.";
   }
 });
 
