@@ -74,7 +74,6 @@
   </div>
 
   <div class="card">
-  <div class="card">
     <h2><span class="qnum">2.</span>Dans quel environnement (système d'exploitation) as-tu testé l'application?</h2>
     <p class="qhelp">Sélectionne tout ce qui s'applique.</p>
     <div class="choices" data-q="environnement" data-multi="1">
@@ -326,6 +325,7 @@ function collectAnswers(){
 }
 
 document.getElementById("submit-btn").addEventListener("click", async () => {
+  await window.storageReady;
   const answers = collectAnswers();
   const required = ["appareil","environnement","environnement_futur","navigateur","role","satisfaction"];
   const missing = required.filter(q => Array.isArray(answers[q]) ? !answers[q].length : !answers[q]);
@@ -423,14 +423,26 @@ async function loadResults(){
     }
 
     multiChoiceQs.forEach(([q, label]) => {
-      const counts = {};
-      entries.forEach(e => { (Array.isArray(e[q]) ? e[q] : (e[q] ? [e[q]] : [])).forEach(v => { counts[v] = (counts[v]||0) + 1; }); });
+      const groups = {};
+      entries.forEach(e => {
+        (Array.isArray(e[q]) ? e[q] : (e[q] ? [e[q]] : [])).forEach(v => {
+          if (!groups[v]) groups[v] = [];
+          groups[v].push(e.nom ? e.nom.trim() : "");
+        });
+      });
       html += `<div class="card"><h2>${escXml(label)}</h2>`;
-      if (!Object.keys(counts).length){
+      if (!Object.keys(groups).length){
         html += '<p style="color:var(--ink-soft);font-size:13px;">Aucune donnée.</p>';
       } else {
-        Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).forEach(k => {
-          html += `<div class="results-item">${escXml(k)} — <b>${counts[k]}</b></div>`;
+        Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length).forEach(k => {
+          const names = groups[k];
+          const named = names.filter(n => n).map(n => escXml(n));
+          const anonCount = names.length - named.length;
+          let detail = named.join(", ");
+          if (anonCount) detail += (detail ? " + " : "") + anonCount + " sans nom fourni";
+          html += `<div class="results-item">${escXml(k)} — <b>${names.length}</b>` +
+            (detail ? `<br><span style="color:var(--ink-soft);font-size:12px;">${detail}</span>` : "") +
+            `</div>`;
         });
       }
       html += '</div>';
