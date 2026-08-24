@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sondage d'évaluation — Fiche de chanson</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1E2A38; --ink-soft:#5B6B7A; --paper:#F7F8F6; --surface:#FFFFFF;
+    --petrol:#2F6F6B; --petrol-dark:#234F4C; --highlight:#ADD8E6; --highlight-deep:#79B7CC;
+    --border:#DDE2DE; --danger:#B5533E; --radius:12px;
+    --shadow:0 1px 2px rgba(30,42,56,.06), 0 4px 14px rgba(30,42,56,.06);
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;margin:0;min-height:100vh;}
+  .shell{max-width:720px;margin:0 auto;padding:24px 18px 60px;}
+  h1{font-family:'Fraunces',serif;font-size:25px;margin:0 0 4px;letter-spacing:-.01em;}
+  .intro{color:var(--ink-soft);font-size:14px;margin:0 0 24px;line-height:1.5;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .qnum{color:var(--petrol);font-weight:700;margin-right:4px;}
+  .optional{color:var(--ink-soft);font-weight:400;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;}
+  .qhelp{color:var(--ink-soft);font-size:12px;margin:2px 0 10px;}
+  .choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .choices label{border:1.5px solid var(--border);border-radius:999px;padding:7px 14px;cursor:pointer;font-size:13px;}
+  .choices label:has(input:checked){background:var(--highlight);border-color:var(--highlight-deep);font-weight:600;}
+  .choices input{display:none;}
+  .likert{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .likert label{flex:1;min-width:64px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px 4px;cursor:pointer;font-size:12px;color:var(--ink-soft);}
+  .likert input{display:none;}
+  .likert label:has(input:checked){background:var(--petrol);border-color:var(--petrol);color:#fff;}
+  textarea, input[type="text"]{
+    width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;
+    font-size:14px;font-family:inherit;resize:vertical;margin-top:8px;
+  }
+  textarea{min-height:70px;}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;}
+  .btn-primary{background:var(--petrol);color:#fff;}
+  .btn-primary:hover{background:var(--petrol-dark);}
+  .btn-ghost{background:transparent;color:var(--petrol-dark);border:1.5px solid var(--petrol);padding:8px 14px;font-size:13px;}
+  .submit-row{text-align:center;margin-top:22px;}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:13.5px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.error{background:var(--danger);}
+  .done-screen{text-align:center;padding:60px 20px;}
+  .footer-link{text-align:center;margin-top:30px;}
+  .footer-link button{background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;cursor:pointer;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(30,42,56,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal-box{background:#fff;border-radius:var(--radius);padding:22px;max-width:380px;width:100%;box-shadow:var(--shadow);}
+  .modal-box input{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:14.5px;margin-bottom:14px;}
+  .results-item{border-bottom:1px solid var(--border);padding:10px 0;font-size:13.5px;}
+  .results-item:last-child{border-bottom:none;}
+  .bar-wrap{background:#F1F4F1;border-radius:6px;height:10px;margin-top:4px;overflow:hidden;}
+  .bar{background:var(--petrol);height:100%;}
+  .hidden{display:none !important;}
+  .added-badge{display:inline-block;background:#EAF3F2;color:var(--petrol);border:1px solid #CFE4E2;border-radius:5px;padding:1px 8px;font-size:10.5px;font-weight:700;margin-left:6px;vertical-align:middle;}
+</style>
+</head>
+<body>
+
+<div class="shell" id="survey-screen">
+  <h1>Comment était ton expérience? 🎤</h1>
+  <p class="intro">Un sondage rapide pour m'aider à peaufiner l'application avant le début de la session. Merci d'avoir pris le temps de tester et de m'offrir ta rétroaction.</p>
+
+  <div class="card">
+    <h2><span class="qnum">1.</span>Sur quel appareil as-tu testé l'application?</h2>
+    <p class="qhelp">Sélectionne tout ce qui s'applique.</p>
+    <div class="choices" data-q="appareil" data-multi="1">
+      <label><input type="checkbox" value="Ordinateur"><span>Ordinateur</span></label>
+      <label><input type="checkbox" value="Tablette"><span>Tablette</span></label>
+      <label><input type="checkbox" value="Téléphone"><span>Téléphone</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+  <div class="card">
+    <h2><span class="qnum">2.</span>Dans quel environnement (système d'exploitation) as-tu testé l'application?</h2>
+    <p class="qhelp">Sélectionne tout ce qui s'applique.</p>
+    <div class="choices" data-q="environnement" data-multi="1">
+      <label><input type="checkbox" value="Windows"><span>Windows</span></label>
+      <label><input type="checkbox" value="Apple (macOS)"><span>Apple (macOS)</span></label>
+      <label><input type="checkbox" value="Android"><span>Android</span></label>
+      <label><input type="checkbox" value="iOS"><span>iOS</span></label>
+      <label><input type="checkbox" value="Linux"><span>Linux</span></label>
+      <label><input type="checkbox" value="Autre"><span>Autre</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">3.</span>Dans quel environnement es-tu la ou le plus susceptible de l'utiliser en cours d'année?</h2>
+    <p class="qhelp">Sélectionne tout ce qui s'applique.</p>
+    <div class="choices" data-q="environnement_futur" data-multi="1">
+      <label><input type="checkbox" value="Windows"><span>Windows</span></label>
+      <label><input type="checkbox" value="Apple (macOS)"><span>Apple (macOS)</span></label>
+      <label><input type="checkbox" value="Android"><span>Android</span></label>
+      <label><input type="checkbox" value="iOS"><span>iOS</span></label>
+      <label><input type="checkbox" value="Linux"><span>Linux</span></label>
+      <label><input type="checkbox" value="Autre"><span>Autre</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">4.</span>Dans quel navigateur as-tu testé l'application?</h2>
+    <p class="qhelp">Sélectionne tout ce qui s'applique.</p>
+    <div class="choices" data-q="navigateur" data-multi="1">
+      <label><input type="checkbox" value="Chrome"><span>Chrome</span></label>
+      <label><input type="checkbox" value="Edge"><span>Edge</span></label>
+      <label><input type="checkbox" value="Firefox"><span>Firefox</span></label>
+      <label><input type="checkbox" value="Safari"><span>Safari</span></label>
+      <label><input type="checkbox" value="Autre" id="navigateur-autre-radio"><span>Autre</span></label>
+    </div>
+    <input type="text" id="navigateur-autre-precision" class="hidden" placeholder="Précisez lequel" style="margin-top:8px;">
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">5.</span>Avec quel rôle as-tu testé l'application?</h2>
+    <p class="qhelp">Sélectionne tout ce qui s'applique.</p>
+    <div class="choices" data-q="role" data-multi="1">
+      <label><input type="checkbox" value="Élève"><span>Élève</span></label>
+      <label><input type="checkbox" value="Assistant ou assistante"><span>Assistant ou assistante</span></label>
+      <label><input type="checkbox" value="Administrateur ou administratrice"><span>Administrateur ou administratrice</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">6.</span>Quelles fonctionnalités as-tu essayées?</h2>
+    <p class="qhelp">Sélectionne tout ce qui s'applique.</p>
+    <div class="choices" data-q="fonctions" data-multi="1">
+      <label><input type="checkbox" value="Proposer une chanson"><span>Proposer une chanson</span></label>
+      <label><input type="checkbox" value="Voter"><span>Voter</span></label>
+      <label><input type="checkbox" value="Explorer le répertoire"><span>Explorer le répertoire</span></label>
+      <label><input type="checkbox" value="Consulter l'horaire"><span>Consulter l'horaire</span></label>
+      <label><input type="checkbox" value="Inscrire une absence"><span>Inscrire une absence</span></label>
+      <label><input type="checkbox" value="Envoyer un rappel"><span>Envoyer un rappel</span></label>
+      <label><input type="checkbox" value="Coordonnées"><span>Coordonnées</span></label>
+      <label><input type="checkbox" value="Connexion Google"><span>Connexion Google</span></label>
+      <label><input type="checkbox" value="Connexion courriel/mot de passe"><span>Connexion courriel/mot de passe</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">7.</span>Quel est ton niveau de satisfaction générale envers l'application?</h2>
+    <p class="qhelp">1 = Bas — 5 = Très haut</p>
+    <div class="likert" data-q="satisfaction"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">8.</span>Points à améliorer</h2>
+    <textarea data-q="ameliorations" placeholder="Qu'est-ce qui pourrait être mieux?"></textarea>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">9.</span>Bogues ou trucs qui ne fonctionnent pas (ou moins bien)</h2>
+    <p class="qhelp">Décris ce qui s'est passé et à quel endroit, si possible.</p>
+    <textarea data-q="bogues" placeholder="Ex. le bouton X ne répondait pas quand..."></textarea>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">10.</span>Manque de clarté</h2>
+    <p class="qhelp">Y a-t-il un mot, un bouton ou une explication qui n'était pas clair?</p>
+    <textarea data-q="clarte"></textarea>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">11.</span>Autres commentaires</h2>
+    <textarea data-q="autres"></textarea>
+  </div>
+
+  <div class="card">
+    <h2><span class="qnum">12.</span>Ton nom <span class="optional">Facultatif</span></h2>
+    <p class="qhelp">Seulement si tu es à l'aise — utile si je veux te poser une question de suivi sur un bogue précis.</p>
+    <input type="text" data-q="nom" placeholder="Optionnel">
+  </div>
+
+  <div class="submit-row">
+    <button class="btn btn-primary" id="submit-btn" type="button">Envoyer mes réponses</button>
+  </div>
+
+  <div class="footer-link">
+    <button id="show-results-link" type="button">Mode enseignante — voir les résultats</button>
+  </div>
+</div>
+
+<div class="shell done-screen hidden" id="done-screen">
+  <h1>Merci beaucoup! 🎉</h1>
+  <p class="intro">Tes réponses ont été envoyées – Elles m'aideront certainement à peaufiner l'application, et à la rendre la plus utile possible.</p>
+</div>
+
+<div class="shell hidden" id="results-screen">
+  <h1>Résultats du sondage</h1>
+  <div id="results-content"></div>
+  <div class="footer-link">
+    <button id="back-to-survey-link" type="button">← Retour au sondage</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal-box">
+    <p id="modal-message" style="margin:0 0 12px;font-size:14.5px;"></p>
+    <input type="password" id="modal-input">
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn-ghost btn" id="modal-cancel-btn" type="button">Annuler</button>
+      <button class="btn btn-primary" id="modal-ok-btn" type="button">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.storageReady = new Promise(resolve => { window.storageReadyResolve = resolve; });
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, deleteDoc,
+    collection, getDocs
+  } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCKSnHIyl7lhOTZXBpfy6tkdgFNR6lH9Ws",
+    authDomain: "csv-repertoires.firebaseapp.com",
+    projectId: "csv-repertoires",
+    storageBucket: "csv-repertoires.firebasestorage.app",
+    messagingSenderId: "280027470791",
+    appId: "1:280027470791:web:da0c73c10bc00eb11917e2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  window.storage = {
+    async get(key){
+      const snap = await getDoc(doc(db, "storage", key));
+      return snap.exists() ? { key, value: snap.data().value } : null;
+    },
+    async set(key, value){
+      await setDoc(doc(db, "storage", key), { value });
+      return { key, value };
+    },
+    async delete(key){
+      await deleteDoc(doc(db, "storage", key));
+      return { key, deleted: true };
+    },
+    async list(prefix){
+      const snap = await getDocs(collection(db, "storage"));
+      const keys = [];
+      snap.forEach(d => { if (!prefix || d.id.startsWith(prefix)) keys.push(d.id); });
+      return { keys, prefix };
+    }
+  };
+
+  try { await signInAnonymously(auth); } catch(e){ console.error("Connexion anonyme échouée :", e); }
+  window.storageReadyResolve();
+</script>
+
+<script>
+function escXml(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function genId(){ return Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8); }
+async function storageGet(key){ try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; } catch(e){ return null; } }
+async function storageSet(key, obj){ try { const ok = await window.storage.set(key, JSON.stringify(obj)); return !!ok; } catch(e){ console.error(e); return false; } }
+
+function showToast(msg, isError){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (isError ? " error" : "");
+  setTimeout(() => { t.className = "toast"; }, 3200);
+}
+
+/* ---- Modale maison ---- */
+let modalResolve = null;
+function showModal(message, defaultValue){
+  document.getElementById("modal-message").textContent = message;
+  document.getElementById("modal-input").value = defaultValue || "";
+  document.getElementById("modal-overlay").classList.remove("hidden");
+  setTimeout(() => document.getElementById("modal-input").focus(), 30);
+  return new Promise(resolve => { modalResolve = resolve; });
+}
+function closeModal(result){
+  document.getElementById("modal-overlay").classList.add("hidden");
+  if (modalResolve){ modalResolve(result); modalResolve = null; }
+}
+document.getElementById("modal-ok-btn").addEventListener("click", () => closeModal(document.getElementById("modal-input").value));
+document.getElementById("modal-cancel-btn").addEventListener("click", () => closeModal(null));
+document.getElementById("modal-input").addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); document.getElementById("modal-ok-btn").click(); } });
+
+/* ---- Construction de l'échelle de satisfaction ---- */
+const LIKERT_LABELS = ["1\nBas","2","3\nMoyen","4","5\nTrès haut"];
+document.querySelectorAll(".likert").forEach(wrap => {
+  const q = wrap.dataset.q;
+  LIKERT_LABELS.forEach((label, i) => {
+    const val = i + 1;
+    const el = document.createElement("label");
+    el.innerHTML = `<input type="radio" name="likert-${q}" value="${val}"><span>${escXml(label).replace(/\n/g,"<br>")}</span>`;
+    wrap.appendChild(el);
+  });
+});
+
+/* ---- Champ de précision pour navigateur "Autre" ---- */
+document.getElementById("navigateur-autre-radio").addEventListener("change", (e) => {
+  document.getElementById("navigateur-autre-precision").classList.toggle("hidden", !e.target.checked);
+});
+
+/* ---- Collecte des réponses ---- */
+function collectAnswers(){
+  const answers = {};
+  document.querySelectorAll("[data-q]").forEach(el => {
+    const q = el.dataset.q;
+    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT"){
+      answers[q] = el.value.trim();
+    } else if (el.dataset.multi){
+      answers[q] = Array.from(el.querySelectorAll("input:checked")).map(i => i.value);
+    } else if (el.classList.contains("likert") || el.classList.contains("choices")){
+      const checked = el.querySelector("input:checked");
+      answers[q] = checked ? checked.value : "";
+    }
+  });
+  if (Array.isArray(answers.navigateur) && answers.navigateur.includes("Autre")){
+    const precision = document.getElementById("navigateur-autre-precision").value.trim();
+    if (precision) answers.navigateur = answers.navigateur.map(v => v === "Autre" ? "Autre : " + precision : v);
+  }
+  return answers;
+}
+
+document.getElementById("submit-btn").addEventListener("click", async () => {
+  const answers = collectAnswers();
+  const required = ["appareil","environnement","environnement_futur","navigateur","role","satisfaction"];
+  const missing = required.filter(q => Array.isArray(answers[q]) ? !answers[q].length : !answers[q]);
+  if (missing.length){
+    showToast("Merci de répondre aux questions 1, 2, 3 et 5 avant d'envoyer.", true);
+    return;
+  }
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true; btn.textContent = "Envoi…";
+  const entry = Object.assign({ id: genId(), dateAjout: new Date().toISOString() }, answers);
+  try {
+    const ok = await storageSet("evalApp:" + entry.id, entry);
+    if (ok){
+      document.getElementById("survey-screen").classList.add("hidden");
+      document.getElementById("done-screen").classList.remove("hidden");
+    } else {
+      showToast("Erreur lors de l'envoi. Réessaie.", true);
+    }
+  } catch(e){
+    console.error(e);
+    showToast("Erreur lors de l'envoi. Réessaie.", true);
+  }
+  btn.disabled = false; btn.textContent = "Envoyer mes réponses";
+});
+
+/* ---- Mode enseignante : résultats ---- */
+const RESULTS_PASSWORD_KEY = "config:evalAppPassword";
+
+document.getElementById("show-results-link").addEventListener("click", async () => {
+  await window.storageReady;
+  let stored = await storageGet(RESULTS_PASSWORD_KEY);
+
+  if (!stored){
+    const pw = await showModal("Première utilisation : créez un mot de passe pour protéger les résultats :", "");
+    if (pw === null || !pw.trim()) return;
+    await storageSet(RESULTS_PASSWORD_KEY, { code: pw.trim() });
+    showToast("Mot de passe créé ✓");
+    loadResults();
+    return;
+  }
+  const pw = await showModal("Mot de passe pour voir les résultats :", "");
+  if (pw === null) return;
+  if (pw.trim() !== stored.code){ showToast("Mot de passe incorrect.", true); return; }
+  loadResults();
+});
+
+document.getElementById("back-to-survey-link").addEventListener("click", () => {
+  document.getElementById("results-screen").classList.add("hidden");
+  document.getElementById("survey-screen").classList.remove("hidden");
+});
+
+async function loadResults(){
+  document.getElementById("survey-screen").classList.add("hidden");
+  document.getElementById("results-screen").classList.remove("hidden");
+  const content = document.getElementById("results-content");
+  content.innerHTML = '<p style="color:var(--ink-soft);">Chargement…</p>';
+
+  try {
+    const listRes = await window.storage.list("evalApp:");
+    const keys = (listRes && listRes.keys) || [];
+    const entries = [];
+    for (const k of keys) {
+      const e = await storageGet(k);
+      if (e) entries.push(e);
+    }
+
+    if (!entries.length){
+      content.innerHTML = '<p style="color:var(--ink-soft);">Aucune réponse pour l\u2019instant.</p>';
+      return;
+    }
+
+    const multiChoiceQs = [
+      ["appareil","Appareil"],
+      ["environnement","Environnement testé (système d'exploitation)"],
+      ["environnement_futur","Environnement probable en cours d'année"],
+      ["navigateur","Navigateur"],
+      ["role","Rôle testé"],
+      ["fonctions","Fonctionnalités testées"],
+    ];
+    const textQs = [
+      ["ameliorations","Points à améliorer"],
+      ["bogues","Bogues signalés"],
+      ["clarte","Manques de clarté"],
+      ["autres","Autres commentaires"],
+    ];
+
+    let html = `<p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:16px;">${entries.length} réponse${entries.length>1?"s":""} reçue${entries.length>1?"s":""}</p>`;
+
+    const satVals = entries.map(e => Number(e.satisfaction)).filter(v => v > 0);
+    if (satVals.length){
+      const avg = satVals.reduce((a,b)=>a+b,0) / satVals.length;
+      html += `<div class="card"><h2>Satisfaction générale</h2>
+        <div class="results-item"><b>${avg.toFixed(1)} / 5</b> (${satVals.length} réponse${satVals.length>1?"s":""})
+        <div class="bar-wrap"><div class="bar" style="width:${(avg/5*100).toFixed(0)}%;"></div></div></div></div>`;
+    }
+
+    multiChoiceQs.forEach(([q, label]) => {
+      const counts = {};
+      entries.forEach(e => { (Array.isArray(e[q]) ? e[q] : (e[q] ? [e[q]] : [])).forEach(v => { counts[v] = (counts[v]||0) + 1; }); });
+      html += `<div class="card"><h2>${escXml(label)}</h2>`;
+      if (!Object.keys(counts).length){
+        html += '<p style="color:var(--ink-soft);font-size:13px;">Aucune donnée.</p>';
+      } else {
+        Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).forEach(k => {
+          html += `<div class="results-item">${escXml(k)} — <b>${counts[k]}</b></div>`;
+        });
+      }
+      html += '</div>';
+    });
+
+    textQs.forEach(([q, label]) => {
+      const responses = entries.filter(e => e[q]).map(e => ({ text: e[q], nom: e.nom }));
+      html += `<div class="card"><h2>${escXml(label)} <span style="color:var(--ink-soft);font-weight:400;font-size:12px;">(${responses.length})</span></h2>`;
+      if (!responses.length){
+        html += '<p style="color:var(--ink-soft);font-size:13px;">Aucun commentaire.</p>';
+      } else {
+        responses.forEach(r => {
+          html += `<div class="results-item">${escXml(r.text)}${r.nom ? ` <span style="color:var(--ink-soft);">— ${escXml(r.nom)}</span>` : ""}</div>`;
+        });
+      }
+      html += '</div>';
+    });
+
+    content.innerHTML = html;
+  } catch(e){
+    console.error(e);
+    content.innerHTML = '<p style="color:var(--danger);">Impossible de charger les résultats.</p>';
+  }
+}
+</script>
+</body>
+</html>
