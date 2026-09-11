@@ -69,7 +69,7 @@
   .panel.active{display:block;}
 
   .grid{
-    display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start;
+    display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;
   }
   @media (max-width: 760px){ .grid{grid-template-columns:1fr;} }
   .grid2-equal{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
@@ -546,7 +546,10 @@
 
       <div class="preview">
         <div class="card">
-          <h2>Aperçu</h2>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h2 style="margin:0;">Aperçu</h2>
+            <button class="btn btn-ghost btn-sm" id="preview-fullwidth-btn" type="button">Voir à la largeur réelle</button>
+          </div>
           <div class="preview-doc" id="preview-doc">
             <div class="preview-empty">L'aperçu de votre fiche apparaîtra ici au fur et à mesure que vous la remplissez.</div>
           </div>
@@ -674,12 +677,21 @@
               <option value="4">Jeudi</option><option value="5">Vendredi</option><option value="6">Samedi</option><option value="0">Dimanche</option>
             </select>
           </div>
+          <div class="field">
+            <label for="serie-frequence">Fréquence</label>
+            <select id="serie-frequence">
+              <option value="1">Chaque semaine</option>
+              <option value="2">Toutes les 2 semaines</option>
+              <option value="3">Toutes les 3 semaines</option>
+              <option value="4">Toutes les 4 semaines</option>
+            </select>
+          </div>
           <div class="field"><label for="serie-heure">Heure de début</label><input id="serie-heure" type="time" value="19:00"></div>
-          <div class="field"><label for="serie-duree">Durée du 1er bloc (min)</label><input id="serie-duree" type="number" value="120" min="10" step="5"></div>
         </div>
-        <div class="row2">
-          <div class="field"><label for="serie-debut">Date de début</label><input id="serie-debut" type="date"></div>
-          <div class="field"><label for="serie-fin">Date de fin</label><input id="serie-fin" type="date"></div>
+        <div class="row3">
+          <div class="field"><label for="serie-duree">Durée du 1er bloc (min)</label><input id="serie-duree" type="number" value="120" min="10" step="5"></div>
+          <div class="field"><label for="serie-debut">Date de début</label><input id="serie-debut" type="date"><span id="serie-debut-jour" style="font-size:12px;color:var(--ink-soft);"></span></div>
+          <div class="field"><label for="serie-fin">Date de fin</label><input id="serie-fin" type="date"><span id="serie-fin-jour" style="font-size:12px;color:var(--ink-soft);"></span></div>
         </div>
         <div class="submit-row" style="margin-top:0;">
           <button class="btn btn-ghost btn-sm" id="serie-generer-btn" type="button">Générer la série de séances</button>
@@ -706,6 +718,16 @@
       <button class="btn btn-ghost btn-sm" id="modal-cancel-btn" type="button">Annuler</button>
       <button class="btn btn-primary btn-sm" id="modal-ok-btn" type="button">OK</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="preview-fullwidth-overlay" style="align-items:flex-start;overflow-y:auto;padding:30px 20px;">
+  <div style="background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);width:100%;max-width:850px;margin:0 auto;padding:0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);">
+      <strong style="font-size:14px;">Aperçu à la largeur réelle de la page</strong>
+      <button class="btn btn-ghost btn-sm" id="preview-fullwidth-close-btn" type="button">Fermer</button>
+    </div>
+    <div class="preview-doc" id="preview-doc-fullwidth" style="border:none;border-radius:0;padding:28px 34px;"></div>
   </div>
 </div>
 
@@ -884,6 +906,17 @@ document.getElementById("modal-ok-btn").addEventListener("click", () => {
 });
 document.getElementById("modal-cancel-btn").addEventListener("click", () => closeModal(null));
 document.getElementById("modal-overlay").addEventListener("click", (e) => { if (e.target.id === "modal-overlay") closeModal(null); });
+
+document.getElementById("preview-fullwidth-btn").addEventListener("click", () => {
+  document.getElementById("preview-doc-fullwidth").innerHTML = document.getElementById("preview-doc").innerHTML;
+  document.getElementById("preview-fullwidth-overlay").classList.remove("hidden");
+});
+document.getElementById("preview-fullwidth-close-btn").addEventListener("click", () => {
+  document.getElementById("preview-fullwidth-overlay").classList.add("hidden");
+});
+document.getElementById("preview-fullwidth-overlay").addEventListener("click", (e) => {
+  if (e.target.id === "preview-fullwidth-overlay") document.getElementById("preview-fullwidth-overlay").classList.add("hidden");
+});
 document.getElementById("modal-input").addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); document.getElementById("modal-ok-btn").click(); } });
 
 /* ---------------- Chargement config au démarrage ---------------- */
@@ -1620,7 +1653,8 @@ function tacheListHtml(seance, ligne, ctx){
 function ligneRowHtml(seance, bloc, ligne, ctx){
   const canQui = ctx.can("ligne_qui");
   const canActivite = ctx.can("ligne_activite");
-  const canRemoveLigne = ctx.can("ligne_ajouter_retirer") && bloc.lignes.length > 1;
+  const canRemoveLigne = ctx.can("ligne_ajouter_retirer");
+  const canMoveLigne = ctx.can("bloc_deplacer");
 
   const textareaOrText = (permKey, objField, val) => {
     if (!ctx.visible(permKey)) return `<div style="font-size:12px;color:var(--ink-soft);">—</div>`;
@@ -1633,6 +1667,7 @@ function ligneRowHtml(seance, bloc, ligne, ctx){
     <td class="col-activite">
       <div style="display:flex;align-items:flex-start;gap:4px;">
         <div style="flex:1;min-width:0;">${canActivite ? `<input type="text" placeholder="Chanson / activité" data-field="activite" data-seance="${seance.id}" data-bloc="${bloc.id}" data-ligne="${ligne.id}" value="${escXml(ligne.activite)}">` : escXml(ligne.activite || "—")}</div>
+        ${canMoveLigne ? `<button class="link-btn" data-move-ligne="${ligne.id}" data-bloc="${bloc.id}" data-seance="${seance.id}" title="Déplacer vers une autre séance" style="flex-shrink:0;font-size:12px;">↦</button>` : ""}
         ${canRemoveLigne ? `<button class="btn btn-danger-ghost btn-sm" data-remove-ligne="${ligne.id}" data-bloc="${bloc.id}" data-seance="${seance.id}" title="Retirer cette ligne" style="flex-shrink:0;padding:4px 8px;">&times;</button>` : ""}
       </div>
     </td>
@@ -1694,7 +1729,7 @@ function renderSeanceCard(seance, ctx){
   return `<div class="seance-card" data-seance="${seance.id}">
     <div class="seance-card-header">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        ${canEditDate ? `<input type="date" data-field="date" data-seance="${seance.id}" value="${escXml(seance.date)}">` : `<strong>${fmtDateFr(seance.date)}</strong>`}
+        ${canEditDate ? `<input type="date" data-field="date" data-seance="${seance.id}" value="${escXml(seance.date)}"><span style="font-size:12px;color:var(--ink-soft);">${seance.date ? `(${JOURS_SEMAINE[new Date(seance.date + "T00:00:00").getDay()]})` : ""}</span>` : `<strong>${fmtDateFr(seance.date)}</strong>`}
         ${canEditDate ? `<input type="text" placeholder="Lieu/Élève" data-field="lieu" data-seance="${seance.id}" value="${escXml(seance.lieu || "")}" style="max-width:160px;padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:13.5px;">` : (seance.lieu ? `<span style="color:var(--ink-soft);font-size:13px;">${escXml(seance.lieu)}</span>` : "")}
         ${seance.seriesId ? '<span style="font-size:11px;color:var(--ink-soft);">(série)</span>' : ""}
       </div>
@@ -1896,6 +1931,37 @@ function bindSeanceEvents(wrap, seances, groupe, ctx, reload){
       bloc.lignes = bloc.lignes.filter(l => l.id !== btn.dataset.removeLigne);
       if (!bloc.lignes.length) bloc.lignes.push(newLigne());
       await saveGroupSeances(groupe, seances, seance);
+      reload();
+    });
+  });
+  wrap.querySelectorAll("[data-move-ligne]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const seance = findSeance(btn.dataset.seance);
+      const bloc = seance && findBloc(seance, btn.dataset.bloc);
+      const ligne = bloc && bloc.lignes.find(l => l.id === btn.dataset.moveLigne);
+      if (!ligne) return;
+      const dateCible = await customPrompt("Déplacer cette ligne vers la séance du (AAAA-MM-JJ) :", "");
+      if (dateCible === null || !dateCible.trim()) return;
+      const date = dateCible.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)){ showToast("Format de date invalide (attendu : AAAA-MM-JJ).", true); return; }
+
+      bloc.lignes = bloc.lignes.filter(l => l.id !== ligne.id);
+      if (!bloc.lignes.length) bloc.lignes.push(newLigne());
+      seance.dateMaj = new Date().toISOString();
+
+      let cible = seances.find(s => s.date === date);
+      if (cible){
+        if (!cible.blocs.length) cible.blocs.push(newBloc());
+        cible.blocs[0].lignes.push(ligne);
+        cible.dateMaj = new Date().toISOString();
+        showToast(`Ligne déplacée vers le ${fmtDateFr(date)} ✓`);
+      } else {
+        const nouvelle = newSeance(groupe, date, null);
+        nouvelle.blocs[0].lignes = [ligne];
+        seances.push(nouvelle);
+        showToast(`Ligne déplacée vers une nouvelle séance le ${fmtDateFr(date)} ✓`);
+      }
+      await saveGroupSeances(groupe, seances);
       reload();
     });
   });
@@ -3055,11 +3121,27 @@ document.getElementById("seance-add-btn").addEventListener("click", async () => 
   else showToast("Erreur lors de l'ajout.", true);
 });
 
+function updateJourSpan(inputId, spanId){
+  const input = document.getElementById(inputId);
+  const span = document.getElementById(spanId);
+  if (!input || !span) return;
+  const v = input.value;
+  if (!v){ span.textContent = ""; return; }
+  const d = new Date(v + "T00:00:00");
+  span.textContent = isNaN(d.getTime()) ? "" : `(${JOURS_SEMAINE[d.getDay()]})`;
+}
+["serie-debut","serie-fin"].forEach(id => {
+  const span = id === "serie-debut" ? "serie-debut-jour" : "serie-fin-jour";
+  document.getElementById(id).addEventListener("change", () => updateJourSpan(id, span));
+  document.getElementById(id).addEventListener("input", () => updateJourSpan(id, span));
+});
+
 document.getElementById("serie-generer-btn").addEventListener("click", async () => {
   const groupe = document.getElementById("horaire-group-select").value;
   const status = document.getElementById("horaire-status");
   if (!groupe){ showToast("Choisissez un groupe d'abord.", true); return; }
   const jour = Number(document.getElementById("serie-jour").value);
+  const frequence = Number(document.getElementById("serie-frequence").value) || 1;
   const heure = document.getElementById("serie-heure").value || "19:00";
   const duree = Number(document.getElementById("serie-duree").value) || 120;
   const dateDebut = document.getElementById("serie-debut").value;
@@ -3068,13 +3150,14 @@ document.getElementById("serie-generer-btn").addEventListener("click", async () 
   if (dateFin < dateDebut){ showToast("La date de fin doit être après la date de début.", true); return; }
 
   const seriesId = genId();
-  const dates = [];
+  const allMatchingDates = [];
   let d = new Date(dateDebut + "T00:00:00");
   const end = new Date(dateFin + "T00:00:00");
   while (d <= end) {
-    if (d.getDay() === jour) dates.push(d.toISOString().slice(0,10));
+    if (d.getDay() === jour) allMatchingDates.push(d.toISOString().slice(0,10));
     d.setDate(d.getDate() + 1);
   }
+  const dates = allMatchingDates.filter((_, i) => i % frequence === 0);
   if (!dates.length){ showToast("Aucune date ne correspond à ce jour dans cet intervalle.", true); return; }
 
   status.textContent = `Génération de ${dates.length} séance(s)…`;
