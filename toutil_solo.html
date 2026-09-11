@@ -1729,7 +1729,7 @@ function renderSeanceCard(seance, ctx){
   return `<div class="seance-card" data-seance="${seance.id}">
     <div class="seance-card-header">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        ${canEditDate ? `<input type="date" data-field="date" data-seance="${seance.id}" value="${escXml(seance.date)}"><span style="font-size:12px;color:var(--ink-soft);">${seance.date ? `(${JOURS_SEMAINE[new Date(seance.date + "T00:00:00").getDay()]})` : ""}</span>` : `<strong>${fmtDateFr(seance.date)}</strong>`}
+        ${canEditDate ? `<input type="date" data-field="date" data-seance="${seance.id}" value="${escXml(seance.date)}"><strong style="font-size:14px;color:var(--petrol-dark);">${seance.date ? JOURS_SEMAINE[new Date(seance.date + "T00:00:00").getDay()] : ""}</strong>` : `<strong>${fmtDateFr(seance.date)}</strong>`}
         ${canEditDate ? `<input type="text" placeholder="Lieu/Élève" data-field="lieu" data-seance="${seance.id}" value="${escXml(seance.lieu || "")}" style="max-width:160px;padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:13.5px;">` : (seance.lieu ? `<span style="color:var(--ink-soft);font-size:13px;">${escXml(seance.lieu)}</span>` : "")}
         ${seance.seriesId ? '<span style="font-size:11px;color:var(--ink-soft);">(série)</span>' : ""}
       </div>
