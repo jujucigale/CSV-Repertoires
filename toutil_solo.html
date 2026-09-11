@@ -1355,7 +1355,7 @@ async function loadMyGroupChansons(){
     const selectCell = (e, field, options) => `<select data-editfield-select="${field}" data-edit-id="${e.id}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${(options||statusOptions).map(o => `<option value="${escXml(o)}" ${e[field] === o ? "selected" : ""}>${o || "— Non déterminé —"}</option>`).join("")}</select>`;
     const raisonCell = (e) => `<button class="btn btn-ghost btn-sm" data-raison-id="${e.id}">📝 ${e.raisonChoix ? "Voir/modifier" : "Ajouter"}</button>`;
 
-    const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Proposée par","Raison du choix","Chantée en classe par","Statut","","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
+    const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Proposée par","Raison du choix","Travaillée en classe le","Statut","","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
 
     const sections = groupEntriesByVisee(entries);
     const rowHtml = (e) => `<tr>
@@ -1373,7 +1373,7 @@ async function loadMyGroupChansons(){
         <td>${textCell(e, "bpmChoisi", 70)}</td>
         <td>${textCell(e, "proposePar", 100)}</td>
         <td>${raisonCell(e)}</td>
-        <td>${textCell(e, "chanteePar", 120, "Ex. Tous ou Nom des élèves impliqués")}</td>
+        <td>${textCell(e, "chanteePar", 120, "Ex. 12 sept, 3 oct")}</td>
         <td><span class="badge-paroles">Paroles: ${escXml(e.statutParoles||"Fait")}</span></td>
         <td><button class="btn btn-ghost btn-sm" data-dl="${e.id}">Télécharger</button></td>
         <td>${linkCell(e, "lienPartition", "Partition")}</td>
@@ -2213,7 +2213,7 @@ function renderInventoryTable(entries){
   const selectCell = (e, field, options) => `<select data-editfield-select="${field}" data-edit-id="${e.id}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${(options||statusOptions).map(o => `<option value="${escXml(o)}" ${e[field] === o ? "selected" : ""}>${o || "— Non déterminé —"}</option>`).join("")}</select>`;
   const raisonCell = (e) => `<button class="btn btn-ghost btn-sm" data-raison-id="${e.id}">📝 ${e.raisonChoix ? "Voir/modifier" : "Ajouter"}</button>`;
 
-  const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Groupe","Proposée par","Raison du choix","Chantée en classe par","Actions","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
+  const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Groupe","Proposée par","Raison du choix","Travaillée en classe le","Actions","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
 
   const sections = groupEntriesByVisee(filtered);
   const rowHtml = (e) => `<tr>
@@ -2232,7 +2232,7 @@ function renderInventoryTable(entries){
       <td>${escXml(e.groupe)}</td>
       <td>${textCell(e, "proposePar", 100)}</td>
       <td>${raisonCell(e)}</td>
-      <td>${textCell(e, "chanteePar", 110, "Ex. Tous ou Nom des élèves impliqués")}</td>
+      <td>${textCell(e, "chanteePar", 110, "Ex. 12 sept, 3 oct")}</td>
       <td class="row-actions">
         <button class="btn btn-ghost btn-sm" data-action="dl" data-id="${e.id}">Télécharger</button>
         <button class="btn btn-ghost btn-sm" data-action="copy" data-id="${e.id}">Copier</button>
@@ -2377,7 +2377,7 @@ function appBaseUrl(){
 }
 
 function buildChansonsSheet(entries){
-  const headers = ["Chanson","Version chantée","Accompagnement","Statut trame sonore","Interprète d'origine","Année de sortie","Parolier(s)","Compositeur(s)","Proposée par","Raison du choix","Chantée en classe par","Tonalité d'origine","Tonalité modifiée","BPM original","BPM choisi","Nom du fichier","Statut paroles","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
+  const headers = ["Chanson","Version chantée","Accompagnement","Statut trame sonore","Interprète d'origine","Année de sortie","Parolier(s)","Compositeur(s)","Proposée par","Raison du choix","Travaillée en classe le","Tonalité d'origine","Tonalité modifiée","BPM original","BPM choisi","Nom du fichier","Statut paroles","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
   const rowOf = (e) => [
     e.titre,
     e.lienChante ? { text: "Version chantée", link: e.lienChante } : "",
