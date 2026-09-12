@@ -946,7 +946,7 @@ function feStartHairpinResize(e){
     handle.removeEventListener("pointerup", onUp);
     if (editable){
       const sec = feSections.find(s => s.id === editable.dataset.sectionId);
-      if (sec){ sec.html = editable.innerHTML; feUpdatePreview(); }
+      if (sec){ sec.html = editable.innerHTML; sec.pristine = false; feUpdatePreview(); }
     }
   }
   handle.addEventListener("pointermove", onMove);
@@ -1049,7 +1049,7 @@ function feMakeInsertConnector(insertAtIndex){
   btn.onmouseenter = () => { btn.style.opacity = "1"; };
   btn.onmouseleave = () => { btn.style.opacity = ".6"; };
   btn.onclick = () => {
-    feSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", html: "", note: "" });
+    feSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", html: "", note: "", pristine: true });
     feRenderSections(); feUpdatePreview();
   };
   row.appendChild(btn);
@@ -1067,7 +1067,7 @@ function feRenderSections(){
     head.className = "fe-section-head";
     const labelInput = document.createElement("input");
     labelInput.type = "text"; labelInput.value = sec.label;
-    labelInput.oninput = (e) => { sec.label = e.target.value; feUpdatePreview(); };
+    labelInput.oninput = (e) => { sec.label = e.target.value; sec.pristine = false; feUpdatePreview(); };
     const clearFormatBtn = document.createElement("button");
     clearFormatBtn.type = "button"; clearFormatBtn.className = "btn btn-ghost btn-sm";
     clearFormatBtn.textContent = "🧹 Retirer la mise en forme";
@@ -1077,6 +1077,7 @@ function feRenderSections(){
       clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme";
       const tmp = document.createElement("div"); tmp.innerHTML = sec.html;
       sec.html = feEscHtml(tmp.textContent || "");
+      sec.pristine = false;
       feRenderSections(); feUpdatePreview();
     };
     const removeBtn = document.createElement("button");
@@ -1093,7 +1094,7 @@ function feRenderSections(){
     noteLabel.textContent = "Note d'interprétation (facultatif) — avant le texte";
     const noteTextarea = document.createElement("textarea");
     noteTextarea.value = sec.note; noteTextarea.placeholder = "Ex. Respire ici avant le contre-ut...";
-    noteTextarea.oninput = (e) => { sec.note = e.target.value; feUpdatePreview(); };
+    noteTextarea.oninput = (e) => { sec.note = e.target.value; sec.pristine = false; feUpdatePreview(); };
     noteWrap.appendChild(noteLabel); noteWrap.appendChild(noteTextarea);
     block.appendChild(noteWrap);
 
@@ -1168,7 +1169,7 @@ function feRenderSections(){
       range.insertNode(span);
       const newRange = document.createRange(); newRange.selectNodeContents(span);
       sel.removeAllRanges(); sel.addRange(newRange);
-      sec.html = editable.innerHTML; feUpdatePreview();
+      sec.html = editable.innerHTML; sec.pristine = false; feUpdatePreview();
       return true;
     }
     function currentFontSizePt(){
@@ -1280,7 +1281,7 @@ function feRenderSections(){
     editable.dataset.sectionId = sec.id;
     editable.innerHTML = sec.html || "";
     editable.addEventListener("paste", feHandlePaste);
-    editable.addEventListener("input", () => { sec.html = editable.innerHTML; feUpdatePreview(); });
+    editable.addEventListener("input", () => { sec.html = editable.innerHTML; sec.pristine = false; feUpdatePreview(); });
     editable.addEventListener("keyup", syncFontUI);
     editable.addEventListener("mouseup", syncFontUI);
     editable.addEventListener("focus", syncFontUI);
@@ -1293,7 +1294,7 @@ document.getElementById("add-section-btn"); // no-op guard (existing form button
 document.getElementById("fiche-panel-annotee") && document.body; // keep panel ref alive for linters
 
 function feAddSection(){
-  feSections.push({ id: feGenId(), label: "", html: "", note: "" });
+  feSections.push({ id: feGenId(), label: "", html: "", note: "", pristine: true });
   feRenderSections(); feUpdatePreview();
 }
 
@@ -1386,7 +1387,7 @@ document.getElementById("fo-save-btn").addEventListener("click", async () => {
 });
 document.getElementById("fe-save-btn").addEventListener("click", async () => {
   feCurrentEntry.annotation = {
-    sections: feSections.map(s => ({ label: s.label, html: s.html, note: s.note })),
+    sections: feSections.map(s => ({ label: s.label, html: s.html, note: s.note, pristine: s.pristine !== false })),
     legend: feLegend.map(l => ({ name: l.name, color: l.color })),
   };
   feCurrentEntry.dateMaj = new Date().toISOString();
@@ -1419,7 +1420,31 @@ document.getElementById("fiche-close-btn").addEventListener("click", () => {
   if (feOnClose) feOnClose();
 });
 
-async function openFicheEditor(entryId, onClose){
+function feBootstrapSection(orig){
+  return { label: orig.label || "", html: feEscHtml(orig.lyrics || "").split("\n").join("<br>"), note: "", pristine: true };
+}
+// Fait correspondre la copie annotée à la copie originale, position par position :
+// une section « vierge » (jamais touchée depuis la dernière annotation) se remet à jour
+// avec la version actuelle de l'originale (texte corrigé, section ajoutée); une section
+// déjà annotée reste intacte (imperméable aux corrections ultérieures de l'originale).
+// Une section retirée de l'originale disparaît aussi de la copie annotée.
+function feSyncAnnotatedSections(originalSections, storedAnnSections){
+  const src = (originalSections && originalSections.length) ? originalSections : [{ label: "Couplet 1", lyrics: "" }];
+  const stored = storedAnnSections || [];
+  const sections = src.map((orig, i) => {
+    const existing = stored[i];
+    if (existing && existing.pristine === false){
+      return { label: existing.label || "", html: existing.html || "", note: existing.note || "", pristine: false };
+    }
+    return feBootstrapSection(orig);
+  });
+  let removedTouched = 0;
+  for (let i = src.length; i < stored.length; i++){
+    if (stored[i] && stored[i].pristine === false) removedTouched++;
+  }
+  return { sections, removedTouched };
+}
+async function openFicheEditor(entryId, onClose, initialTab){
   const entry = await storageGet("chanson:" + entryId);
   if (!entry){ showToast("Fiche introuvable.", true); return; }
   feCurrentEntry = entry;
@@ -1429,19 +1454,23 @@ async function openFicheEditor(entryId, onClose){
   foSections = (entry.sections && entry.sections.length ? entry.sections : [{ label: "Couplet 1", lyrics: "" }])
     .map(s => ({ id: feGenId(), label: s.label || "", lyrics: s.lyrics || "" }));
   const ann = entry.annotation || {};
-  feSections = (ann.sections && ann.sections.length ? ann.sections : (entry.sections || []).map(s => ({ label: s.label, html: feEscHtml(s.lyrics || "").split("\n").join("<br>"), note: "" })))
-    .map(s => ({ id: feGenId(), label: s.label || "", html: s.html || "", note: s.note || "" }));
-  if (!feSections.length) feSections = [{ id: feGenId(), label: "Couplet 1", html: "", note: "" }];
+  const synced = feSyncAnnotatedSections(entry.sections || [], ann.sections || []);
+  feSections = synced.sections.map(s => ({ id: feGenId(), label: s.label, html: s.html, note: s.note, pristine: s.pristine }));
+  if (!feSections.length) feSections = [{ id: feGenId(), label: "Couplet 1", html: "", note: "", pristine: true }];
   feLegend = (ann.legend || []).map(l => ({ id: feGenId(), name: l.name || "", color: l.color || FE_HIGHLIGHT_COLORS[0] }));
 
-  document.querySelectorAll("[data-fe-tab]").forEach(b => b.classList.toggle("active", b.dataset.feTab === "original"));
-  document.getElementById("fiche-panel-original").classList.add("active");
-  document.getElementById("fiche-panel-annotee").classList.remove("active");
+  const tab = initialTab === "annotee" ? "annotee" : "original";
+  document.querySelectorAll("[data-fe-tab]").forEach(b => b.classList.toggle("active", b.dataset.feTab === tab));
+  document.getElementById("fiche-panel-original").classList.toggle("active", tab === "original");
+  document.getElementById("fiche-panel-annotee").classList.toggle("active", tab === "annotee");
   document.getElementById("fe-preview-card").classList.add("hidden");
 
   foRefreshLockUI();
   feRenderLegend();
   feRenderSections();
+  if (synced.removedTouched > 0){
+    showToast(`${synced.removedTouched} section(s) annotée(s) retirée(s) — elles n'existent plus dans la fiche originale.`, true);
+  }
   feUpdatePreview();
 
   document.getElementById("fiche-overlay").classList.remove("hidden");
@@ -2245,7 +2274,7 @@ async function loadMyGroupChansons(){
     const selectCell = (e, field, options) => `<select data-editfield-select="${field}" data-edit-id="${e.id}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${(options||statusOptions).map(o => `<option value="${escXml(o)}" ${e[field] === o ? "selected" : ""}>${o || "— Non déterminé —"}</option>`).join("")}</select>`;
     const raisonCell = (e) => `<button class="btn btn-ghost btn-sm" data-raison-id="${e.id}">📝 ${e.raisonChoix ? "Voir/modifier" : "Ajouter"}</button>`;
 
-    const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Proposée par","Raison du choix","Travaillée en classe le","Statut","","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
+    const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Proposée par","Raison du choix","Travaillée en classe le","Statut","Paroles (v. originale)","Paroles (copie annotée)","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
 
     const sections = groupEntriesByVisee(entries);
     const rowHtml = (e) => `<tr>
@@ -2265,7 +2294,8 @@ async function loadMyGroupChansons(){
         <td>${raisonCell(e)}</td>
         <td>${textCell(e, "chanteePar", 120, "Ex. 12 sept, 3 oct")}</td>
         <td><span class="badge-paroles">Paroles: ${escXml(e.statutParoles||"Fait")}</span></td>
-        <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" data-dl="${e.id}">Télécharger</button> <button class="btn btn-ghost btn-sm" data-fiche="${e.id}">📝 Fiche${e.locked ? " 🔒" : ""}</button></td>
+        <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" data-fiche-original="${e.id}">✎ Modifier${e.locked ? " 🔒" : ""}</button> <button class="btn btn-ghost btn-sm" data-dl="${e.id}">Télécharger</button></td>
+        <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" data-fiche-annotee="${e.id}">🎨 Annoter</button> <button class="btn btn-ghost btn-sm" data-dl-annotee="${e.id}" ${e.annotation ? "" : "disabled"}>Télécharger</button></td>
         <td>${linkCell(e, "lienPartition", "Partition")}</td>
         <td>${selectCell(e, "statutPartition")}</td>
         <td>${selectCell(e, "visee", VISEE_OPTIONS)}</td>
@@ -2287,10 +2317,28 @@ async function loadMyGroupChansons(){
         catch(e){ showToast("Erreur lors de la génération du fichier.", true); }
       });
     });
-    wrap.querySelectorAll("[data-fiche]").forEach(btn => {
+    wrap.querySelectorAll("[data-dl-annotee]:not([disabled])").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const entry = myGroupEntries.find(e => e.id === btn.dataset.dlAnnotee);
+        if (!entry || !entry.annotation) return;
+        btn.disabled = true; const orig = btn.textContent; btn.textContent = "…";
+        try {
+          const blob = await generateAnnotatedDocxBlob(entry, entry.annotation.sections || [], entry.annotation.legend || []);
+          downloadBlob(blob, `${sanitizeFileName(entry.titre) || "Sans titre"} - copie annotée.docx`);
+        } catch(e){ showToast("Erreur lors de la génération du fichier.", true); }
+        btn.disabled = false; btn.textContent = orig;
+      });
+    });
+    wrap.querySelectorAll("[data-fiche-original]").forEach(btn => {
       btn.addEventListener("click", () => {
-        const entry = myGroupEntries.find(e => e.id === btn.dataset.fiche);
-        if (entry) openFicheEditor(entry.id, () => loadMyGroupChansons());
+        const entry = myGroupEntries.find(e => e.id === btn.dataset.ficheOriginal);
+        if (entry) openFicheEditor(entry.id, () => loadMyGroupChansons(), "original");
+      });
+    });
+    wrap.querySelectorAll("[data-fiche-annotee]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const entry = myGroupEntries.find(e => e.id === btn.dataset.ficheAnnotee);
+        if (entry) openFicheEditor(entry.id, () => loadMyGroupChansons(), "annotee");
       });
     });
     wrap.querySelectorAll("[data-raison-id]").forEach(btn => {
@@ -3224,7 +3272,7 @@ function renderInventoryTable(entries){
   const selectCell = (e, field, options) => `<select data-editfield-select="${field}" data-edit-id="${e.id}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${(options||statusOptions).map(o => `<option value="${escXml(o)}" ${e[field] === o ? "selected" : ""}>${o || "— Non déterminé —"}</option>`).join("")}</select>`;
   const raisonCell = (e) => `<button class="btn btn-ghost btn-sm" data-raison-id="${e.id}">📝 ${e.raisonChoix ? "Voir/modifier" : "Ajouter"}</button>`;
 
-  const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Groupe","Proposée par","Raison du choix","Travaillée en classe le","Actions","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
+  const headers = ["Titre","Version chantée","Accompagnement","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi","Groupe","Proposée par","Raison du choix","Travaillée en classe le","Paroles (v. originale)","Paroles (copie annotée)","Actions","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"];
 
   const sections = groupEntriesByVisee(filtered);
   const rowHtml = (e) => `<tr>
@@ -3244,9 +3292,15 @@ function renderInventoryTable(entries){
       <td>${textCell(e, "proposePar", 100)}</td>
       <td>${raisonCell(e)}</td>
       <td>${textCell(e, "chanteePar", 110, "Ex. 12 sept, 3 oct")}</td>
-      <td class="row-actions">
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" data-action="fiche-original" data-id="${e.id}">✎ Modifier${e.locked ? " 🔒" : ""}</button>
         <button class="btn btn-ghost btn-sm" data-action="dl" data-id="${e.id}">Télécharger</button>
-        <button class="btn btn-ghost btn-sm" data-action="fiche" data-id="${e.id}">📝 Fiche${e.locked ? " 🔒" : ""}</button>
+      </td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" data-action="fiche-annotee" data-id="${e.id}">🎨 Annoter</button>
+        <button class="btn btn-ghost btn-sm" data-action="dl-annotee" data-id="${e.id}" ${e.annotation ? "" : "disabled"}>Télécharger</button>
+      </td>
+      <td class="row-actions">
         <button class="btn btn-ghost btn-sm" data-action="copy" data-id="${e.id}">Copier</button>
         <button class="btn btn-danger-ghost" data-action="del" data-id="${e.id}">Supprimer</button>
       </td>
@@ -3337,10 +3391,28 @@ function renderInventoryTable(entries){
       btn.disabled = false; btn.textContent = "Télécharger";
     });
   });
-  wrap.querySelectorAll('[data-action="fiche"]').forEach(btn => {
+  wrap.querySelectorAll('[data-action="dl-annotee"]:not([disabled])').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const entry = allEntries.find(e => e.id === btn.dataset.id);
+      if (!entry || !entry.annotation) return;
+      btn.disabled = true; const orig = btn.textContent; btn.textContent = "…";
+      try {
+        const blob = await generateAnnotatedDocxBlob(entry, entry.annotation.sections || [], entry.annotation.legend || []);
+        downloadBlob(blob, `${sanitizeFileName(entry.titre) || "Sans titre"} - copie annotée.docx`);
+      } catch(e){ showToast("Erreur lors de la génération du fichier.", true); }
+      btn.disabled = false; btn.textContent = orig;
+    });
+  });
+  wrap.querySelectorAll('[data-action="fiche-original"]').forEach(btn => {
     btn.addEventListener("click", () => {
       const entry = allEntries.find(e => e.id === btn.dataset.id);
-      if (entry) openFicheEditor(entry.id, () => loadInventory());
+      if (entry) openFicheEditor(entry.id, () => loadInventory(), "original");
+    });
+  });
+  wrap.querySelectorAll('[data-action="fiche-annotee"]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const entry = allEntries.find(e => e.id === btn.dataset.id);
+      if (entry) openFicheEditor(entry.id, () => loadInventory(), "annotee");
     });
   });
   wrap.querySelectorAll('[data-action="copy"]').forEach(btn => {
