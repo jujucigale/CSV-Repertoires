@@ -189,11 +189,31 @@
   .col-sticky{
     position:sticky;left:0;z-index:2;
     background:#fff;box-shadow:2px 0 4px rgba(30,42,56,.08);
-    max-width:220px;white-space:normal;
+    width:190px;min-width:190px;max-width:190px;white-space:normal;
   }
   th.col-sticky{background:#F1F4F1;z-index:3;}
   tr:nth-child(even) td.col-sticky{background:#FAFBFA;}
   tr.section-banner td.col-sticky{position:static;box-shadow:none;background:transparent;}
+  .col-sticky2{
+    position:sticky;left:190px;z-index:2;
+    background:#fff;box-shadow:2px 0 4px rgba(30,42,56,.08);
+    width:160px;min-width:160px;max-width:160px;white-space:normal;
+  }
+  th.col-sticky2{background:#F1F4F1;z-index:3;}
+  tr:nth-child(even) td.col-sticky2{background:#FAFBFA;}
+  tr.section-banner td.col-sticky2{position:static;box-shadow:none;background:transparent;}
+  /* En-tête figé + hauteur limitée avec défilement interne, pour les grands tableaux de répertoire */
+  .table-wrap.repertoire-scroll{max-height:560px;overflow-y:auto;}
+  .table-wrap.repertoire-scroll thead th{position:sticky;top:0;z-index:3;}
+  .table-wrap.repertoire-scroll thead th.col-sticky{z-index:4;}
+  .table-wrap.repertoire-scroll thead th.col-sticky2{z-index:4;}
+
+  .app-footer{
+    position:fixed;bottom:6px;right:10px;z-index:40;
+    font-size:10.5px;color:var(--ink-soft);opacity:.7;
+    background:rgba(255,255,255,.85);padding:2px 8px;border-radius:6px;
+    pointer-events:none;
+  }
   .badge-paroles{
     background:var(--highlight);padding:2px 7px;border-radius:5px;font-size:11px;font-weight:600;
   }
@@ -358,6 +378,8 @@
 </script>
 </head>
 <body>
+
+<div class="app-footer">© 2026 Judith Beauchamp — Toutil Solo — mise à jour le 12 septembre 2026</div>
 
 <!-- ===================== ÉCRAN D'ACCÈS ===================== -->
 <div class="gate-wrap" id="gate-screen">
@@ -570,7 +592,7 @@
         </div>
       </div>
       <h3>Chansons</h3>
-      <div class="table-wrap" id="mygroup-chansons-wrap"><div class="loading-state">Chargement…</div></div>
+      <div class="table-wrap repertoire-scroll" id="mygroup-chansons-wrap"><div class="loading-state">Chargement…</div></div>
 
       <h3>Horaire</h3>
       <div id="mygroup-horaire-wrap"><div class="loading-state">Chargement…</div></div>
@@ -623,7 +645,7 @@
         </div>
       </div>
       <div class="note">Cette vue regroupe les chansons de tous les groupes. Les coordonnées personnelles des élèves n'apparaissent jamais ici — elles restent visibles uniquement à l'intérieur de chaque groupe.</div>
-      <div class="table-wrap" id="inv-table-wrap">
+      <div class="table-wrap repertoire-scroll" id="inv-table-wrap">
         <div class="loading-state">Chargement du répertoire…</div>
       </div>
     </div>
@@ -1419,7 +1441,7 @@ async function loadMyGroupChansons(){
     const sections = groupEntriesByVisee(entries);
     const rowHtml = (e) => `<tr>
         <td class="col-sticky">${escXml(e.titre)}</td>
-        <td>${linkCell(e, "lienChante", "Version chantée")}</td>
+        <td class="col-sticky2">${linkCell(e, "lienChante", "Version chantée")}</td>
         <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
         <td>${selectCell(e, "statutTrame")}</td>
         <td>${textCell(e, "interprete", 110)}</td>
@@ -1445,7 +1467,7 @@ async function loadMyGroupChansons(){
     const bodyHtml = sections.map(sec => `${sectionBannerRow(sec.label, headers.length)}${sec.entries.map(rowHtml).join("")}`).join("");
 
     wrap.innerHTML = `<table class="tight"><thead><tr>
-      ${headers.map((h, hi) => `<th class="${hi === 0 ? "col-sticky" : ""}">${escXml(h)}</th>`).join("")}
+      ${headers.map((h, hi) => `<th class="${hi === 0 ? "col-sticky" : hi === 1 ? "col-sticky2" : ""}">${escXml(h)}</th>`).join("")}
     </tr></thead><tbody>${bodyHtml}</tbody></table>`;
 
     wrap.querySelectorAll("[data-dl]").forEach(btn => {
@@ -2387,7 +2409,7 @@ function renderInventoryTable(entries){
   const sections = groupEntriesByVisee(filtered);
   const rowHtml = (e) => `<tr>
       <td class="col-sticky">${escXml(e.titre)}</td>
-      <td>${linkCell(e, "lienChante", "Version chantée")}</td>
+      <td class="col-sticky2">${linkCell(e, "lienChante", "Version chantée")}</td>
       <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
       <td>${selectCell(e, "statutTrame")}</td>
       <td>${textCell(e, "interprete", 110)}</td>
@@ -2418,7 +2440,7 @@ function renderInventoryTable(entries){
 
   wrap.innerHTML = `
     <table>
-      <thead><tr>${headers.map((h, hi) => `<th class="${hi === 0 ? "col-sticky" : ""}">${escXml(h)}</th>`).join("")}</tr></thead>
+      <thead><tr>${headers.map((h, hi) => `<th class="${hi === 0 ? "col-sticky" : hi === 1 ? "col-sticky2" : ""}">${escXml(h)}</th>`).join("")}</tr></thead>
       <tbody>${bodyHtml}</tbody>
     </table>`;
 
