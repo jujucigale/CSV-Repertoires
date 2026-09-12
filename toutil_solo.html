@@ -3139,12 +3139,10 @@ async function loadAdminHoraireAll(){
     const names = Object.keys(groupesConfig).sort();
     await loadPermissionsConfig();
     const ctx = buildHoraireCtx("admin", true);
-    const today = new Date().toISOString().slice(0,10);
-
     const perAccount = {};
     const allItems = [];
     for (const n of names) {
-      const seances = (await loadGroupSeances(n)).filter(s => (s.date || "") >= today);
+      const seances = await loadGroupSeances(n);
       perAccount[n] = seances;
       seances.forEach(s => allItems.push({ groupe: n, seance: s }));
     }
@@ -3157,7 +3155,7 @@ async function loadAdminHoraireAll(){
     });
 
     if (!allItems.length){
-      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune séance à venir pour l’instant, tous les élèves confondus.</p>';
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune séance pour l’instant, tous les élèves confondus.</p>';
       return;
     }
 
