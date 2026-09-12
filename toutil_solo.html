@@ -577,20 +577,26 @@
     </div>
 
     <div class="card">
-      <h2>Coordonnées (partage volontaire entre vous)</h2>
-      <div class="note">Ce partage est entièrement optionnel et sert seulement à échanger vos coordonnées avec les autres élèves de votre groupe. Votre enseignante ne rend jamais cette liste publique.</div>
+      <h2>Coordonnées et contact d'urgence (confidentiel)</h2>
+      <div class="note">Ces informations restent privées entre vous et votre enseignante — elles ne sont jamais partagées publiquement.</div>
       <div id="coord-list"></div>
-      <h3>Ajouter mes coordonnées</h3>
+      <h3>Mes coordonnées</h3>
       <div class="row3">
         <div class="field"><label for="coord-nom">Nom, prénom</label><input id="coord-nom" type="text"></div>
         <div class="field"><label for="coord-courriel">Courriel</label><input id="coord-courriel" type="email"></div>
         <div class="field"><label for="coord-telephone">Téléphone</label><input id="coord-telephone" type="tel"></div>
       </div>
       <div class="row2">
-        <div class="field"><label for="coord-objectif">Objectif personnel pour la séance</label><input id="coord-objectif" type="text" placeholder="Ex. Travailler ma projection"></div>
+        <div class="field"><label for="coord-allergies">Allergies</label><input id="coord-allergies" type="text" placeholder="Ex. Aucune, ou : arachides"></div>
         <div class="field"><label for="coord-pin">Code personnel (4 chiffres, pour modifier/retirer plus tard)</label><input id="coord-pin" type="password" maxlength="4" placeholder="Ex. 1234"></div>
       </div>
-      <button class="btn btn-primary" id="coord-add-btn" type="button">Ajouter mes coordonnées</button>
+      <h3>Personne responsable du contrat / contact d'urgence</h3>
+      <div class="row3">
+        <div class="field"><label for="coord-contact-nom">Nom, prénom</label><input id="coord-contact-nom" type="text"></div>
+        <div class="field"><label for="coord-contact-courriel">Courriel</label><input id="coord-contact-courriel" type="email"></div>
+        <div class="field"><label for="coord-contact-telephone">Téléphone</label><input id="coord-contact-telephone" type="tel"></div>
+      </div>
+      <button class="btn btn-primary" id="coord-add-btn" type="button">Enregistrer mes coordonnées</button>
       <span id="coord-status" style="font-size:13px;color:var(--ink-soft);margin-left:10px;"></span>
     </div>
   </div>
@@ -692,6 +698,9 @@
           <div class="field"><label for="serie-duree">Durée du 1er bloc (min)</label><input id="serie-duree" type="number" value="120" min="10" step="5"></div>
           <div class="field"><label for="serie-debut">Date de début</label><input id="serie-debut" type="date"><span id="serie-debut-jour" style="font-size:12px;color:var(--ink-soft);"></span></div>
           <div class="field"><label for="serie-fin">Date de fin</label><input id="serie-fin" type="date"><span id="serie-fin-jour" style="font-size:12px;color:var(--ink-soft);"></span></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label for="serie-lieu">Lieu/Élève (optionnel)</label><input id="serie-lieu" type="text" placeholder="Ex. Local 2 ou nom de l'élève"></div>
         </div>
         <div class="submit-row" style="margin-top:0;">
           <button class="btn btn-ghost btn-sm" id="serie-generer-btn" type="button">Générer la série de séances</button>
@@ -1509,6 +1518,7 @@ const DEFAULT_PERMISSIONS = {
   ligne_ajouter_retirer:  { eleve: false, assistant: true },
   ligne_qui:              { eleve: true,  assistant: true },
   ligne_activite:         { eleve: true,  assistant: true },
+  seance_objectif:        { eleve: true,  assistant: true },
   serie_generer:          { eleve: false, assistant: true },
   serie_supprimer:        { eleve: false, assistant: true },
   suivi_admin_ajouter:    { eleve: true,  assistant: true },
@@ -1525,8 +1535,9 @@ const PERMISSION_LABELS = {
   bloc_heure: "Heure de début / fin d'un bloc",
   bloc_deplacer: "Déplacer un bloc vers une autre séance",
   ligne_ajouter_retirer: "Ajouter / retirer une ligne",
-  ligne_qui: "Objectif de la séance (par ligne)",
+  ligne_qui: "Objectif de l'activité (par ligne)",
   ligne_activite: "« Chanson/activité » de la ligne",
+  seance_objectif: "Objectif de la séance (global, sous la date)",
   serie_generer: "Générer une série récurrente",
   serie_supprimer: "Supprimer une séance / gérer la série",
   suivi_admin_ajouter: "Ajouter une tâche « Suivi admin. »",
@@ -1586,7 +1597,7 @@ function newBloc(){
   return { id: genId(), heureDebut: "", heureFin: "", lignes: [newLigne()] };
 }
 function newSeance(groupe, date, seriesId){
-  return { id: genId(), groupe, date: date || "", lieu: "", seriesId: seriesId || null, dateMaj: null, absences: [], blocs: [newBloc()] };
+  return { id: genId(), groupe, date: date || "", lieu: "", objectifSeance: "", seriesId: seriesId || null, dateMaj: null, absences: [], blocs: [newBloc()] };
 }
 function newTache(texte){
   return { id: genId(), texte, traite: false, masque: false };
@@ -1627,6 +1638,7 @@ function normalizeBloc(b){
 function normalizeSeance(s){
   return Object.assign({}, s, {
     lieu: s.lieu || "",
+    objectifSeance: s.objectifSeance || "",
     blocs: (Array.isArray(s.blocs) && s.blocs.length) ? s.blocs.map(normalizeBloc) : [newBloc()],
     absences: Array.isArray(s.absences) ? s.absences : [],
   });
@@ -1672,7 +1684,7 @@ function ligneRowHtml(seance, bloc, ligne, ctx){
       </div>
     </td>
     <td class="col-qui">
-      ${canQui ? `<textarea placeholder="Objectif de cette activité pour la séance..." rows="2" data-field="qui" data-seance="${seance.id}" data-bloc="${bloc.id}" data-ligne="${ligne.id}">${escXml(ligne.qui)}</textarea>` : escXml(ligne.qui || "—")}
+      ${canQui ? `<textarea placeholder="Objectif de cette activité..." rows="2" data-field="qui" data-seance="${seance.id}" data-bloc="${bloc.id}" data-ligne="${ligne.id}">${escXml(ligne.qui)}</textarea>` : escXml(ligne.qui || "—")}
     </td>
     <td class="col-suivi">${tacheListHtml(seance, ligne, ctx)}</td>
     <td class="col-suivi">${textareaOrText("suivi_progres", "suiviProgres", ligne.suiviProgres)}</td>
@@ -1703,7 +1715,7 @@ function renderSeanceCard(seance, ctx){
       </div>
       <div class="table-wrap" style="border:none;">
         <table class="bloc-table"><thead><tr>
-          <th>Chanson/activité</th><th>Objectif de la séance</th><th>Suivis admin.</th><th>Notions abordées / progrès réalisés</th><th>Objectifs prochaine séance</th>
+          <th>Chanson/activité</th><th>Objectif de l'activité</th><th>Suivis admin.</th><th>Notions abordées / progrès réalisés</th><th>Objectifs prochaine séance</th>
         </tr></thead><tbody>${rows}</tbody></table>
       </div>
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 10px;">
@@ -1740,6 +1752,13 @@ function renderSeanceCard(seance, ctx){
         ${canSerieGerer ? `<button class="btn btn-danger-ghost" data-delete-seance="${seance.id}">Supprimer</button>` : ""}
       </div>
     </div>
+    ${ctx.visible("seance_objectif") ? `
+    <div style="margin:8px 0 10px;">
+      <label style="font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:3px;">Objectif de la séance</label>
+      ${ctx.can("seance_objectif")
+        ? `<textarea placeholder="Ex. Travailler la projection et la présence sur scène..." rows="2" style="width:100%;" data-field="objectifSeance" data-seance="${seance.id}">${escXml(seance.objectifSeance || "")}</textarea>`
+        : `<div style="font-size:13px;white-space:pre-wrap;color:${seance.objectifSeance ? "var(--ink)" : "var(--ink-soft)"};">${escXml(seance.objectifSeance || "—")}</div>`}
+    </div>` : ""}
     ${absencesHtml}
     ${blocsHtml}
   </div>`;
@@ -1842,6 +1861,7 @@ function bindSeanceEvents(wrap, seances, groupe, ctx, reload){
       if (!seance) return;
       if (inp.dataset.field === "date"){ seance.date = inp.value; }
       else if (inp.dataset.field === "lieu"){ seance.lieu = inp.value; }
+      else if (inp.dataset.field === "objectifSeance"){ seance.objectifSeance = inp.value; }
       else {
         const bloc = findBloc(seance, inp.dataset.bloc);
         if (!bloc) return;
@@ -2120,7 +2140,8 @@ async function loadCoordList(){
       <div class="coord-row">
         <div class="coord-name">${escXml(r.nom)}</div>
         <div>${escXml(r.courriel || "—")} · ${escXml(r.telephone || "—")}</div>
-        <div>Objectif : ${escXml(r.objectif || "—")}</div>
+        <div>Allergies : ${escXml(r.allergies || "—")}</div>
+        <div>Contact d'urgence : ${escXml(r.contactNom || "—")} — ${escXml(r.contactCourriel || "—")} · ${escXml(r.contactTelephone || "—")}</div>
         <div class="row-actions" style="margin-top:6px;">
           <button class="btn btn-danger-ghost" data-remove="${r.key}">Retirer (avec mon code)</button>
         </div>
@@ -2149,31 +2170,25 @@ document.getElementById("coord-add-btn").addEventListener("click", async () => {
     showToast("Nom requis, et code personnel = 4 chiffres.", true);
     return;
   }
-  const objectif = document.getElementById("coord-objectif").value.trim();
   const entry = {
     nom,
     courriel: document.getElementById("coord-courriel").value.trim(),
     telephone: document.getElementById("coord-telephone").value.trim(),
-    objectif,
+    allergies: document.getElementById("coord-allergies").value.trim(),
+    contactNom: document.getElementById("coord-contact-nom").value.trim(),
+    contactCourriel: document.getElementById("coord-contact-courriel").value.trim(),
+    contactTelephone: document.getElementById("coord-contact-telephone").value.trim(),
     pin,
   };
-  status.textContent = "Ajout en cours…";
+  status.textContent = "Enregistrement en cours…";
   const ok = await storageSet("coord:" + safeKeyPart(session.groupe) + ":" + genId(), entry);
-  if (ok && objectif){
-    try {
-      const objData = await loadObjectifsSemestre(session.groupe);
-      objData.items = objData.items || [];
-      objData.items.push({ id: genId(), texte: objectif, coche: false, progres: 0 });
-      await saveObjectifsSemestre(session.groupe, objData);
-    } catch(e){ console.error(e); }
-  }
   status.textContent = "";
   if (ok){
-    showToast("Coordonnées ajoutées ✓");
-    ["coord-nom","coord-courriel","coord-telephone","coord-objectif","coord-pin"].forEach(id => document.getElementById(id).value = "");
+    showToast("Coordonnées enregistrées ✓");
+    ["coord-nom","coord-courriel","coord-telephone","coord-allergies","coord-contact-nom","coord-contact-courriel","coord-contact-telephone","coord-pin"].forEach(id => document.getElementById(id).value = "");
     loadCoordList();
   } else {
-    showToast("Erreur lors de l'ajout.", true);
+    showToast("Erreur lors de l'enregistrement.", true);
   }
 });
 
@@ -2469,7 +2484,7 @@ function buildChansonsSheet(entries){
 }
 
 function buildHoraireSheet(seances){
-  const headers = ["Date","Lieu/Élève","Bloc","Heure début","Heure fin","Chanson/activité","Objectif de la séance","Suivis admin.","Notions abordées / progrès réalisés","Objectifs prochaine séance","Absences prévues"];
+  const headers = ["Date","Lieu/Élève","Objectif de la séance","Bloc","Heure début","Heure fin","Chanson/activité","Objectif de l'activité","Suivis admin.","Notions abordées / progrès réalisés","Objectifs prochaine séance","Absences prévues"];
   const rows = [];
   (seances||[]).slice().sort((a,b) => (a.date||"").localeCompare(b.date||"")).forEach(s => {
     const absences = (s.absences||[]).join(", ");
@@ -2479,6 +2494,7 @@ function buildHoraireSheet(seances){
         rows.push([
           (i===0 && j===0) ? fmtDateFr(s.date) : "",
           (i===0 && j===0) ? (s.lieu || "") : "",
+          (i===0 && j===0) ? (s.objectifSeance || "") : "",
           j===0 ? i+1 : "",
           j===0 ? b.heureDebut : "",
           j===0 ? b.heureFin : "",
@@ -2492,9 +2508,21 @@ function buildHoraireSheet(seances){
 }
 
 function buildCoordSheet(rows){
-  const headers = ["Nom, prénom","Courriel","Téléphone","Objectif personnel pour la séance"];
-  const data = (rows||[]).map(r => [r.nom, r.courriel, r.telephone, r.objectif]);
+  const headers = ["Nom, prénom","Courriel","Téléphone","Allergies","Contact d'urgence — nom","Contact d'urgence — courriel","Contact d'urgence — téléphone"];
+  const data = (rows||[]).map(r => [r.nom, r.courriel, r.telephone, r.allergies, r.contactNom, r.contactCourriel, r.contactTelephone]);
   return { headers, rows: data };
+}
+
+function buildObjectifsSheet(data){
+  const headers = ["Objectif","Coché","Progression (%)"];
+  const rows = ((data && data.items) || []).map(it => [it.texte, it.coche ? "Oui" : "Non", it.progres || 0]);
+  return { headers, rows };
+}
+
+function objectifsSemestreResume(data){
+  return ((data && data.items) || [])
+    .map(it => `${it.texte} (${it.progres || 0}%${it.coche ? ", coché" : ""})`)
+    .join(" ; ");
 }
 
 /* =====================================================================
@@ -2660,9 +2688,14 @@ document.getElementById("mygroup-export-btn").addEventListener("click", async (e
     } catch(e){ console.error(e); }
     const coord = buildCoordSheet(coordRows);
 
+    let objData = { items: [] };
+    try { objData = await loadObjectifsSemestre(session.groupe); } catch(e){ console.error(e); }
+    const objectifs = buildObjectifsSheet(objData);
+
     const blob = await buildStyledXlsxBlob([
       { name: "Chansons", headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]) },
       { name: "Horaire", headers: horaire.headers, rows: horaire.rows, wrapColumns: new Set(["Suivis admin.","Notions abordées / progrès réalisés","Objectifs prochaine séance"]) },
+      { name: "Objectifs du semestre", headers: objectifs.headers, rows: objectifs.rows },
       { name: "Coordonnées", headers: coord.headers, rows: coord.rows },
     ]);
     downloadBlob(blob, `Repertoire_${sanitizeSheetName(session.groupe)}.xlsx`);
@@ -2700,9 +2733,14 @@ document.getElementById("export-excel-btn").addEventListener("click", async (evt
       } catch(e){ console.error(e); }
       const coord = buildCoordSheet(coordRows);
 
+      let objData = { items: [] };
+      try { objData = await loadObjectifsSemestre(groupFilter); } catch(e){ console.error(e); }
+      const objectifs = buildObjectifsSheet(objData);
+
       const blob = await buildStyledXlsxBlob([
         { name: "Chansons", headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]) },
         { name: "Horaire", headers: horaire.headers, rows: horaire.rows, wrapColumns: new Set(["Suivis admin.","Notions abordées / progrès réalisés","Objectifs prochaine séance"]) },
+        { name: "Objectifs du semestre", headers: objectifs.headers, rows: objectifs.rows },
         { name: "Coordonnées", headers: coord.headers, rows: coord.rows },
       ]);
       downloadBlob(blob, `Repertoire_${sanitizeSheetName(groupFilter)}.xlsx`);
@@ -2717,9 +2755,36 @@ document.getElementById("export-excel-btn").addEventListener("click", async (evt
       const chansons = buildChansonsSheet(entries);
       sheets.push({ name: g, headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]) });
     }
+
+    const combinedRows = [];
+    for (const g of groups) {
+      let coordRows = [];
+      try {
+        const listRes = await window.storage.list("coord:" + safeKeyPart(g) + ":", true);
+        const keys = (listRes && listRes.keys) || [];
+        for (const k of keys) { const r = await storageGet(k); if (r) coordRows.push(r); }
+      } catch(e){ console.error(e); }
+      let objData = { items: [] };
+      try { objData = await loadObjectifsSemestre(g); } catch(e){ console.error(e); }
+      const resume = objectifsSemestreResume(objData);
+      if (coordRows.length){
+        coordRows.forEach(r => {
+          combinedRows.push([g, r.nom, r.courriel, r.telephone, r.allergies, r.contactNom, r.contactCourriel, r.contactTelephone, resume]);
+        });
+      } else {
+        combinedRows.push([g, "", "", "", "", "", "", "", resume]);
+      }
+    }
+    sheets.push({
+      name: "Coordonnées et objectifs",
+      headers: ["Groupe/Élève","Nom, prénom","Courriel","Téléphone","Allergies","Contact d'urgence — nom","Contact d'urgence — courriel","Contact d'urgence — téléphone","Objectifs du semestre"],
+      rows: combinedRows,
+      wrapColumns: new Set(["Objectifs du semestre"]),
+    });
+
     const blob = await buildStyledXlsxBlob(sheets);
     downloadBlob(blob, "Repertoire_par_groupe.xlsx");
-    showToast(`Répertoire exporté (${groups.length} groupe${groups.length > 1 ? "s" : ""}, chansons seulement — sans coordonnées).`);
+    showToast(`Répertoire exporté (${groups.length} groupe${groups.length > 1 ? "s" : ""}, avec coordonnées et objectifs — visible admin seulement).`);
   } catch(e){
     console.error(e);
     showToast("Erreur lors de l'export Excel. Réessayez.", true);
@@ -3146,6 +3211,7 @@ document.getElementById("serie-generer-btn").addEventListener("click", async () 
   const duree = Number(document.getElementById("serie-duree").value) || 120;
   const dateDebut = document.getElementById("serie-debut").value;
   const dateFin = document.getElementById("serie-fin").value;
+  const lieu = document.getElementById("serie-lieu").value.trim();
   if (!dateDebut || !dateFin){ showToast("Indiquez une date de début et de fin.", true); return; }
   if (dateFin < dateDebut){ showToast("La date de fin doit être après la date de début.", true); return; }
 
@@ -3166,6 +3232,7 @@ document.getElementById("serie-generer-btn").addEventListener("click", async () 
     const s = newSeance(groupe, date, seriesId);
     s.blocs[0].heureDebut = heure;
     s.blocs[0].heureFin = computeEndTime(heure, duree);
+    if (lieu) s.lieu = lieu;
     seances.push(s);
   });
   const ok = await saveGroupSeances(groupe, seances);
