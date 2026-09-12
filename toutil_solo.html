@@ -1039,10 +1039,27 @@ function feUpdatePreview(){
 }
 
 /* ---- Sections : copie annotée (riche) ---- */
+function feMakeInsertConnector(insertAtIndex){
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;justify-content:center;margin:2px 0;";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.textContent = "+ Insérer une section ici";
+  btn.style.cssText = "font-size:11px;padding:2px 10px;border:1px dashed var(--border);border-radius:20px;background:transparent;color:var(--ink-soft);cursor:pointer;opacity:.6;";
+  btn.onmouseenter = () => { btn.style.opacity = "1"; };
+  btn.onmouseleave = () => { btn.style.opacity = ".6"; };
+  btn.onclick = () => {
+    feSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", html: "", note: "" });
+    feRenderSections(); feUpdatePreview();
+  };
+  row.appendChild(btn);
+  return row;
+}
 function feRenderSections(){
   const wrap = document.getElementById("fe-sections-wrap");
   wrap.innerHTML = "";
-  feSections.forEach(sec => {
+  feSections.forEach((sec, idx) => {
+    wrap.appendChild(feMakeInsertConnector(idx));
     const block = document.createElement("div");
     block.className = "fe-section";
 
@@ -1226,7 +1243,8 @@ function feRenderSections(){
     barBtn.onmousedown = (e) => e.preventDefault();
     barBtn.onclick = () => document.execCommand("insertText", false, "|");
     gSymbols.appendChild(barBtn);
-    gSymbols.appendChild(mkBtn("𝄆𝄇", "Barres de reprise", "𝄆 𝄇", "color:#103243;font-weight:700;"));
+    gSymbols.appendChild(mkBtn("𝄆", "Barre de reprise (début)", "𝄆", "color:#103243;font-weight:700;"));
+    gSymbols.appendChild(mkBtn("𝄇", "Barre de reprise (fin)", "𝄇", "color:#103243;font-weight:700;"));
     gSymbols.appendChild(mkBtn("𝄐", "Point d'orgue", "𝄐", "color:#900FE6;font-weight:700;vertical-align:super;font-size:13px;"));
     const noteSelect = document.createElement("select");
     noteSelect.className = "fe-tb-btn"; noteSelect.title = "Valeur de note";
@@ -1237,8 +1255,8 @@ function feRenderSections(){
     noteSelect.onmousedown = (e) => e.stopPropagation();
     noteSelect.onchange = () => { feInsertAtomicSymbol(editable, feAtomicSymbol(noteSelect.value, "color:#103243;font-weight:700;")); noteSelect.selectedIndex = 0; };
     gSymbols.appendChild(noteSelect);
-    gSymbols.appendChild(mkBtn("↑", "Montée du pitch", "↑", "color:#227373;font-weight:900;vertical-align:super;font-size:11px;"));
-    gSymbols.appendChild(mkBtn("↓", "Descente du pitch", "↓", "color:#227373;font-weight:900;vertical-align:super;font-size:11px;"));
+    gSymbols.appendChild(mkBtn("↗", "Montée du pitch", "↗", "color:#227373;font-weight:900;vertical-align:super;font-size:11px;"));
+    gSymbols.appendChild(mkBtn("↘", "Descente du pitch", "↘", "color:#227373;font-weight:900;vertical-align:super;font-size:11px;"));
     gSymbols.appendChild(mkBtn("→", "Tenue du pitch", "→", "color:#227373;font-weight:900;vertical-align:super;font-size:11px;"));
     gSymbols.appendChild(mkBtn("♂", "Voix — répartition (♂)", "♂", "color:#103243;font-weight:700;"));
     gSymbols.appendChild(mkBtn("♀", "Voix — répartition (♀)", "♀", "color:#103243;font-weight:700;"));
@@ -1280,10 +1298,28 @@ function feAddSection(){
 }
 
 /* ---- Sections : copie originale (texte simple, verrouillable) ---- */
+function foMakeInsertConnector(canEdit, insertAtIndex){
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;justify-content:center;margin:2px 0;";
+  if (!canEdit) return row;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.textContent = "+ Insérer une section ici";
+  btn.style.cssText = "font-size:11px;padding:2px 10px;border:1px dashed var(--border);border-radius:20px;background:transparent;color:var(--ink-soft);cursor:pointer;opacity:.6;";
+  btn.onmouseenter = () => { btn.style.opacity = "1"; };
+  btn.onmouseleave = () => { btn.style.opacity = ".6"; };
+  btn.onclick = () => {
+    foSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", lyrics: "" });
+    foRenderSections(canEdit);
+  };
+  row.appendChild(btn);
+  return row;
+}
 function foRenderSections(canEdit){
   const wrap = document.getElementById("fo-sections-wrap");
   wrap.innerHTML = "";
-  foSections.forEach(sec => {
+  foSections.forEach((sec, idx) => {
+    wrap.appendChild(foMakeInsertConnector(canEdit, idx));
     const card = document.createElement("div");
     card.className = "fe-section";
     const head = document.createElement("div");
@@ -1393,7 +1429,7 @@ async function openFicheEditor(entryId, onClose){
   foSections = (entry.sections && entry.sections.length ? entry.sections : [{ label: "Couplet 1", lyrics: "" }])
     .map(s => ({ id: feGenId(), label: s.label || "", lyrics: s.lyrics || "" }));
   const ann = entry.annotation || {};
-  feSections = (ann.sections && ann.sections.length ? ann.sections : (entry.sections || []).map(s => ({ label: s.label, html: feEscHtml(s.lyrics || ""), note: "" })))
+  feSections = (ann.sections && ann.sections.length ? ann.sections : (entry.sections || []).map(s => ({ label: s.label, html: feEscHtml(s.lyrics || "").split("\n").join("<br>"), note: "" })))
     .map(s => ({ id: feGenId(), label: s.label || "", html: s.html || "", note: s.note || "" }));
   if (!feSections.length) feSections = [{ id: feGenId(), label: "Couplet 1", html: "", note: "" }];
   feLegend = (ann.legend || []).map(l => ({ id: feGenId(), name: l.name || "", color: l.color || FE_HIGHLIGHT_COLORS[0] }));
@@ -1450,7 +1486,13 @@ function feCssColorToHex(c){
 function feWalkNodeToRuns(node, styles, runs){
   if (node.nodeType === 3){
     const text = node.textContent;
-    if (text) runs.push({ text, styles: Object.assign({}, styles) });
+    if (text){
+      const parts = text.split("\n");
+      parts.forEach((part, i) => {
+        if (part) runs.push({ text: part, styles: Object.assign({}, styles) });
+        if (i < parts.length - 1) runs.push({ br: true });
+      });
+    }
     return;
   }
   if (node.nodeType !== 1) return;
@@ -2207,7 +2249,7 @@ async function loadMyGroupChansons(){
 
     const sections = groupEntriesByVisee(entries);
     const rowHtml = (e) => `<tr>
-        <td class="col-sticky">${escXml(e.titre)}</td>
+        <td class="col-sticky">${textCell(e, "titre", 160)}</td>
         <td class="col-sticky2">${linkCell(e, "lienChante", "Version chantée")}</td>
         <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
         <td>${selectCell(e, "statutTrame")}</td>
@@ -2291,6 +2333,7 @@ async function loadMyGroupChansons(){
         const entry = myGroupEntries.find(e => e.id === id);
         if (!entry) return;
         entry[field] = inp.value.trim();
+        if (field === "titre") entry.nomFichier = buildFileName(entry);
         entry.dateMaj = new Date().toISOString();
         const ok = await storageSet("chanson:" + entry.id, entry);
         if (ok){ const majCell = wrap.querySelector(`[data-maj-id="${id}"]`); if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj); }
@@ -3185,7 +3228,7 @@ function renderInventoryTable(entries){
 
   const sections = groupEntriesByVisee(filtered);
   const rowHtml = (e) => `<tr>
-      <td class="col-sticky">${escXml(e.titre)}</td>
+      <td class="col-sticky">${textCell(e, "titre", 160)}</td>
       <td class="col-sticky2">${linkCell(e, "lienChante", "Version chantée")}</td>
       <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
       <td>${selectCell(e, "statutTrame")}</td>
@@ -3262,6 +3305,7 @@ function renderInventoryTable(entries){
       const entry = allEntries.find(e => e.id === id);
       if (!entry) return;
       entry[field] = inp.value.trim();
+      if (field === "titre") entry.nomFichier = buildFileName(entry);
       entry.dateMaj = new Date().toISOString();
       const ok = await storageSet("chanson:" + entry.id, entry);
       if (ok){ const majCell = wrap.querySelector(`[data-maj-id="${id}"]`); if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj); }
