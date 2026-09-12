@@ -289,6 +289,46 @@
     background:#FBF0D9;color:#6B4A00;font-weight:700;font-size:13px;text-align:center;
     padding:8px 12px;border-bottom:1.5px solid #E9D5A0;
   }
+
+  /* ---------------- Éditeur de fiche (copie originale + copie annotée) ---------------- */
+  .fiche-overlay{position:fixed;inset:0;background:rgba(16,50,67,.55);z-index:150;display:flex;flex-direction:column;}
+  .fiche-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);padding:10px 16px;border-bottom:1.5px solid var(--border);}
+  .fiche-bar h3{margin:0;font-size:16px;}
+  .fiche-tabs{display:flex;gap:6px;}
+  .fiche-tab-btn{border:1.5px solid var(--border);background:var(--paper);color:var(--ink-soft);border-radius:8px 8px 0 0;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;border-bottom:none;}
+  .fiche-tab-btn.active{background:var(--surface);color:var(--petrol-dark);border-color:var(--petrol);}
+  .fiche-scroll{flex:1;overflow:auto;padding:18px;}
+  .fiche-panel{display:none;max-width:1100px;margin:0 auto;}
+  .fiche-panel.active{display:block;}
+  .fiche-lock-banner{background:var(--danger-soft);color:var(--danger);border:1.5px solid var(--danger);border-radius:8px;padding:9px 14px;font-size:12.5px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;}
+  .fe-section{border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--surface);}
+  .fe-section-head{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .fe-section-head input[type="text"]{max-width:220px;font-weight:700;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;}
+  .fe-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--paper);border:1px solid var(--border);border-radius:9px;padding:7px 9px;margin-bottom:8px;position:sticky;top:0;z-index:2;}
+  .fe-tb-group{display:flex;gap:4px;align-items:center;padding-right:9px;border-right:1px solid var(--border);}
+  .fe-tb-group:last-child{border-right:none;}
+  .fe-tb-btn{border:1.5px solid var(--border);background:var(--surface);color:var(--ink);border-radius:6px;padding:5px 9px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;min-width:28px;text-align:center;}
+  .fe-tb-btn:hover{border-color:var(--petrol);}
+  .fe-tb-btn.fe-underline{text-decoration:underline;}
+  .fe-tb-btn.fe-strike{text-decoration:line-through;}
+  .fe-tb-btn.fe-sym{font-weight:800;font-style:italic;color:#900FE6;}
+  .fe-swatch-row{display:flex;flex-wrap:wrap;gap:4px;max-width:210px;}
+  .fe-swatch{width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(0,0,0,.15);cursor:pointer;padding:0;}
+  .fe-swatch.eraser{background:repeating-linear-gradient(45deg,#ccc,#ccc 3px,#fff 3px,#fff 6px);display:flex;align-items:center;justify-content:center;font-size:10px;color:#900;font-weight:900;}
+  .fe-lyrics-edit{max-height:280px;overflow-y:auto;padding:16px 15px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:#000;font-family:Arial,sans-serif;font-size:18px;line-height:1.5;white-space:pre-wrap;outline:none;}
+  .fe-lyrics-edit:focus{border-color:var(--petrol);}
+  .fe-note textarea{width:100%;min-height:36px;padding:7px 9px;border:1.5px dashed var(--petrol);border-radius:8px;background:rgba(245,100,43,.06);font-family:inherit;font-size:12.5px;color:var(--ink);resize:vertical;margin-bottom:8px;}
+  .fe-legend-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+  .fe-legend-row{display:flex;align-items:center;gap:8px;font-size:13.5px;}
+  .fe-legend-row input[type="text"]{flex:1 1 auto;min-width:0;padding:5px 8px;font-size:13px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;}
+  .fe-legend-dot{width:16px;height:16px;border-radius:5px;flex-shrink:0;border:1.5px solid rgba(0,0,0,.15);cursor:pointer;}
+  .fe-legend-remove{background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:0 4px;}
+  .fe-hairpin-handle:hover{background:rgba(144,15,230,.18);border-radius:3px;}
+  .fe-preview-doc{background:#fff;color:#000;font-family:Arial,sans-serif;border:1px solid var(--border);border-radius:8px;padding:20px 18px;min-height:70px;}
+  .fe-preview-title{font-weight:700;font-size:18px;margin:0 0 10px;}
+  .fe-preview-chip{display:inline-block;background:#ADD8E6;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin:10px 0 4px;color:#000;}
+  .fe-preview-note{font-size:12px;font-style:italic;color:#6B5300;background:#FFF8DE;border-left:3px solid var(--petrol-dark);padding:4px 8px;margin:4px 0 6px;}
+  .fe-preview-lyrics{font-size:18px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;}
 </style>
 
 <script>
@@ -780,6 +820,731 @@
   </div>
 </div>
 
+<div class="fiche-overlay hidden" id="fiche-overlay">
+  <div class="fiche-bar">
+    <div>
+      <h3 id="fiche-title">Fiche</h3>
+      <div class="fiche-tabs" style="margin-top:8px;">
+        <button class="fiche-tab-btn active" type="button" data-fe-tab="original">📄 Copie originale</button>
+        <button class="fiche-tab-btn" type="button" data-fe-tab="annotee">🎨 Copie annotée</button>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="fiche-close-btn" type="button">✕ Fermer</button>
+  </div>
+  <div class="fiche-scroll">
+
+    <div class="fiche-panel active" id="fiche-panel-original">
+      <div id="fo-lock-banner"></div>
+      <div class="card">
+        <h2 style="font-size:15px;">Paroles — copie originale</h2>
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Le texte simple de la fiche. Une fois révisée, verrouillez-la pour éviter les modifications accidentelles — la copie annotée ci-contre restera toujours modifiable.</p>
+        <div id="fo-sections-wrap"></div>
+        <button class="btn-add" id="fo-add-section-btn" type="button" style="width:100%;border:1.5px dashed var(--petrol);background:transparent;color:var(--petrol-dark);padding:9px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">+ Ajouter une section</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-ghost btn-sm" id="fo-lock-toggle-btn" type="button"></button>
+        <button class="btn btn-primary btn-sm" id="fo-save-btn" type="button">Enregistrer la copie originale</button>
+      </div>
+    </div>
+
+    <div class="fiche-panel" id="fiche-panel-annotee">
+      <div class="card">
+        <h2 style="font-size:15px;">🎨 Légende des élèves</h2>
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Assigne une couleur à chaque élève (même couleur pour un duo/trio qui chante la même partie), puis utilise cette couleur dans le surligneur pour marquer son nom et ses passages.</p>
+        <div class="fe-legend-list" id="fe-legend-list"></div>
+        <button class="btn btn-ghost btn-sm" id="fe-legend-add-btn" type="button">+ Ajouter un·e élève</button>
+      </div>
+      <div class="card">
+        <h2 style="font-size:15px;">Paroles — copie annotée</h2>
+        <div id="fe-sections-wrap"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="fe-preview-toggle-btn" type="button">👁 Aperçu</button>
+        <button class="btn btn-ghost btn-sm" id="fe-download-btn" type="button">⬇ Télécharger (Word)</button>
+        <button class="btn btn-primary btn-sm" id="fe-save-btn" type="button">Enregistrer la copie annotée</button>
+      </div>
+      <div class="card hidden" id="fe-preview-card" style="margin-top:14px;">
+        <h2 style="font-size:15px;">Aperçu (lecture seule)</h2>
+        <div class="fe-preview-doc" id="fe-preview-doc"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   ÉDITEUR DE FICHE — copie originale (verrouillable) + copie annotée
+   (surligneur, mise en forme, symboles, légende par élève)
+   ===================================================================== */
+const FE_FONT_CHOICES = [
+  ["Arial", "Arial, Helvetica, sans-serif"],
+  ["Times New Roman", "'Times New Roman', Times, serif"],
+  ["Verdana", "Verdana, Geneva, sans-serif"],
+  ["Courier New", "'Courier New', Courier, monospace"],
+  ["Comic Sans MS", "'Comic Sans MS', 'Comic Sans', cursive"],
+  ["EB Garamond", "'EB Garamond', Garamond, serif"],
+  ["Dancing Script", "'Dancing Script', cursive"],
+];
+const FE_HIGHLIGHT_COLORS = [
+  "#FFE066","#FFB37A","#FF8C7A","#FF9EC4","#E29CFF","#B79CFF",
+  "#9CC1FF","#8FE0E0","#A8E6A1","#D4E28A","#E8D3A0","#C9D3DC",
+  "#FFFF00","#00FFFF","#9E9E9E"
+];
+function feGenId(){ return Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7); }
+function feEscHtml(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+let feCurrentEntry = null;
+let feOnClose = null;
+let foSections = [];   // copie originale : [{id,label,lyrics}]
+let feSections = [];   // copie annotée : [{id,label,html,note}]
+let feLegend = [];     // [{id,name,color}]
+
+function feAtomicSymbol(glyph, styleCss){
+  return '<span contenteditable="false" style="' + styleCss + '">' + glyph + '</span>';
+}
+function feInsertAtomicSymbol(editable, html){
+  const marker = "fesym-" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  document.execCommand("insertHTML", false, html.replace("<span ", '<span data-ins="' + marker + '" ') + " ");
+  const el = editable.querySelector('[data-ins="' + marker + '"]');
+  if (el){
+    el.removeAttribute("data-ins");
+    const r = document.createRange();
+    r.setStartAfter(el);
+    r.collapse(true);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+}
+function feHairpinHtml(type){
+  const isCresc = type === "cresc";
+  const p1 = isCresc ? "3,10 97,3" : "3,3 97,10";
+  const p2 = isCresc ? "3,10 97,17" : "3,17 97,10";
+  return '<span class="fe-hairpin" contenteditable="false" style="display:inline-block;vertical-align:middle;width:70px;height:16px;position:relative;margin:0 3px;">'
+    + '<svg width="100%" height="100%" viewBox="0 0 100 20" preserveAspectRatio="none" style="display:block;overflow:visible;">'
+    + '<polyline points="' + p1 + '" fill="none" stroke="#900FE6" stroke-width="3" stroke-linecap="round"/>'
+    + '<polyline points="' + p2 + '" fill="none" stroke="#900FE6" stroke-width="3" stroke-linecap="round"/>'
+    + '</svg>'
+    + '<span class="fe-hairpin-handle" contenteditable="false" title="Glisser pour ajuster la longueur" onpointerdown="feStartHairpinResize(event)" style="position:absolute;right:-7px;top:-6px;bottom:-6px;width:14px;cursor:ew-resize;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;"></span>'
+    + '</span>';
+}
+function feStartHairpinResize(e){
+  e.preventDefault(); e.stopPropagation();
+  const handle = e.currentTarget;
+  try { handle.setPointerCapture(e.pointerId); } catch(err){}
+  const hp = handle.parentElement;
+  const editable = hp.closest(".fe-lyrics-edit");
+  const startX = e.clientX;
+  const startWidth = hp.getBoundingClientRect().width;
+  function onMove(ev){
+    const delta = ev.clientX - startX;
+    hp.style.width = Math.max(30, Math.min(650, startWidth + delta)) + "px";
+  }
+  function onUp(){
+    handle.removeEventListener("pointermove", onMove);
+    handle.removeEventListener("pointerup", onUp);
+    if (editable){
+      const sec = feSections.find(s => s.id === editable.dataset.sectionId);
+      if (sec){ sec.html = editable.innerHTML; feUpdatePreview(); }
+    }
+  }
+  handle.addEventListener("pointermove", onMove);
+  handle.addEventListener("pointerup", onUp);
+}
+function feHandlePaste(e){
+  e.preventDefault();
+  const raw = (e.clipboardData || window.clipboardData).getData("text/plain") || "";
+  const normalized = raw.replace(/\r\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+  document.execCommand("insertText", false, normalized);
+}
+function feSwatchRow(onPick, includeEraser){
+  const row = document.createElement("div");
+  row.className = "fe-swatch-row";
+  FE_HIGHLIGHT_COLORS.forEach((c,i) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "fe-swatch"; btn.style.background = c; btn.title = "Couleur " + (i+1);
+    btn.onmousedown = (e) => e.preventDefault();
+    btn.onclick = () => onPick(c);
+    row.appendChild(btn);
+  });
+  if (includeEraser){
+    const eraser = document.createElement("button");
+    eraser.type = "button"; eraser.className = "fe-swatch eraser"; eraser.title = "Effacer le surlignage"; eraser.textContent = "×";
+    eraser.onmousedown = (e) => e.preventDefault();
+    eraser.onclick = () => onPick("transparent");
+    row.appendChild(eraser);
+  }
+  return row;
+}
+
+/* ---- Légende ---- */
+function feRenderLegend(){
+  const wrap = document.getElementById("fe-legend-list");
+  wrap.innerHTML = "";
+  if (!feLegend.length){
+    const p = document.createElement("p");
+    p.style.cssText = "font-size:12.5px;color:var(--ink-soft);margin:0;";
+    p.textContent = "Aucun·e élève ajouté·e pour l'instant.";
+    wrap.appendChild(p);
+  }
+  feLegend.forEach(entry => {
+    const row = document.createElement("div");
+    row.className = "fe-legend-row";
+    const dot = document.createElement("button");
+    dot.type = "button"; dot.className = "fe-legend-dot"; dot.style.background = entry.color; dot.title = "Changer la couleur";
+    dot.onclick = () => {
+      const idx = FE_HIGHLIGHT_COLORS.indexOf(entry.color);
+      entry.color = FE_HIGHLIGHT_COLORS[(idx + 1) % FE_HIGHLIGHT_COLORS.length];
+      feRenderLegend(); feUpdatePreview();
+    };
+    const nameInput = document.createElement("input");
+    nameInput.type = "text"; nameInput.value = entry.name; nameInput.placeholder = "Prénom(s) — ex. : Léa, Noah, Mia";
+    nameInput.oninput = (e) => { entry.name = e.target.value; feUpdatePreview(); };
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button"; removeBtn.className = "fe-legend-remove"; removeBtn.innerHTML = "&times;"; removeBtn.title = "Retirer";
+    removeBtn.onclick = () => { feLegend = feLegend.filter(l => l.id !== entry.id); feRenderLegend(); feUpdatePreview(); };
+    row.appendChild(dot); row.appendChild(nameInput); row.appendChild(removeBtn);
+    wrap.appendChild(row);
+  });
+}
+document.getElementById("fe-legend-add-btn").addEventListener("click", () => {
+  const used = feLegend.map(l => l.color);
+  const nextColor = FE_HIGHLIGHT_COLORS.find(c => !used.includes(c)) || FE_HIGHLIGHT_COLORS[feLegend.length % FE_HIGHLIGHT_COLORS.length];
+  feLegend.push({ id: feGenId(), name: "", color: nextColor });
+  feRenderLegend(); feUpdatePreview();
+});
+
+/* ---- Aperçu (copie annotée) ---- */
+function feUpdatePreview(){
+  const box = document.getElementById("fe-preview-doc");
+  if (!box || !feCurrentEntry) return;
+  let html = `<div class="fe-preview-title">${feEscHtml(feCurrentEntry.titre || "[Titre]")}</div>`;
+  if (feLegend.some(l => l.name.trim())){
+    html += '<div style="border:1px solid #ccc;border-radius:6px;padding:8px 10px;margin:0 0 12px;background:#FAFAFA;">';
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#333;margin:0 0 5px;">Légende</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:5px 14px;">';
+    feLegend.filter(l => l.name.trim()).forEach(l => {
+      html += `<div style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:#000;"><span style="width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.25);display:inline-block;background:${l.color};"></span>${feEscHtml(l.name)}</div>`;
+    });
+    html += '</div></div>';
+  }
+  feSections.forEach(sec => {
+    if (!sec.label && !sec.html.trim()) return;
+    html += `<div class="fe-preview-chip">[${feEscHtml(sec.label || "Section")}]</div>`;
+    if (sec.note && sec.note.trim()) html += `<div class="fe-preview-note">${feEscHtml(sec.note.trim())}</div>`;
+    html += `<div class="fe-preview-lyrics">${sec.html || "…"}</div>`;
+  });
+  box.innerHTML = html;
+}
+
+/* ---- Sections : copie annotée (riche) ---- */
+function feRenderSections(){
+  const wrap = document.getElementById("fe-sections-wrap");
+  wrap.innerHTML = "";
+  feSections.forEach(sec => {
+    const block = document.createElement("div");
+    block.className = "fe-section";
+
+    const head = document.createElement("div");
+    head.className = "fe-section-head";
+    const labelInput = document.createElement("input");
+    labelInput.type = "text"; labelInput.value = sec.label;
+    labelInput.oninput = (e) => { sec.label = e.target.value; feUpdatePreview(); };
+    const clearFormatBtn = document.createElement("button");
+    clearFormatBtn.type = "button"; clearFormatBtn.className = "btn btn-ghost btn-sm";
+    clearFormatBtn.textContent = "🧹 Retirer la mise en forme";
+    let clearArmed = false;
+    clearFormatBtn.onclick = () => {
+      if (!clearArmed){ clearArmed = true; clearFormatBtn.textContent = "Confirmer ?"; setTimeout(() => { clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme"; }, 2500); return; }
+      clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme";
+      const tmp = document.createElement("div"); tmp.innerHTML = sec.html;
+      sec.html = feEscHtml(tmp.textContent || "");
+      feRenderSections(); feUpdatePreview();
+    };
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button"; removeBtn.className = "btn btn-danger-ghost";
+    removeBtn.textContent = "Retirer la section";
+    removeBtn.onclick = () => { feSections = feSections.filter(s => s.id !== sec.id); feRenderSections(); feUpdatePreview(); };
+    head.appendChild(labelInput); head.appendChild(clearFormatBtn); head.appendChild(removeBtn);
+    block.appendChild(head);
+
+    const noteWrap = document.createElement("div");
+    noteWrap.className = "fe-note";
+    const noteLabel = document.createElement("label");
+    noteLabel.style.cssText = "display:block;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px;";
+    noteLabel.textContent = "Note d'interprétation (facultatif) — avant le texte";
+    const noteTextarea = document.createElement("textarea");
+    noteTextarea.value = sec.note; noteTextarea.placeholder = "Ex. Respire ici avant le contre-ut...";
+    noteTextarea.oninput = (e) => { sec.note = e.target.value; feUpdatePreview(); };
+    noteWrap.appendChild(noteLabel); noteWrap.appendChild(noteTextarea);
+    block.appendChild(noteWrap);
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "fe-toolbar";
+
+    const gFormat = document.createElement("div");
+    gFormat.className = "fe-tb-group";
+    [["G","bold","Gras"],["I","italic","Italique"],["S","underline","Souligné","fe-underline"],["S","strikeThrough","Barré","fe-strike"]].forEach(([label,cmd,title,cls]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "fe-tb-btn" + (cls ? " " + cls : ""); b.textContent = label; b.title = title;
+      if (cmd === "italic") b.style.fontStyle = "italic";
+      b.onmousedown = (e) => e.preventDefault();
+      b.onclick = () => document.execCommand(cmd, false, null);
+      gFormat.appendChild(b);
+    });
+    const elisionBtn = document.createElement("button");
+    elisionBtn.type = "button"; elisionBtn.className = "fe-tb-btn"; elisionBtn.textContent = "e̸"; elisionBtn.title = "Rayure oblique (voyelle élidée)";
+    elisionBtn.onmousedown = (e) => e.preventDefault();
+    elisionBtn.onclick = () => {
+      const sel = window.getSelection(); const text = sel ? sel.toString() : "";
+      if (!text) return;
+      document.execCommand("insertHTML", false, `<span style="background-image:linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%);">${feEscHtml(text)}</span>`);
+    };
+    gFormat.appendChild(elisionBtn);
+    const supBtn = document.createElement("button");
+    supBtn.type = "button"; supBtn.className = "fe-tb-btn"; supBtn.textContent = "x²"; supBtn.title = "Exposant";
+    supBtn.onmousedown = (e) => e.preventDefault(); supBtn.onclick = () => document.execCommand("superscript", false, null);
+    gFormat.appendChild(supBtn);
+    const subBtn = document.createElement("button");
+    subBtn.type = "button"; subBtn.className = "fe-tb-btn"; subBtn.textContent = "x₂"; subBtn.title = "Indice";
+    subBtn.onmousedown = (e) => e.preventDefault(); subBtn.onclick = () => document.execCommand("subscript", false, null);
+    gFormat.appendChild(subBtn);
+    const colorBtn = document.createElement("input");
+    colorBtn.type = "color"; colorBtn.title = "Couleur du texte";
+    colorBtn.style.cssText = "width:28px;height:26px;border:1.5px solid var(--border);border-radius:6px;padding:0;cursor:pointer;";
+    colorBtn.onmousedown = (e) => e.preventDefault();
+    colorBtn.oninput = (e) => document.execCommand("foreColor", false, e.target.value);
+    gFormat.appendChild(colorBtn);
+    toolbar.appendChild(gFormat);
+
+    const gFont = document.createElement("div");
+    gFont.className = "fe-tb-group";
+    const fontSelect = document.createElement("select");
+    fontSelect.className = "fe-tb-btn"; fontSelect.title = "Police du texte";
+    fontSelect.style.cssText = "font-family:inherit;padding:4px 6px;max-width:110px;";
+    FE_FONT_CHOICES.forEach(([label, family]) => {
+      const opt = document.createElement("option"); opt.value = family; opt.textContent = label; opt.style.fontFamily = family;
+      fontSelect.appendChild(opt);
+    });
+    fontSelect.onmousedown = (e) => e.stopPropagation();
+    gFont.appendChild(fontSelect);
+    toolbar.appendChild(gFont);
+
+    const gSize = document.createElement("div");
+    gSize.className = "fe-tb-group"; gSize.style.alignItems = "center";
+    let savedRange = null;
+    function restoreSavedSelection(){ if (!savedRange) return; const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedRange); }
+    function applyInlineStyle(prop, value){
+      let sel = window.getSelection();
+      if ((!sel || !sel.rangeCount || sel.getRangeAt(0).collapsed) && savedRange){ restoreSavedSelection(); sel = window.getSelection(); }
+      if (!sel || !sel.rangeCount) return false;
+      const range = sel.getRangeAt(0);
+      if (range.collapsed) return false;
+      if (!editable.contains(range.commonAncestorContainer)) return false;
+      savedRange = null;
+      const frag = range.extractContents();
+      const span = document.createElement("span");
+      span.style[prop] = value;
+      span.appendChild(frag);
+      span.querySelectorAll("[style]").forEach(el => { el.style[prop] = ""; if (!el.getAttribute("style")) el.removeAttribute("style"); });
+      range.insertNode(span);
+      const newRange = document.createRange(); newRange.selectNodeContents(span);
+      sel.removeAllRanges(); sel.addRange(newRange);
+      sec.html = editable.innerHTML; feUpdatePreview();
+      return true;
+    }
+    function currentFontSizePt(){
+      const sel = window.getSelection(); if (!sel || !sel.rangeCount) return 15;
+      const range = sel.getRangeAt(0);
+      let node = range.collapsed ? range.startContainer : range.commonAncestorContainer;
+      if (node && node.nodeType === 3) node = node.parentElement;
+      if (!node || !editable.contains(node)) node = editable;
+      return Math.round((parseFloat(getComputedStyle(node).fontSize) || 18) * 0.75);
+    }
+    function currentFontFamily(){
+      const sel = window.getSelection(); if (!sel || !sel.rangeCount) return FE_FONT_CHOICES[0][1];
+      const range = sel.getRangeAt(0);
+      let node = range.collapsed ? range.startContainer : range.commonAncestorContainer;
+      if (node && node.nodeType === 3) node = node.parentElement;
+      if (!node || !editable.contains(node)) node = editable;
+      return getComputedStyle(node).fontFamily || FE_FONT_CHOICES[0][1];
+    }
+    function syncFontUI(){
+      const liveSel = window.getSelection();
+      if (liveSel && liveSel.rangeCount && !liveSel.getRangeAt(0).collapsed && editable.contains(liveSel.getRangeAt(0).commonAncestorContainer)){
+        savedRange = liveSel.getRangeAt(0).cloneRange();
+      }
+      const famComputed = currentFontFamily().toLowerCase();
+      const match = FE_FONT_CHOICES.find(([, family]) => famComputed.includes(family.split(",")[0].replace(/['"]/g,"").trim().toLowerCase()));
+      fontSelect.value = match ? match[1] : FE_FONT_CHOICES[0][1];
+      sizeInput.value = currentFontSizePt();
+    }
+    function applyFontSizePt(pt){ pt = Math.max(6, Math.min(96, Math.round(pt))); applyInlineStyle("fontSize", pt + "pt"); syncFontUI(); }
+    fontSelect.onchange = () => { applyInlineStyle("fontFamily", fontSelect.value); syncFontUI(); };
+    const sizeMinus = document.createElement("button");
+    sizeMinus.type = "button"; sizeMinus.className = "fe-tb-btn"; sizeMinus.textContent = "−"; sizeMinus.title = "Diminuer (2 pt)";
+    sizeMinus.onmousedown = (e) => e.preventDefault(); sizeMinus.onclick = () => applyFontSizePt(currentFontSizePt() - 2);
+    gSize.appendChild(sizeMinus);
+    const sizeInput = document.createElement("input");
+    sizeInput.type = "number"; sizeInput.value = 15; sizeInput.title = "Taille en points";
+    sizeInput.style.cssText = "width:42px;padding:5px 4px;font-size:12.5px;text-align:center;border-radius:6px;border:1.5px solid var(--border);font-family:inherit;";
+    sizeInput.onmousedown = (e) => e.stopPropagation();
+    sizeInput.onchange = () => applyFontSizePt(parseFloat(sizeInput.value) || currentFontSizePt());
+    gSize.appendChild(sizeInput);
+    const sizePlus = document.createElement("button");
+    sizePlus.type = "button"; sizePlus.className = "fe-tb-btn"; sizePlus.textContent = "+"; sizePlus.title = "Augmenter (2 pt)";
+    sizePlus.onmousedown = (e) => e.preventDefault(); sizePlus.onclick = () => applyFontSizePt(currentFontSizePt() + 2);
+    gSize.appendChild(sizePlus);
+    toolbar.appendChild(gSize);
+
+    const gHighlight = document.createElement("div");
+    gHighlight.className = "fe-tb-group";
+    gHighlight.appendChild(feSwatchRow((color) => document.execCommand("hiliteColor", false, color), true));
+    toolbar.appendChild(gHighlight);
+
+    const gSymbols = document.createElement("div");
+    gSymbols.className = "fe-tb-group";
+    ["p","m","f"].forEach(sym => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "fe-tb-btn fe-sym"; b.textContent = sym;
+      b.title = sym === "m" ? "Insérer « m » — combine avec p ou f à la suite pour mp / mf" : "Insérer « " + sym + " » — clique 2-3 fois de suite pour " + sym + sym + " / " + sym + sym + sym;
+      b.onmousedown = (e) => e.preventDefault();
+      b.onclick = () => document.execCommand("insertHTML", false, '<span style="color:#900FE6;font-weight:800;font-style:italic;font-size:16pt;">' + sym + '</span>');
+      gSymbols.appendChild(b);
+    });
+    const mkBtn = (label, title, glyph, styleCss) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "fe-tb-btn fe-sym"; b.textContent = label; b.title = title;
+      b.onmousedown = (e) => e.preventDefault();
+      b.onclick = () => feInsertAtomicSymbol(editable, feAtomicSymbol(glyph, styleCss));
+      return b;
+    };
+    gSymbols.appendChild(mkBtn("v", "Respiration", "v", "color:#C94E1F;font-weight:700;vertical-align:super;font-size:11px;"));
+    const barBtn = document.createElement("button");
+    barBtn.type = "button"; barBtn.className = "fe-tb-btn"; barBtn.textContent = "|"; barBtn.title = "Barre de mesure";
+    barBtn.onmousedown = (e) => e.preventDefault();
+    barBtn.onclick = () => document.execCommand("insertText", false, "|");
+    gSymbols.appendChild(barBtn);
+    gSymbols.appendChild(mkBtn("𝄆𝄇", "Barres de reprise", "𝄆 𝄇", "color:#103243;font-weight:700;"));
+    gSymbols.appendChild(mkBtn("𝄐", "Point d'orgue", "𝄐", "color:#900FE6;font-weight:700;vertical-align:super;font-size:13px;"));
+    const noteSelect = document.createElement("select");
+    noteSelect.className = "fe-tb-btn"; noteSelect.title = "Valeur de note";
+    noteSelect.style.cssText = "font-family:inherit;padding:4px 6px;";
+    [["♩","noire"],["♪","croche"],["♫","deux croches"],["𝅗𝅥","blanche"],["𝅝","ronde"]].forEach(([g,label]) => {
+      const opt = document.createElement("option"); opt.value = g; opt.textContent = g + " " + label; noteSelect.appendChild(opt);
+    });
+    noteSelect.onmousedown = (e) => e.stopPropagation();
+    noteSelect.onchange = () => { feInsertAtomicSymbol(editable, feAtomicSymbol(noteSelect.value, "color:#103243;font-weight:700;")); noteSelect.selectedIndex = 0; };
+    gSymbols.appendChild(noteSelect);
+    gSymbols.appendChild(mkBtn("↑", "Montée du pitch", "↑", "color:#227373;font-weight:900;vertical-align:super;font-size:11px;"));
+    gSymbols.appendChild(mkBtn("↓", "Descente du pitch", "↓", "color:#227373;font-weight:900;vertical-align:super;font-size:11px;"));
+    gSymbols.appendChild(mkBtn("→", "Tenue du pitch", "→", "color:#227373;font-weight:900;vertical-align:super;font-size:11px;"));
+    gSymbols.appendChild(mkBtn("♂", "Voix — répartition (♂)", "♂", "color:#103243;font-weight:700;"));
+    gSymbols.appendChild(mkBtn("♀", "Voix — répartition (♀)", "♀", "color:#103243;font-weight:700;"));
+    const crescBtn = document.createElement("button");
+    crescBtn.type = "button"; crescBtn.className = "fe-tb-btn"; crescBtn.textContent = "<"; crescBtn.title = "Crescendo (glisser la poignée pour ajuster la longueur)";
+    crescBtn.onmousedown = (e) => e.preventDefault();
+    crescBtn.onclick = () => document.execCommand("insertHTML", false, feHairpinHtml("cresc"));
+    gSymbols.appendChild(crescBtn);
+    const decrescBtn = document.createElement("button");
+    decrescBtn.type = "button"; decrescBtn.className = "fe-tb-btn"; decrescBtn.textContent = ">"; decrescBtn.title = "Decrescendo (glisser la poignée pour ajuster la longueur)";
+    decrescBtn.onmousedown = (e) => e.preventDefault();
+    decrescBtn.onclick = () => document.execCommand("insertHTML", false, feHairpinHtml("decresc"));
+    gSymbols.appendChild(decrescBtn);
+    toolbar.appendChild(gSymbols);
+
+    block.appendChild(toolbar);
+
+    const editable = document.createElement("div");
+    editable.className = "fe-lyrics-edit";
+    editable.contentEditable = "true";
+    editable.dataset.sectionId = sec.id;
+    editable.innerHTML = sec.html || "";
+    editable.addEventListener("paste", feHandlePaste);
+    editable.addEventListener("input", () => { sec.html = editable.innerHTML; feUpdatePreview(); });
+    editable.addEventListener("keyup", syncFontUI);
+    editable.addEventListener("mouseup", syncFontUI);
+    editable.addEventListener("focus", syncFontUI);
+    block.appendChild(editable);
+
+    wrap.appendChild(block);
+  });
+}
+document.getElementById("add-section-btn"); // no-op guard (existing form button, untouched)
+document.getElementById("fiche-panel-annotee") && document.body; // keep panel ref alive for linters
+
+function feAddSection(){
+  feSections.push({ id: feGenId(), label: "", html: "", note: "" });
+  feRenderSections(); feUpdatePreview();
+}
+
+/* ---- Sections : copie originale (texte simple, verrouillable) ---- */
+function foRenderSections(canEdit){
+  const wrap = document.getElementById("fo-sections-wrap");
+  wrap.innerHTML = "";
+  foSections.forEach(sec => {
+    const card = document.createElement("div");
+    card.className = "fe-section";
+    const head = document.createElement("div");
+    head.className = "fe-section-head";
+    const labelInput = document.createElement("input");
+    labelInput.type = "text"; labelInput.value = sec.label; labelInput.disabled = !canEdit;
+    labelInput.oninput = (e) => { sec.label = e.target.value; };
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button"; removeBtn.className = "btn btn-danger-ghost"; removeBtn.textContent = "Retirer";
+    removeBtn.disabled = !canEdit || foSections.length <= 1;
+    removeBtn.onclick = () => { foSections = foSections.filter(s => s.id !== sec.id); foRenderSections(canEdit); };
+    head.appendChild(labelInput); head.appendChild(removeBtn);
+    card.appendChild(head);
+    const textarea = document.createElement("textarea");
+    textarea.value = sec.lyrics; textarea.disabled = !canEdit;
+    textarea.style.cssText = "width:100%;min-height:100px;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;";
+    textarea.oninput = (e) => { sec.lyrics = e.target.value; };
+    card.appendChild(textarea);
+    wrap.appendChild(card);
+  });
+}
+document.getElementById("fo-add-section-btn").addEventListener("click", () => {
+  foSections.push({ id: feGenId(), label: "", lyrics: "" });
+  foRenderSections(true);
+});
+
+function feRole(){ return roleFromSession(); }
+
+function feCanEditOriginal(){ return hasPerm("fiche_modifier", feRole()); }
+function feCanLock(){ return hasPerm("fiche_verrouiller", feRole()); }
+
+function foRefreshLockUI(){
+  const locked = !!feCurrentEntry.locked;
+  const canEdit = feCanEditOriginal() && !locked;
+  const banner = document.getElementById("fo-lock-banner");
+  banner.innerHTML = locked
+    ? `<div class="fiche-lock-banner">🔒 Cette fiche est verrouillée — la copie originale ne peut plus être modifiée.</div>`
+    : "";
+  foRenderSections(canEdit);
+  document.getElementById("fo-save-btn").classList.toggle("hidden", !canEdit);
+  const lockBtn = document.getElementById("fo-lock-toggle-btn");
+  if (feCanLock()){
+    lockBtn.classList.remove("hidden");
+    lockBtn.textContent = locked ? "🔓 Déverrouiller" : "🔒 Verrouiller";
+  } else {
+    lockBtn.classList.add("hidden");
+  }
+}
+document.getElementById("fo-lock-toggle-btn").addEventListener("click", async () => {
+  if (!feCanLock() || !feCurrentEntry) return;
+  feCurrentEntry.locked = !feCurrentEntry.locked;
+  feCurrentEntry.dateMaj = new Date().toISOString();
+  const ok = await storageSet("chanson:" + feCurrentEntry.id, feCurrentEntry);
+  if (ok){ showToast(feCurrentEntry.locked ? "Fiche verrouillée 🔒" : "Fiche déverrouillée 🔓"); foRefreshLockUI(); document.getElementById("fiche-title").textContent = `Fiche — ${feCurrentEntry.titre}${feCurrentEntry.locked ? " 🔒" : ""}`; }
+  else { feCurrentEntry.locked = !feCurrentEntry.locked; showToast("Erreur lors de la mise à jour.", true); }
+});
+document.getElementById("fo-save-btn").addEventListener("click", async () => {
+  if (!feCanEditOriginal() || feCurrentEntry.locked) return;
+  feCurrentEntry.sections = foSections.map(s => ({ label: s.label, lyrics: s.lyrics }));
+  feCurrentEntry.dateMaj = new Date().toISOString();
+  const ok = await storageSet("chanson:" + feCurrentEntry.id, feCurrentEntry);
+  showToast(ok ? "Copie originale enregistrée ✓" : "Erreur lors de l'enregistrement.", !ok);
+  if (ok && feOnClose) feOnClose();
+});
+document.getElementById("fe-save-btn").addEventListener("click", async () => {
+  feCurrentEntry.annotation = {
+    sections: feSections.map(s => ({ label: s.label, html: s.html, note: s.note })),
+    legend: feLegend.map(l => ({ name: l.name, color: l.color })),
+  };
+  feCurrentEntry.dateMaj = new Date().toISOString();
+  const ok = await storageSet("chanson:" + feCurrentEntry.id, feCurrentEntry);
+  showToast(ok ? "Copie annotée enregistrée ✓" : "Erreur lors de l'enregistrement.", !ok);
+});
+document.getElementById("fe-preview-toggle-btn").addEventListener("click", () => {
+  document.getElementById("fe-preview-card").classList.toggle("hidden");
+  feUpdatePreview();
+});
+document.getElementById("fe-download-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("fe-download-btn");
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = "…";
+  try {
+    const blob = await generateAnnotatedDocxBlob(feCurrentEntry, feSections, feLegend);
+    downloadBlob(blob, `${sanitizeFileName(feCurrentEntry.titre) || "Sans titre"} - copie annotée.docx`);
+  } catch(err){ console.error(err); showToast("Erreur lors de la génération du fichier.", true); }
+  btn.disabled = false; btn.textContent = orig;
+});
+
+document.querySelectorAll("[data-fe-tab]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("[data-fe-tab]").forEach(b => b.classList.toggle("active", b === btn));
+    document.getElementById("fiche-panel-original").classList.toggle("active", btn.dataset.feTab === "original");
+    document.getElementById("fiche-panel-annotee").classList.toggle("active", btn.dataset.feTab === "annotee");
+  });
+});
+document.getElementById("fiche-close-btn").addEventListener("click", () => {
+  document.getElementById("fiche-overlay").classList.add("hidden");
+  if (feOnClose) feOnClose();
+});
+
+async function openFicheEditor(entryId, onClose){
+  const entry = await storageGet("chanson:" + entryId);
+  if (!entry){ showToast("Fiche introuvable.", true); return; }
+  feCurrentEntry = entry;
+  feOnClose = onClose || null;
+  document.getElementById("fiche-title").textContent = `Fiche — ${entry.titre}${entry.locked ? " 🔒" : ""}`;
+
+  foSections = (entry.sections && entry.sections.length ? entry.sections : [{ label: "Couplet 1", lyrics: "" }])
+    .map(s => ({ id: feGenId(), label: s.label || "", lyrics: s.lyrics || "" }));
+  const ann = entry.annotation || {};
+  feSections = (ann.sections && ann.sections.length ? ann.sections : (entry.sections || []).map(s => ({ label: s.label, html: feEscHtml(s.lyrics || ""), note: "" })))
+    .map(s => ({ id: feGenId(), label: s.label || "", html: s.html || "", note: s.note || "" }));
+  if (!feSections.length) feSections = [{ id: feGenId(), label: "Couplet 1", html: "", note: "" }];
+  feLegend = (ann.legend || []).map(l => ({ id: feGenId(), name: l.name || "", color: l.color || FE_HIGHLIGHT_COLORS[0] }));
+
+  document.querySelectorAll("[data-fe-tab]").forEach(b => b.classList.toggle("active", b.dataset.feTab === "original"));
+  document.getElementById("fiche-panel-original").classList.add("active");
+  document.getElementById("fiche-panel-annotee").classList.remove("active");
+  document.getElementById("fe-preview-card").classList.add("hidden");
+
+  foRefreshLockUI();
+  feRenderLegend();
+  feRenderSections();
+  feUpdatePreview();
+
+  document.getElementById("fiche-overlay").classList.remove("hidden");
+}
+
+/* ---- Bouton "+ Ajouter une section" (copie annotée) — inséré ici pour éviter les conflits d'id avec le formulaire de soumission ---- */
+(function(){
+  const wrap = document.getElementById("fiche-panel-annotee");
+  if (!wrap) return;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "btn-add";
+  btn.style.cssText = "width:100%;border:1.5px dashed var(--petrol);background:transparent;color:var(--petrol-dark);padding:9px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;margin-bottom:14px;";
+  btn.textContent = "+ Ajouter une section";
+  btn.addEventListener("click", feAddSection);
+  const card = wrap.querySelector(".card:nth-of-type(2)");
+  if (card) card.appendChild(btn);
+})();
+
+/* ---- Conversion HTML riche -> runs OOXML (export Word de la copie annotée) ---- */
+function feStyleToRunProps(styles){
+  const rPr = [];
+  if (styles.bold) rPr.push("<w:b/>");
+  if (styles.italic) rPr.push("<w:i/>");
+  if (styles.underline) rPr.push('<w:u w:val="single"/>');
+  if (styles.strike) rPr.push("<w:strike/>");
+  if (styles.sup) rPr.push('<w:vertAlign w:val="superscript"/>');
+  if (styles.sub) rPr.push('<w:vertAlign w:val="subscript"/>');
+  rPr.push(`<w:rFonts w:ascii="${styles.font || "Arial"}" w:cs="${styles.font || "Arial"}" w:eastAsia="${styles.font || "Arial"}" w:hAnsi="${styles.font || "Arial"}"/>`);
+  if (styles.color) rPr.push(`<w:color w:val="${styles.color.replace("#","").toUpperCase()}"/>`);
+  rPr.push(`<w:sz w:val="${Math.round((styles.sizePt || 15) * 2)}"/><w:szCs w:val="${Math.round((styles.sizePt || 15) * 2)}"/>`);
+  if (styles.hilite) rPr.push(`<w:shd w:fill="${styles.hilite.replace("#","").toUpperCase()}" w:val="clear"/>`);
+  return "<w:rPr>" + rPr.join("") + "</w:rPr>";
+}
+function feCssColorToHex(c){
+  if (!c) return null;
+  if (c.startsWith("#")) return c;
+  const m = c.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!m) return null;
+  return "#" + [1,2,3].map(i => (+m[i]).toString(16).padStart(2,"0")).join("");
+}
+function feWalkNodeToRuns(node, styles, runs){
+  if (node.nodeType === 3){
+    const text = node.textContent;
+    if (text) runs.push({ text, styles: Object.assign({}, styles) });
+    return;
+  }
+  if (node.nodeType !== 1) return;
+  const tag = node.tagName.toLowerCase();
+  if (tag === "br"){ runs.push({ br: true }); return; }
+  const st = Object.assign({}, styles);
+  if (tag === "b" || tag === "strong") st.bold = true;
+  if (tag === "i" || tag === "em") st.italic = true;
+  if (tag === "u") st.underline = true;
+  if (tag === "strike" || tag === "s") st.strike = true;
+  if (tag === "sup") st.sup = true;
+  if (tag === "sub") st.sub = true;
+  const cs = node.style || {};
+  if (cs.fontWeight === "bold" || cs.fontWeight === "700" || parseInt(cs.fontWeight,10) >= 600) st.bold = true;
+  if (cs.fontStyle === "italic") st.italic = true;
+  if (cs.textDecorationLine === "underline" || cs.textDecoration === "underline") st.underline = true;
+  if ((cs.textDecorationLine || "").includes("line-through") || (cs.textDecoration||"").includes("line-through")) st.strike = true;
+  if (cs.color) { const hex = feCssColorToHex(cs.color); if (hex) st.color = hex; }
+  if (cs.backgroundColor && cs.backgroundColor !== "transparent" && cs.backgroundColor !== "rgba(0, 0, 0, 0)") { const hex = feCssColorToHex(cs.backgroundColor); if (hex) st.hilite = hex; }
+  if (cs.fontFamily) st.font = cs.fontFamily.split(",")[0].replace(/['"]/g,"").trim();
+  if (cs.fontSize){ const px = parseFloat(cs.fontSize); if (!isNaN(px)) st.sizePt = px.toString().includes("pt") ? px : Math.round(px * 0.75); }
+  if (node.getAttribute && node.getAttribute("contenteditable") === "false"){
+    runs.push({ text: node.textContent, styles: st });
+    return;
+  }
+  node.childNodes.forEach(child => feWalkNodeToRuns(child, st, runs));
+}
+function feHtmlToOoxmlParagraph(html, baseFont, baseSizePt){
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  const runs = [];
+  tmp.childNodes.forEach(n => feWalkNodeToRuns(n, { font: baseFont || "Arial", sizePt: baseSizePt || 20 }, runs));
+  let xml = "";
+  let currentRun = "";
+  let currentProps = null;
+  const flush = () => {
+    if (currentRun){ xml += `<w:r>${feStyleToRunProps(currentProps)}<w:t xml:space="preserve">${escXml(currentRun)}</w:t></w:r>`; currentRun = ""; }
+  };
+  runs.forEach(r => {
+    if (r.br){ flush(); xml += `<w:r>${feStyleToRunProps(currentProps || {font:baseFont,sizePt:baseSizePt})}<w:br/></w:r>`; return; }
+    const key = JSON.stringify(r.styles);
+    if (currentProps && JSON.stringify(currentProps) === key){ currentRun += r.text; }
+    else { flush(); currentProps = r.styles; currentRun = r.text; }
+  });
+  flush();
+  return `<w:p><w:pPr><w:spacing w:after="0" w:line="288" w:lineRule="auto"/></w:pPr>${xml || "<w:r><w:t></w:t></w:r>"}</w:p>`;
+}
+async function generateAnnotatedDocxBlob(entry, sectionsData, legendData){
+  const zip = await JSZip.loadAsync(base64ToBytes(TEMPLATE_B64));
+  let xml = await zip.file("word/document.xml").async("string");
+  const interpreteAnnee = [entry.interprete, entry.annee].filter(Boolean).join(", ");
+  const auteursLive = (entry.paroliers || entry.compositeurs) ? `${entry.paroliers || "—"} / ${entry.compositeurs || "—"}` : (entry.auteurs || "—");
+  const applyTokens = (str) => {
+    str = str.split("@@TITRE@@").join(escXml(entry.titre));
+    str = str.split("@@INTERPRETE_ANNEE@@").join(escXml(interpreteAnnee || "—"));
+    str = str.split("@@AUTEURS@@").join(escXml(auteursLive));
+    str = str.split("@@TON_ORIGINE@@").join(escXml(entry.tonOrigine || "—"));
+    str = str.split("@@TON_CHOISIE@@").join(escXml(entry.tonChoisie || "—"));
+    return str;
+  };
+  xml = applyTokens(xml);
+
+  let bodyXml = "";
+  const namedLegend = (legendData || []).filter(l => (l.name||"").trim());
+  if (namedLegend.length){
+    const legendLabelP = `<w:p><w:pPr><w:spacing w:after="40" w:before="120"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Légende :</w:t></w:r></w:p>`;
+    const legendItemsP = namedLegend.map(l => `<w:p><w:pPr><w:spacing w:after="20"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:shd w:fill="${(l.color||"#FFFFFF").replace("#","").toUpperCase()}" w:val="clear"/></w:rPr><w:t xml:space="preserve">  ${escXml(l.name)}  </w:t></w:r></w:p>`).join("");
+    bodyXml += legendLabelP + legendItemsP;
+  }
+  (sectionsData || []).forEach(sec => {
+    const labelP = `<w:p><w:pPr><w:spacing w:after="40" w:before="360"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/><w:color w:val="000000"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:shd w:fill="ADD8E6" w:val="clear"/></w:rPr><w:t xml:space="preserve">[${escXml(sec.label || "Section")}]</w:t></w:r></w:p>`;
+    let noteP = "";
+    if (sec.note && sec.note.trim()){
+      noteP = `<w:p><w:pPr><w:spacing w:after="60"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/><w:i/><w:color w:val="6B5300"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">${escXml(sec.note.trim())}</w:t></w:r></w:p>`;
+    }
+    const lyricsP = feHtmlToOoxmlParagraph(sec.html || "", "Arial", 20);
+    bodyXml += labelP + noteP + lyricsP;
+  });
+
+  xml = xml.replace(MARKER_XML, bodyXml);
+  zip.file("word/document.xml", xml);
+
+  const footerFiles = Object.keys(zip.files).filter(name => /^word\/footer\d*\.xml$/.test(name));
+  for (const fname of footerFiles) {
+    let fxml = await zip.file(fname).async("string");
+    fxml = applyTokens(fxml);
+    zip.file(fname, fxml);
+  }
+
+  const content = await zip.generateAsync({ type: "blob" });
+  return new Blob([content], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+}
+</script>
+
 <script>
 /* =====================================================================
    TEMPLATE DOCX (base64) — gabarit "feuille de paroles" avec jetons
@@ -845,7 +1610,8 @@ function safeKeyPart(s){
   const applyTokens = (str) => {
     str = str.split("@@TITRE@@").join(escXml(entry.titre));
     str = str.split("@@INTERPRETE_ANNEE@@").join(escXml(interpreteAnnee || "—"));
-    str = str.split("@@AUTEURS@@").join(escXml(entry.auteurs || "—"));
+    const auteursLive = (entry.paroliers || entry.compositeurs) ? `${entry.paroliers || "—"} / ${entry.compositeurs || "—"}` : (entry.auteurs || "—");
+    str = str.split("@@AUTEURS@@").join(escXml(auteursLive));
     str = str.split("@@TON_ORIGINE@@").join(escXml(entry.tonOrigine || "—"));
     str = str.split("@@TON_CHOISIE@@").join(escXml(entry.tonChoisie || "—"));
     return str;
@@ -1457,7 +2223,7 @@ async function loadMyGroupChansons(){
         <td>${raisonCell(e)}</td>
         <td>${textCell(e, "chanteePar", 120, "Ex. 12 sept, 3 oct")}</td>
         <td><span class="badge-paroles">Paroles: ${escXml(e.statutParoles||"Fait")}</span></td>
-        <td><button class="btn btn-ghost btn-sm" data-dl="${e.id}">Télécharger</button></td>
+        <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" data-dl="${e.id}">Télécharger</button> <button class="btn btn-ghost btn-sm" data-fiche="${e.id}">📝 Fiche${e.locked ? " 🔒" : ""}</button></td>
         <td>${linkCell(e, "lienPartition", "Partition")}</td>
         <td>${selectCell(e, "statutPartition")}</td>
         <td>${selectCell(e, "visee", VISEE_OPTIONS)}</td>
@@ -1477,6 +2243,12 @@ async function loadMyGroupChansons(){
         if (!entry) return;
         try { downloadBlob(await generateDocxBlob(entry), entry.nomFichier || buildFileName(entry)); }
         catch(e){ showToast("Erreur lors de la génération du fichier.", true); }
+      });
+    });
+    wrap.querySelectorAll("[data-fiche]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const entry = myGroupEntries.find(e => e.id === btn.dataset.fiche);
+        if (entry) openFicheEditor(entry.id, () => loadMyGroupChansons());
       });
     });
     wrap.querySelectorAll("[data-raison-id]").forEach(btn => {
@@ -1568,6 +2340,8 @@ const DEFAULT_PERMISSIONS = {
   absences_gerer:         { eleve: true,  assistant: true },
   rappel_envoyer:         { eleve: true,  assistant: true },
   rappel_gerer:           { eleve: false, assistant: true },
+  fiche_modifier:         { eleve: false, assistant: true },
+  fiche_verrouiller:      { eleve: false, assistant: false },
 };
 const PERMISSION_LABELS = {
   seance_date: "Date de la séance",
@@ -1587,6 +2361,8 @@ const PERMISSION_LABELS = {
   absences_gerer: "S'inscrire / se retirer des absences",
   rappel_envoyer: "Envoyer un rappel",
   rappel_gerer: "Cocher / supprimer un rappel",
+  fiche_modifier: "Modifier la fiche originale (paroles)",
+  fiche_verrouiller: "Verrouiller / déverrouiller la fiche originale",
 };
 let permissionsConfig = {};
 async function loadPermissionsConfig(){
@@ -2427,6 +3203,7 @@ function renderInventoryTable(entries){
       <td>${textCell(e, "chanteePar", 110, "Ex. 12 sept, 3 oct")}</td>
       <td class="row-actions">
         <button class="btn btn-ghost btn-sm" data-action="dl" data-id="${e.id}">Télécharger</button>
+        <button class="btn btn-ghost btn-sm" data-action="fiche" data-id="${e.id}">📝 Fiche${e.locked ? " 🔒" : ""}</button>
         <button class="btn btn-ghost btn-sm" data-action="copy" data-id="${e.id}">Copier</button>
         <button class="btn btn-danger-ghost" data-action="del" data-id="${e.id}">Supprimer</button>
       </td>
@@ -2514,6 +3291,12 @@ function renderInventoryTable(entries){
       try { downloadBlob(await generateDocxBlob(entry), entry.nomFichier || buildFileName(entry)); }
       catch(e){ showToast("Erreur lors de la génération du fichier.", true); }
       btn.disabled = false; btn.textContent = "Télécharger";
+    });
+  });
+  wrap.querySelectorAll('[data-action="fiche"]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const entry = allEntries.find(e => e.id === btn.dataset.id);
+      if (entry) openFicheEditor(entry.id, () => loadInventory());
     });
   });
   wrap.querySelectorAll('[data-action="copy"]').forEach(btn => {
