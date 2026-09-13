@@ -1801,17 +1801,17 @@ function feRenderElisionImageDataUrl(text, st){
   mctx.font = fontSpec;
   const metrics = mctx.measureText(text);
   const width = Math.max(6, Math.ceil(metrics.width) + 6);
-  /* Word aligne le BAS de l'image sur la ligne de base du texte (comme pour un caractère normal) —
-     donc tout espace ajouté SOUS la ligne de base du glyphe fait paraître la lettre "remontée",
-     comme un exposant. On mesure le vrai jambage (descente réelle du glyphe, souvent nul sauf pour
-     g/j/p/q/y) et on n'ajoute qu'une marge minimale en dessous. L'espace additionnel nécessaire pour
-     que le rectangle de surlignage couvre la même hauteur que la ligne de texte environnante est
-     ajouté AU-DESSUS du glyphe à la place, ce qui ne déplace pas sa ligne de base. */
-  const realDescent = metrics.actualBoundingBoxDescent || 0;
-  const descent = Math.max(realDescent, px * 0.04);
-  const totalHeight = Math.max(10, Math.ceil(px * 1.18) + Math.ceil(descent));
-  const ascent = totalHeight - descent;
-  const height = totalHeight;
+  /* La hauteur de l'image est calée sur les métriques DE LA POLICE (ascent/descent "de dessin", les
+     mêmes pour toutes les lettres d'une police/taille donnée) plutôt que sur la boîte serrée du
+     glyphe dessiné — c'est cette mesure-là, constante, que Word utilise pour la bande de surlignage
+     derrière le texte normal. En s'alignant dessus, le rectangle de surlignage peint dans l'image a
+     pile la même hauteur que celui du texte environnant, sans être ni trop court (liseré blanc) ni
+     trop haut (ligne qui s'étire). Et comme Word aligne le BAS de l'image sur la ligne de base du
+     texte, garder ce "descent" réaliste (plutôt qu'exagéré) évite aussi que la lettre paraisse
+     remontée comme un exposant. */
+  const ascent = metrics.fontBoundingBoxAscent || metrics.actualBoundingBoxAscent || px * 0.75;
+  const descent = metrics.fontBoundingBoxDescent || metrics.actualBoundingBoxDescent || px * 0.25;
+  const height = Math.max(10, Math.ceil(ascent + descent));
   const scale = 3;
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
