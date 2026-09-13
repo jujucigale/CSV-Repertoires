@@ -1146,18 +1146,34 @@ function feToggleStrike(editable){
     document.execCommand("strikeThrough", false, null);
   }
 }
-/* ---- Rayure oblique (voyelle élidée) : même bascule manuelle activer/désactiver que le Barré ---- */
-function feIsRangeElided(range, editable){
-  const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT, {
-    acceptNode(n){ return range.intersectsNode(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
-  });
+/* ---- Rayure oblique (voyelle élidée) ----
+   Approche revue : au lieu d'un effet visuel CSS (background-image) qui n'existe qu'à l'écran et n'a
+   aucun équivalent dans un fichier Word (d'où l'absence totale de la rayure diagonale une fois le
+   fichier téléchargé, alors que gras/italique/souligné/barré/exposant/indice s'y transposent tous —
+   ce sont de vraies mises en forme Word, contrairement à un dégradé CSS), on utilise maintenant un
+   vrai caractère Unicode conçu pour ça : le trait oblique combinant (U+0338, le même principe que le
+   « ̶ » utilisé sur le bouton Barré, mais oblique). Comme c'est du texte ordinaire et non un style,
+   ça s'affiche pareil à l'écran ET dans le Word exporté, sans aucun changement requis dans le
+   générateur de Word. Note : une élision appliquée par l'ancienne méthode (avant ce correctif) reste
+   visible à l'écran mais devra être refaite pour apparaître dans un futur export Word. */
+const FE_ELISION_MARK = "̸";
+function feElideText(text){
+  let out = "";
+  for (const ch of text){
+    out += ch;
+    if (ch.trim() && ch !== FE_ELISION_MARK) out += FE_ELISION_MARK;
+  }
+  return out;
+}
+function feIsTextElided(text){
+  const chars = Array.from(text);
   let any = false, allElided = true;
-  let n;
-  while ((n = walker.nextNode())){
-    if (!n.textContent || !n.textContent.trim()) continue;
+  for (let i = 0; i < chars.length; i++){
+    const ch = chars[i];
+    if (ch === FE_ELISION_MARK) continue;
+    if (!ch.trim()) continue;
     any = true;
-    const el = n.parentElement ? n.parentElement.closest(".fe-elision") : null;
-    if (!el) { allElided = false; break; }
+    if (chars[i + 1] !== FE_ELISION_MARK) allElided = false;
   }
   return any && allElided;
 }
@@ -1166,50 +1182,11 @@ function feToggleElision(editable){
   if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
   const range = sel.getRangeAt(0);
   if (!editable.contains(range.commonAncestorContainer)) return;
-  if (feIsRangeElided(range, editable)){
-    const walker = document.createTreeWalker(editable, NodeFilter.SHOW_ELEMENT, {
-      // FILTER_SKIP, pas FILTER_REJECT : sinon un span parent qui n'est pas lui-même ".fe-elision"
-      // (ex. un span de surlignage qui l'englobe) empêcherait le parcours d'atteindre le vrai span
-      // ".fe-elision" niché à l'intérieur.
-      acceptNode(el){ return el.classList.contains("fe-elision") && range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP; }
-    });
-    const spans = [];
-    let el;
-    while ((el = walker.nextNode())) spans.push(el);
-    spans.forEach(el => {
-      const parent = el.parentNode;
-      if (!parent) return;
-      while (el.firstChild) parent.insertBefore(el.firstChild, el);
-      parent.removeChild(el);
-    });
-    editable.dispatchEvent(new Event("input", { bubbles: true }));
-  } else {
-    // On enveloppe directement le texte sélectionné en place (au lieu de le reconstruire à partir
-    // d'une copie) pour ne perdre aucune mise en forme déjà présente — notamment le surlignage, qui
-    // disparaissait quand l'élision portait sur une seule lettre à l'intérieur d'un passage surligné :
-    // reconstruire cette lettre isolée à partir de son seul texte perdait le style hérité du surlignage.
-    const wrapper = document.createElement("span");
-    wrapper.className = "fe-elision";
-    wrapper.style.backgroundImage = "linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%)";
-    try {
-      range.surroundContents(wrapper);
-      sel.removeAllRanges();
-      const r2 = document.createRange();
-      r2.selectNodeContents(wrapper);
-      r2.collapse(false);
-      sel.addRange(r2);
-      editable.dispatchEvent(new Event("input", { bubbles: true }));
-    } catch (err){
-      // Repli pour une sélection à cheval sur plusieurs balises (surroundContents ne le permet pas) :
-      // on reconstruit alors à partir du contenu cloné, comme avant.
-      const frag = range.cloneContents();
-      const tmp = document.createElement("div");
-      tmp.appendChild(frag);
-      const inner = tmp.innerHTML;
-      if (!inner) return;
-      document.execCommand("insertHTML", false, `<span class="fe-elision" style="background-image:linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%);">${inner}</span>`);
-    }
-  }
+  const text = range.toString();
+  if (!text) return;
+  const newText = feIsTextElided(text) ? text.split(FE_ELISION_MARK).join("") : feElideText(text);
+  document.execCommand("insertText", false, newText);
+  editable.dispatchEvent(new Event("input", { bubbles: true }));
 }
 function feRenderSections(){
   const wrap = document.getElementById("fe-sections-wrap");
