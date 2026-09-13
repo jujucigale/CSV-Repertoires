@@ -1117,7 +1117,11 @@ function feToggleStrike(editable){
     // Désactivation forcée : on retire le style barré de tous les éléments touchés par la sélection,
     // et on "déballe" les balises natives <strike>/<s>/<del> si le navigateur en a inséré.
     const walker = document.createTreeWalker(editable, NodeFilter.SHOW_ELEMENT, {
-      acceptNode(el){ return range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+      // FILTER_SKIP (pas FILTER_REJECT) : un élément qui ne convient pas doit quand même laisser
+      // le parcours descendre dans ses enfants, sinon un élément imbriqué qui, lui, convient (ex. un
+      // span barré à l'intérieur d'un span surligné qui n'intersecte pas exactement la sélection)
+      // ne serait jamais atteint.
+      acceptNode(el){ return range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP; }
     });
     const touched = [];
     let el;
@@ -1164,7 +1168,10 @@ function feToggleElision(editable){
   if (!editable.contains(range.commonAncestorContainer)) return;
   if (feIsRangeElided(range, editable)){
     const walker = document.createTreeWalker(editable, NodeFilter.SHOW_ELEMENT, {
-      acceptNode(el){ return el.classList.contains("fe-elision") && range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+      // FILTER_SKIP, pas FILTER_REJECT : sinon un span parent qui n'est pas lui-même ".fe-elision"
+      // (ex. un span de surlignage qui l'englobe) empêcherait le parcours d'atteindre le vrai span
+      // ".fe-elision" niché à l'intérieur.
+      acceptNode(el){ return el.classList.contains("fe-elision") && range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP; }
     });
     const spans = [];
     let el;
@@ -1177,12 +1184,31 @@ function feToggleElision(editable){
     });
     editable.dispatchEvent(new Event("input", { bubbles: true }));
   } else {
-    const frag = range.cloneContents();
-    const tmp = document.createElement("div");
-    tmp.appendChild(frag);
-    const inner = tmp.innerHTML;
-    if (!inner) return;
-    document.execCommand("insertHTML", false, `<span class="fe-elision" style="background-image:linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%);">${inner}</span>`);
+    // On enveloppe directement le texte sélectionné en place (au lieu de le reconstruire à partir
+    // d'une copie) pour ne perdre aucune mise en forme déjà présente — notamment le surlignage, qui
+    // disparaissait quand l'élision portait sur une seule lettre à l'intérieur d'un passage surligné :
+    // reconstruire cette lettre isolée à partir de son seul texte perdait le style hérité du surlignage.
+    const wrapper = document.createElement("span");
+    wrapper.className = "fe-elision";
+    wrapper.style.backgroundImage = "linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%)";
+    try {
+      range.surroundContents(wrapper);
+      sel.removeAllRanges();
+      const r2 = document.createRange();
+      r2.selectNodeContents(wrapper);
+      r2.collapse(false);
+      sel.addRange(r2);
+      editable.dispatchEvent(new Event("input", { bubbles: true }));
+    } catch (err){
+      // Repli pour une sélection à cheval sur plusieurs balises (surroundContents ne le permet pas) :
+      // on reconstruit alors à partir du contenu cloné, comme avant.
+      const frag = range.cloneContents();
+      const tmp = document.createElement("div");
+      tmp.appendChild(frag);
+      const inner = tmp.innerHTML;
+      if (!inner) return;
+      document.execCommand("insertHTML", false, `<span class="fe-elision" style="background-image:linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%);">${inner}</span>`);
+    }
   }
 }
 function feRenderSections(){
