@@ -1147,33 +1147,27 @@ function feToggleStrike(editable){
   }
 }
 /* ---- Rayure oblique (voyelle élidée) ----
-   Approche revue : au lieu d'un effet visuel CSS (background-image) qui n'existe qu'à l'écran et n'a
-   aucun équivalent dans un fichier Word (d'où l'absence totale de la rayure diagonale une fois le
-   fichier téléchargé, alors que gras/italique/souligné/barré/exposant/indice s'y transposent tous —
-   ce sont de vraies mises en forme Word, contrairement à un dégradé CSS), on utilise maintenant un
-   vrai caractère Unicode conçu pour ça : le trait oblique combinant (U+0338, le même principe que le
-   « ̶ » utilisé sur le bouton Barré, mais oblique). Comme c'est du texte ordinaire et non un style,
-   ça s'affiche pareil à l'écran ET dans le Word exporté, sans aucun changement requis dans le
-   générateur de Word. Note : une élision appliquée par l'ancienne méthode (avant ce correctif) reste
-   visible à l'écran mais devra être refaite pour apparaître dans un futur export Word. */
-const FE_ELISION_MARK = "̸";
-function feElideText(text){
-  let out = "";
-  for (const ch of text){
-    out += ch;
-    if (ch.trim() && ch !== FE_ELISION_MARK) out += FE_ELISION_MARK;
-  }
-  return out;
-}
-function feIsTextElided(text){
-  const chars = Array.from(text);
+   Historique : un caractère Unicode combinant (U+0338) avait été essayé pour que ce soit du texte
+   ordinaire (donc naturellement compatible Word) plutôt qu'un effet visuel CSS — mais ce caractère ne
+   s'est pas comporté comme un vrai trait superposé dans le rendu réel de Juju : il s'affichait comme
+   un trait séparé ENTRE les lettres plutôt que PAR-DESSUS une seule, autant à l'écran que dans Word.
+   Retour à l'effet CSS d'origine (le look qu'elle préfère, un vrai trait superposé) pour l'écran; le
+   passage à l'export Word se fait maintenant par une image générée à la volée pour chaque rayure
+   (texte + trait, recréés dans son propre format à partir de sa mise en forme réelle : police, taille,
+   couleur, surlignage) — donc pas de tailles disparates comme avec les glyphes de nuances, puisque
+   chaque image correspond exactement au texte qu'elle rayure, ni de dépendance à une police spéciale
+   installée sur l'appareil qui ouvre le fichier. */
+function feIsRangeElided(range, editable){
+  const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT, {
+    acceptNode(n){ return range.intersectsNode(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+  });
   let any = false, allElided = true;
-  for (let i = 0; i < chars.length; i++){
-    const ch = chars[i];
-    if (ch === FE_ELISION_MARK) continue;
-    if (!ch.trim()) continue;
+  let n;
+  while ((n = walker.nextNode())){
+    if (!n.textContent || !n.textContent.trim()) continue;
     any = true;
-    if (chars[i + 1] !== FE_ELISION_MARK) allElided = false;
+    const el = n.parentElement ? n.parentElement.closest(".fe-elision") : null;
+    if (!el) { allElided = false; break; }
   }
   return any && allElided;
 }
@@ -1182,11 +1176,48 @@ function feToggleElision(editable){
   if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
   const range = sel.getRangeAt(0);
   if (!editable.contains(range.commonAncestorContainer)) return;
-  const text = range.toString();
-  if (!text) return;
-  const newText = feIsTextElided(text) ? text.split(FE_ELISION_MARK).join("") : feElideText(text);
-  document.execCommand("insertText", false, newText);
-  editable.dispatchEvent(new Event("input", { bubbles: true }));
+  if (feIsRangeElided(range, editable)){
+    const walker = document.createTreeWalker(editable, NodeFilter.SHOW_ELEMENT, {
+      // FILTER_SKIP, pas FILTER_REJECT : sinon un span parent qui n'est pas lui-même ".fe-elision"
+      // (ex. un span de surlignage qui l'englobe) empêcherait le parcours d'atteindre le vrai span
+      // ".fe-elision" niché à l'intérieur.
+      acceptNode(el){ return el.classList.contains("fe-elision") && range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP; }
+    });
+    const spans = [];
+    let el;
+    while ((el = walker.nextNode())) spans.push(el);
+    spans.forEach(el => {
+      const parent = el.parentNode;
+      if (!parent) return;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+    });
+    editable.dispatchEvent(new Event("input", { bubbles: true }));
+  } else {
+    // On enveloppe directement le texte sélectionné en place (au lieu de le reconstruire à partir
+    // d'une copie) pour ne perdre aucune mise en forme déjà présente — notamment le surlignage.
+    const wrapper = document.createElement("span");
+    wrapper.className = "fe-elision";
+    wrapper.style.backgroundImage = "linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%)";
+    try {
+      range.surroundContents(wrapper);
+      sel.removeAllRanges();
+      const r2 = document.createRange();
+      r2.selectNodeContents(wrapper);
+      r2.collapse(false);
+      sel.addRange(r2);
+      editable.dispatchEvent(new Event("input", { bubbles: true }));
+    } catch (err){
+      // Repli pour une sélection à cheval sur plusieurs balises (surroundContents ne le permet pas) :
+      // on reconstruit alors à partir du contenu cloné.
+      const frag = range.cloneContents();
+      const tmp = document.createElement("div");
+      tmp.appendChild(frag);
+      const inner = tmp.innerHTML;
+      if (!inner) return;
+      document.execCommand("insertHTML", false, `<span class="fe-elision" style="background-image:linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%);">${inner}</span>`);
+    }
+  }
 }
 function feRenderSections(){
   const wrap = document.getElementById("fe-sections-wrap");
@@ -1750,15 +1781,57 @@ function feCssColorToHex(c){
   if (!m) return null;
   return "#" + [1,2,3].map(i => (+m[i]).toString(16).padStart(2,"0")).join("");
 }
+/* ---- Rendu de la rayure oblique en image (pour l'export Word) ----
+   Chaque rayure devient, au moment de l'export seulement, une petite image générée à la volée à
+   partir du texte réel, de sa police, sa taille, sa couleur et son surlignage — recréant exactement
+   ce qui s'affiche à l'écran, mais sous une forme que Word sait afficher partout, sans dépendre d'une
+   police spéciale installée sur l'appareil qui l'ouvre. Comme chaque image correspond pile au texte
+   qu'elle rayure (pas une combinaison figée parmi un petit jeu de symboles), pas de problème de
+   tailles disparates d'un mot à l'autre. */
+let feExportImages = [];
+function feRenderElisionImageDataUrl(text, st){
+  const sizePt = st.sizePt || 20;
+  const px = Math.round(sizePt * 1.3333);
+  const weight = st.bold ? "bold " : "";
+  const style = st.italic ? "italic " : "";
+  const fontFamily = (st.font || "Arial") + ", Arial, sans-serif";
+  const fontSpec = `${style}${weight}${px}px ${fontFamily}`;
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  mctx.font = fontSpec;
+  const metrics = mctx.measureText(text);
+  const width = Math.max(6, Math.ceil(metrics.width) + 6);
+  /* Hauteur calée sur la hauteur de ligne habituelle du texte (≈1.25x la taille de police), pas
+     seulement sur la boîte serrée des glyphes — sinon le rectangle de surlignage peint dans l'image
+     est visiblement plus court que celui du texte environnant et laisse un liseré blanc. */
+  const ascent = px * 0.82;
+  const descent = px * 0.30;
+  const height = Math.max(10, Math.ceil(ascent + descent));
+  const scale = 3;
+  const canvas = document.createElement("canvas");
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  if (st.hilite){
+    ctx.fillStyle = st.hilite;
+    ctx.fillRect(0, 0, width, height);
+  }
+  ctx.font = fontSpec;
+  ctx.fillStyle = st.color || "#000000";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, 3, ascent);
+  ctx.strokeStyle = st.color || "#000000";
+  ctx.lineWidth = Math.max(1, height * 0.07);
+  ctx.beginPath();
+  ctx.moveTo(width * 0.04, height * 0.94);
+  ctx.lineTo(width * 0.96, height * 0.06);
+  ctx.stroke();
+  return { dataUrl: canvas.toDataURL("image/png"), w: width, h: height };
+}
 function feWalkNodeToRuns(node, styles, runs){
   if (node.nodeType === 3){
-    let text = node.textContent;
-    // Compatibilité avec l'ancienne rayure diagonale (avant le correctif du 13 septembre), appliquée
-    // comme un simple effet visuel CSS sans aucun caractère réel dans le texte : si l'ancêtre porte
-    // encore ce style, on insère nous-mêmes le vrai caractère de rayure au moment de l'export, pour
-    // que les fiches déjà annotées avec l'ancienne méthode sortent correctement en Word sans avoir à
-    // refaire l'élision à la main.
-    if (styles.elisionLegacy && text) text = feElideText(text);
+    const text = node.textContent;
     if (text){
       const parts = text.split("\n");
       parts.forEach((part, i) => {
@@ -1789,12 +1862,37 @@ function feWalkNodeToRuns(node, styles, runs){
   if (cs.backgroundColor && cs.backgroundColor !== "transparent" && cs.backgroundColor !== "rgba(0, 0, 0, 0)") { const hex = feCssColorToHex(cs.backgroundColor); if (hex) st.hilite = hex; }
   if (cs.fontFamily) st.font = cs.fontFamily.split(",")[0].replace(/['"]/g,"").trim();
   if (cs.fontSize){ const raw = String(cs.fontSize).trim(); const num = parseFloat(raw); if (!isNaN(num)) st.sizePt = raw.includes("pt") ? num : Math.round(num * 0.75); }
-  if ((node.classList && node.classList.contains("fe-elision")) || (cs.backgroundImage || "").includes("linear-gradient")) st.elisionLegacy = true;
+  const isElision = (node.classList && node.classList.contains("fe-elision")) || (cs.backgroundImage || "").includes("linear-gradient");
+  if (isElision && node.textContent){
+    const rendered = feRenderElisionImageDataUrl(node.textContent, st);
+    const rId = "rId" + (100 + feExportImages.length);
+    feExportImages.push({ rId, filename: "elision_" + feExportImages.length + ".png", b64: rendered.dataUrl.split(",")[1] });
+    runs.push({ img: true, rId, w: rendered.w, h: rendered.h, imgStyles: st });
+    return;
+  }
   if (node.getAttribute && node.getAttribute("contenteditable") === "false"){
     runs.push({ text: node.textContent, styles: st });
     return;
   }
   node.childNodes.forEach(child => feWalkNodeToRuns(child, st, runs));
+}
+function feImageRunXml(run){
+  const cxEmu = Math.round(run.w * 9525);
+  const cyEmu = Math.round(run.h * 9525);
+  const docPrId = 5000 + feExportImages.findIndex(i => i.rId === run.rId);
+  return '<w:r><w:drawing>'
+    + '<wp:inline distT="0" distB="0" distL="0" distR="0">'
+    + '<wp:extent cx="' + cxEmu + '" cy="' + cyEmu + '"/>'
+    + '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+    + '<wp:docPr id="' + docPrId + '" name="elision-' + docPrId + '"/>'
+    + '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+    + '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+    + '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+    + '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+    + '<pic:nvPicPr><pic:cNvPr id="' + docPrId + '" name="elision-' + docPrId + '.png"/><pic:cNvPicPr/></pic:nvPicPr>'
+    + '<pic:blipFill><a:blip r:embed="' + run.rId + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+    + '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cxEmu + '" cy="' + cyEmu + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+    + '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
 }
 function feHtmlToOoxmlParagraph(html, baseFont, baseSizePt){
   const tmp = document.createElement("div");
@@ -1808,6 +1906,7 @@ function feHtmlToOoxmlParagraph(html, baseFont, baseSizePt){
     if (currentRun){ xml += `<w:r>${feStyleToRunProps(currentProps)}<w:t xml:space="preserve">${escXml(currentRun)}</w:t></w:r>`; currentRun = ""; }
   };
   runs.forEach(r => {
+    if (r.img){ flush(); xml += feImageRunXml(r); return; }
     if (r.br){ flush(); xml += `<w:r>${feStyleToRunProps(currentProps || {font:baseFont,sizePt:baseSizePt})}<w:br/></w:r>`; return; }
     const key = JSON.stringify(r.styles);
     if (currentProps && JSON.stringify(currentProps) === key){ currentRun += r.text; }
@@ -1817,6 +1916,7 @@ function feHtmlToOoxmlParagraph(html, baseFont, baseSizePt){
   return `<w:p><w:pPr><w:spacing w:after="0" w:line="288" w:lineRule="auto"/></w:pPr>${xml || "<w:r><w:t></w:t></w:r>"}</w:p>`;
 }
 async function generateAnnotatedDocxBlob(entry, sectionsData, legendData){
+  feExportImages = [];
   const zip = await JSZip.loadAsync(base64ToBytes(TEMPLATE_B64));
   let xml = await zip.file("word/document.xml").async("string");
   const interpreteAnnee = [entry.interprete, entry.annee].filter(Boolean).join(", ");
@@ -1849,6 +1949,20 @@ async function generateAnnotatedDocxBlob(entry, sectionsData, legendData){
   });
 
   xml = xml.replace(MARKER_XML, bodyXml);
+
+  if (feExportImages.length){
+    let rels = await zip.file("word/_rels/document.xml.rels").async("string");
+    let relsAdd = "";
+    feExportImages.forEach(img => {
+      zip.file("word/media/" + img.filename, base64ToBytes(img.b64));
+      relsAdd += `<Relationship Id="${img.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${img.filename}"/>`;
+    });
+    rels = rels.replace("</Relationships>", relsAdd + "</Relationships>");
+    zip.file("word/_rels/document.xml.rels", rels);
+    if (!xml.includes('xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"')){
+      xml = xml.replace("<w:document ", '<w:document xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" ');
+    }
+  }
   zip.file("word/document.xml", xml);
 
   const footerFiles = Object.keys(zip.files).filter(name => /^word\/footer\d*\.xml$/.test(name));
