@@ -1064,6 +1064,7 @@ function feUpdatePreview(){
 function feMakeInsertConnector(insertAtIndex){
   const row = document.createElement("div");
   row.style.cssText = "display:flex;justify-content:center;margin:2px 0;";
+  if (!feCanEditStructure()) return row;
   const btn = document.createElement("button");
   btn.type = "button";
   btn.textContent = "+ Insérer une section ici";
@@ -1071,8 +1072,11 @@ function feMakeInsertConnector(insertAtIndex){
   btn.onmouseenter = () => { btn.style.opacity = "1"; };
   btn.onmouseleave = () => { btn.style.opacity = ".6"; };
   btn.onclick = () => {
+    if (!feCanEditStructure()) return;
     feSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", html: "", note: "", pristine: true });
+    foSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", lyrics: "" });
     feRenderSections(); feUpdatePreview();
+    foRefreshLockUI(); foUpdatePreview();
   };
   row.appendChild(btn);
   return row;
@@ -1080,6 +1084,8 @@ function feMakeInsertConnector(insertAtIndex){
 function feRenderSections(){
   const wrap = document.getElementById("fe-sections-wrap");
   wrap.innerHTML = "";
+  const addBtn = document.getElementById("fe-add-section-btn");
+  if (addBtn) addBtn.classList.toggle("hidden", !feCanEditStructure());
   feSections.forEach((sec, idx) => {
     wrap.appendChild(feMakeInsertConnector(idx));
     const block = document.createElement("div");
@@ -1105,7 +1111,19 @@ function feRenderSections(){
     const removeBtn = document.createElement("button");
     removeBtn.type = "button"; removeBtn.className = "btn btn-danger-ghost";
     removeBtn.textContent = "Retirer la section";
-    removeBtn.onclick = () => { feSections = feSections.filter(s => s.id !== sec.id); feRenderSections(); feUpdatePreview(); };
+    removeBtn.disabled = !feCanEditStructure() || feSections.length <= 1;
+    removeBtn.title = feCanEditStructure() ? "" : "Nécessite la permission de modifier la fiche originale (et qu'elle soit déverrouillée)";
+    removeBtn.onclick = () => {
+      if (!feCanEditStructure()) return;
+      const idx = feSections.findIndex(s => s.id === sec.id);
+      feSections = feSections.filter(s => s.id !== sec.id);
+      if (idx > -1 && foSections[idx]){
+        if (sec.pristine === false) showToast("La section correspondante dans la copie originale a aussi été retirée.");
+        foSections.splice(idx, 1);
+      }
+      feRenderSections(); feUpdatePreview();
+      foRefreshLockUI(); foUpdatePreview();
+    };
     head.appendChild(labelInput); head.appendChild(clearFormatBtn); head.appendChild(removeBtn);
     block.appendChild(head);
 
@@ -1316,8 +1334,11 @@ document.getElementById("add-section-btn"); // no-op guard (existing form button
 document.getElementById("fiche-panel-annotee") && document.body; // keep panel ref alive for linters
 
 function feAddSection(){
+  if (!feCanEditStructure()) return;
   feSections.push({ id: feGenId(), label: "", html: "", note: "", pristine: true });
+  foSections.push({ id: feGenId(), label: "", lyrics: "" });
   feRenderSections(); feUpdatePreview();
+  foRefreshLockUI(); foUpdatePreview();
 }
 
 /* ---- Sections : copie originale (texte simple, verrouillable) ---- */
@@ -1333,7 +1354,9 @@ function foMakeInsertConnector(canEdit, insertAtIndex){
   btn.onmouseleave = () => { btn.style.opacity = ".6"; };
   btn.onclick = () => {
     foSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", lyrics: "" });
+    feSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", html: "", note: "", pristine: true });
     foRenderSections(canEdit); foUpdatePreview();
+    feRenderSections(); feUpdatePreview();
   };
   row.appendChild(btn);
   return row;
@@ -1353,7 +1376,16 @@ function foRenderSections(canEdit){
     const removeBtn = document.createElement("button");
     removeBtn.type = "button"; removeBtn.className = "btn btn-danger-ghost"; removeBtn.textContent = "Retirer";
     removeBtn.disabled = !canEdit || foSections.length <= 1;
-    removeBtn.onclick = () => { foSections = foSections.filter(s => s.id !== sec.id); foRenderSections(canEdit); foUpdatePreview(); };
+    removeBtn.onclick = () => {
+      const idx = foSections.findIndex(s => s.id === sec.id);
+      foSections = foSections.filter(s => s.id !== sec.id);
+      if (idx > -1 && feSections[idx]){
+        if (feSections[idx].pristine === false) showToast("La section correspondante dans la copie annotée a aussi été retirée (elle avait déjà été annotée).");
+        feSections.splice(idx, 1);
+      }
+      foRenderSections(canEdit); foUpdatePreview();
+      feRenderSections(); feUpdatePreview();
+    };
     head.appendChild(labelInput); head.appendChild(removeBtn);
     card.appendChild(head);
     const textarea = document.createElement("textarea");
@@ -1365,8 +1397,11 @@ function foRenderSections(canEdit){
   });
 }
 document.getElementById("fo-add-section-btn").addEventListener("click", () => {
+  if (!feCanEditStructure()) return;
   foSections.push({ id: feGenId(), label: "", lyrics: "" });
+  feSections.push({ id: feGenId(), label: "", html: "", note: "", pristine: true });
   foRenderSections(true); foUpdatePreview();
+  feRenderSections(); feUpdatePreview();
 });
 function foUpdatePreview(){
   const box = document.getElementById("fo-preview-doc");
@@ -1384,6 +1419,10 @@ function feRole(){ return roleFromSession(); }
 
 function feCanEditOriginal(){ return hasPerm("fiche_modifier", feRole()); }
 function feCanLock(){ return hasPerm("fiche_verrouiller", feRole()); }
+// Ajouter/insérer/retirer une section change la structure de la fiche originale (les deux
+// copies restent alignées section par section) — soumis aux mêmes permissions et au même
+// verrouillage que la modification de la copie originale, peu importe l'onglet utilisé.
+function feCanEditStructure(){ return feCanEditOriginal() && !(feCurrentEntry && feCurrentEntry.locked); }
 
 function foRefreshLockUI(){
   const locked = !!feCurrentEntry.locked;
@@ -1393,6 +1432,7 @@ function foRefreshLockUI(){
     ? `<div class="fiche-lock-banner">🔒 Cette fiche est verrouillée — la copie originale ne peut plus être modifiée.</div>`
     : "";
   foRenderSections(canEdit);
+  document.getElementById("fo-add-section-btn").classList.toggle("hidden", !canEdit);
   document.getElementById("fo-save-btn").classList.toggle("hidden", !canEdit);
   const lockBtn = document.getElementById("fo-lock-toggle-btn");
   if (feCanLock()){
@@ -1412,13 +1452,24 @@ document.getElementById("fo-lock-toggle-btn").addEventListener("click", async ()
 });
 document.getElementById("fo-save-btn").addEventListener("click", async () => {
   if (!feCanEditOriginal() || feCurrentEntry.locked) return;
+  // Les deux copies restent alignées section par section pendant que l'éditeur est ouvert
+  // (ajouter/insérer/retirer une section touche les deux en mémoire) — on enregistre donc
+  // les deux ensemble, peu importe quel bouton "Enregistrer" a été utilisé, pour éviter
+  // qu'une des deux ne reste désynchronisée en mémoire seulement.
   feCurrentEntry.sections = foSections.map(s => ({ label: s.label, lyrics: s.lyrics }));
+  feCurrentEntry.annotation = {
+    sections: feSections.map(s => ({ label: s.label, html: s.html, note: s.note, pristine: s.pristine !== false })),
+    legend: feLegend.map(l => ({ name: l.name, color: l.color })),
+  };
   feCurrentEntry.dateMaj = new Date().toISOString();
   const ok = await storageSet("chanson:" + feCurrentEntry.id, feCurrentEntry);
   showToast(ok ? "Copie originale enregistrée ✓" : "Erreur lors de l'enregistrement.", !ok);
   if (ok && feOnClose) feOnClose();
 });
 document.getElementById("fe-save-btn").addEventListener("click", async () => {
+  if (feCanEditStructure()){
+    feCurrentEntry.sections = foSections.map(s => ({ label: s.label, lyrics: s.lyrics }));
+  }
   feCurrentEntry.annotation = {
     sections: feSections.map(s => ({ label: s.label, html: s.html, note: s.note, pristine: s.pristine !== false })),
     legend: feLegend.map(l => ({ name: l.name, color: l.color })),
@@ -1527,6 +1578,7 @@ async function openFicheEditor(entryId, onClose, initialTab){
   if (!wrap) return;
   const btn = document.createElement("button");
   btn.type = "button";
+  btn.id = "fe-add-section-btn";
   btn.className = "btn-add";
   btn.style.cssText = "width:100%;border:1.5px dashed var(--petrol);background:transparent;color:var(--petrol-dark);padding:9px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;margin-bottom:14px;";
   btn.textContent = "+ Ajouter une section";
