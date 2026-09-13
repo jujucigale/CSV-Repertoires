@@ -1142,6 +1142,49 @@ function feToggleStrike(editable){
     document.execCommand("strikeThrough", false, null);
   }
 }
+/* ---- Rayure oblique (voyelle élidée) : même bascule manuelle activer/désactiver que le Barré ---- */
+function feIsRangeElided(range, editable){
+  const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT, {
+    acceptNode(n){ return range.intersectsNode(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+  });
+  let any = false, allElided = true;
+  let n;
+  while ((n = walker.nextNode())){
+    if (!n.textContent || !n.textContent.trim()) continue;
+    any = true;
+    const el = n.parentElement ? n.parentElement.closest(".fe-elision") : null;
+    if (!el) { allElided = false; break; }
+  }
+  return any && allElided;
+}
+function feToggleElision(editable){
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+  if (!editable.contains(range.commonAncestorContainer)) return;
+  if (feIsRangeElided(range, editable)){
+    const walker = document.createTreeWalker(editable, NodeFilter.SHOW_ELEMENT, {
+      acceptNode(el){ return el.classList.contains("fe-elision") && range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+    });
+    const spans = [];
+    let el;
+    while ((el = walker.nextNode())) spans.push(el);
+    spans.forEach(el => {
+      const parent = el.parentNode;
+      if (!parent) return;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+    });
+    editable.dispatchEvent(new Event("input", { bubbles: true }));
+  } else {
+    const frag = range.cloneContents();
+    const tmp = document.createElement("div");
+    tmp.appendChild(frag);
+    const inner = tmp.innerHTML;
+    if (!inner) return;
+    document.execCommand("insertHTML", false, `<span class="fe-elision" style="background-image:linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%);">${inner}</span>`);
+  }
+}
 function feRenderSections(){
   const wrap = document.getElementById("fe-sections-wrap");
   wrap.innerHTML = "";
@@ -1215,11 +1258,7 @@ function feRenderSections(){
     const elisionBtn = document.createElement("button");
     elisionBtn.type = "button"; elisionBtn.className = "fe-tb-btn"; elisionBtn.textContent = "e̸"; elisionBtn.title = "Rayure oblique (voyelle élidée)";
     elisionBtn.onmousedown = (e) => e.preventDefault();
-    elisionBtn.onclick = () => {
-      const sel = window.getSelection(); const text = sel ? sel.toString() : "";
-      if (!text) return;
-      document.execCommand("insertHTML", false, `<span style="background-image:linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%);">${feEscHtml(text)}</span>`);
-    };
+    elisionBtn.onclick = () => feToggleElision(editable);
     gFormat.appendChild(elisionBtn);
     const supBtn = document.createElement("button");
     supBtn.type = "button"; supBtn.className = "fe-tb-btn"; supBtn.textContent = "x²"; supBtn.title = "Exposant";
