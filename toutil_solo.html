@@ -1086,6 +1086,62 @@ function feMakeInsertConnector(insertAtIndex){
   row.appendChild(btn);
   return row;
 }
+/* ---- Barré (strikethrough) : bascule manuelle, indépendante du toggle natif du navigateur ----
+   document.execCommand("strikeThrough") s'appuie sur la propre logique interne du navigateur pour
+   décider s'il faut activer ou désactiver, et cette logique peut se dérégler (surtout avec du texte
+   déjà mis en forme — gras, surlignage, couleur) : le bouton finit par toujours "activer" même quand
+   le texte est déjà barré. On détermine donc nous-mêmes l'état actuel et, pour désactiver, on retire
+   le style directement plutôt que de redemander au navigateur de "basculer". */
+function feIsRangeStruck(range, editable){
+  const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT, {
+    acceptNode(n){ return range.intersectsNode(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+  });
+  let any = false, allStruck = true;
+  let n;
+  while ((n = walker.nextNode())){
+    if (!n.textContent || !n.textContent.trim()) continue;
+    any = true;
+    const el = n.parentElement;
+    const cs = el ? getComputedStyle(el) : null;
+    const dec = cs ? (cs.textDecorationLine || cs.textDecoration || "") : "";
+    if (!dec.includes("line-through")) { allStruck = false; break; }
+  }
+  return any && allStruck;
+}
+function feToggleStrike(editable){
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+  if (!editable.contains(range.commonAncestorContainer)) return;
+  if (feIsRangeStruck(range, editable)){
+    // Désactivation forcée : on retire le style barré de tous les éléments touchés par la sélection,
+    // et on "déballe" les balises natives <strike>/<s>/<del> si le navigateur en a inséré.
+    const walker = document.createTreeWalker(editable, NodeFilter.SHOW_ELEMENT, {
+      acceptNode(el){ return range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+    });
+    const touched = [];
+    let el;
+    while ((el = walker.nextNode())) touched.push(el);
+    touched.forEach(el => {
+      if (el.style){
+        if ((el.style.textDecorationLine || "").includes("line-through")){
+          const rest = el.style.textDecorationLine.split(" ").filter(v => v && v !== "line-through").join(" ");
+          if (rest) el.style.textDecorationLine = rest; else el.style.removeProperty("text-decoration-line");
+        }
+        if ((el.style.textDecoration || "").includes("line-through")) el.style.removeProperty("text-decoration");
+      }
+    });
+    touched.filter(el => ["STRIKE","S","DEL"].includes(el.tagName)).forEach(el => {
+      const parent = el.parentNode;
+      if (!parent) return;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+    });
+    editable.dispatchEvent(new Event("input", { bubbles: true }));
+  } else {
+    document.execCommand("strikeThrough", false, null);
+  }
+}
 function feRenderSections(){
   const wrap = document.getElementById("fe-sections-wrap");
   wrap.innerHTML = "";
@@ -1153,7 +1209,7 @@ function feRenderSections(){
       b.type = "button"; b.className = "fe-tb-btn" + (cls ? " " + cls : ""); b.textContent = label; b.title = title;
       if (cmd === "italic") b.style.fontStyle = "italic";
       b.onmousedown = (e) => e.preventDefault();
-      b.onclick = () => document.execCommand(cmd, false, null);
+      b.onclick = cmd === "strikeThrough" ? (() => feToggleStrike(editable)) : (() => document.execCommand(cmd, false, null));
       gFormat.appendChild(b);
     });
     const elisionBtn = document.createElement("button");
