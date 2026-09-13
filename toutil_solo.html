@@ -1801,12 +1801,17 @@ function feRenderElisionImageDataUrl(text, st){
   mctx.font = fontSpec;
   const metrics = mctx.measureText(text);
   const width = Math.max(6, Math.ceil(metrics.width) + 6);
-  /* Hauteur calée sur la hauteur de ligne habituelle du texte (≈1.25x la taille de police), pas
-     seulement sur la boîte serrée des glyphes — sinon le rectangle de surlignage peint dans l'image
-     est visiblement plus court que celui du texte environnant et laisse un liseré blanc. */
-  const ascent = px * 0.82;
-  const descent = px * 0.30;
-  const height = Math.max(10, Math.ceil(ascent + descent));
+  /* Word aligne le BAS de l'image sur la ligne de base du texte (comme pour un caractère normal) —
+     donc tout espace ajouté SOUS la ligne de base du glyphe fait paraître la lettre "remontée",
+     comme un exposant. On mesure le vrai jambage (descente réelle du glyphe, souvent nul sauf pour
+     g/j/p/q/y) et on n'ajoute qu'une marge minimale en dessous. L'espace additionnel nécessaire pour
+     que le rectangle de surlignage couvre la même hauteur que la ligne de texte environnante est
+     ajouté AU-DESSUS du glyphe à la place, ce qui ne déplace pas sa ligne de base. */
+  const realDescent = metrics.actualBoundingBoxDescent || 0;
+  const descent = Math.max(realDescent, px * 0.04);
+  const totalHeight = Math.max(10, Math.ceil(px * 1.18) + Math.ceil(descent));
+  const ascent = totalHeight - descent;
+  const height = totalHeight;
   const scale = 3;
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
