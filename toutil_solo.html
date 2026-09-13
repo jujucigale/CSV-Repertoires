@@ -1752,7 +1752,13 @@ function feCssColorToHex(c){
 }
 function feWalkNodeToRuns(node, styles, runs){
   if (node.nodeType === 3){
-    const text = node.textContent;
+    let text = node.textContent;
+    // Compatibilité avec l'ancienne rayure diagonale (avant le correctif du 13 septembre), appliquée
+    // comme un simple effet visuel CSS sans aucun caractère réel dans le texte : si l'ancêtre porte
+    // encore ce style, on insère nous-mêmes le vrai caractère de rayure au moment de l'export, pour
+    // que les fiches déjà annotées avec l'ancienne méthode sortent correctement en Word sans avoir à
+    // refaire l'élision à la main.
+    if (styles.elisionLegacy && text) text = feElideText(text);
     if (text){
       const parts = text.split("\n");
       parts.forEach((part, i) => {
@@ -1783,6 +1789,7 @@ function feWalkNodeToRuns(node, styles, runs){
   if (cs.backgroundColor && cs.backgroundColor !== "transparent" && cs.backgroundColor !== "rgba(0, 0, 0, 0)") { const hex = feCssColorToHex(cs.backgroundColor); if (hex) st.hilite = hex; }
   if (cs.fontFamily) st.font = cs.fontFamily.split(",")[0].replace(/['"]/g,"").trim();
   if (cs.fontSize){ const raw = String(cs.fontSize).trim(); const num = parseFloat(raw); if (!isNaN(num)) st.sizePt = raw.includes("pt") ? num : Math.round(num * 0.75); }
+  if ((node.classList && node.classList.contains("fe-elision")) || (cs.backgroundImage || "").includes("linear-gradient")) st.elisionLegacy = true;
   if (node.getAttribute && node.getAttribute("contenteditable") === "false"){
     runs.push({ text: node.textContent, styles: st });
     return;
