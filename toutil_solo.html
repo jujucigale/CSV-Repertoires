@@ -277,7 +277,7 @@
 
   .modal-overlay{
     position:fixed;inset:0;background:rgba(30,42,56,.45);display:flex;align-items:center;justify-content:center;
-    z-index:100;padding:20px;
+    z-index:200;padding:20px;
   }
   .modal-box{
     background:#fff;border-radius:var(--radius);padding:22px;max-width:420px;width:100%;box-shadow:var(--shadow);
@@ -298,8 +298,15 @@
   .fiche-tab-btn{border:1.5px solid var(--border);background:var(--paper);color:var(--ink-soft);border-radius:8px 8px 0 0;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;border-bottom:none;}
   .fiche-tab-btn.active{background:var(--surface);color:var(--petrol-dark);border-color:var(--petrol);}
   .fiche-scroll{flex:1;overflow:auto;padding:18px;}
-  .fiche-panel{display:none;max-width:1100px;margin:0 auto;}
-  .fiche-panel.active{display:block;}
+  .fiche-panel{display:none;max-width:1400px;margin:0 auto;}
+  .fiche-panel.active{display:flex;gap:20px;align-items:flex-start;}
+  .fiche-main-col{flex:1;min-width:0;}
+  .fiche-side-preview{width:360px;flex-shrink:0;position:sticky;top:0;}
+  .fiche-bar-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  @media (max-width:900px){
+    .fiche-panel.active{flex-direction:column;}
+    .fiche-side-preview{width:100%;position:static;}
+  }
   .fiche-lock-banner{background:var(--danger-soft);color:var(--danger);border:1.5px solid var(--danger);border-radius:8px;padding:9px 14px;font-size:12.5px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;}
   .fe-section{border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--surface);}
   .fe-section-head{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
@@ -829,43 +836,58 @@
         <button class="fiche-tab-btn" type="button" data-fe-tab="annotee">🎨 Copie annotée</button>
       </div>
     </div>
-    <button class="btn btn-ghost btn-sm" id="fiche-close-btn" type="button">✕ Fermer</button>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div class="fiche-bar-actions" id="fo-bar-actions">
+        <button class="btn btn-ghost btn-sm" id="fo-lock-toggle-btn" type="button"></button>
+        <button class="btn btn-ghost btn-sm" id="fo-preview-toggle-btn" type="button">👁 Aperçu (grandeur réelle)</button>
+        <button class="btn btn-primary btn-sm" id="fo-save-btn" type="button">Enregistrer la copie originale</button>
+      </div>
+      <div class="fiche-bar-actions hidden" id="fe-bar-actions">
+        <button class="btn btn-ghost btn-sm" id="fe-preview-toggle-btn" type="button">👁 Aperçu (grandeur réelle)</button>
+        <button class="btn btn-ghost btn-sm" id="fe-download-btn" type="button">⬇ Télécharger (Word)</button>
+        <button class="btn btn-primary btn-sm" id="fe-save-btn" type="button">Enregistrer la copie annotée</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="fiche-close-btn" type="button">✕ Fermer</button>
+    </div>
   </div>
   <div class="fiche-scroll">
 
     <div class="fiche-panel active" id="fiche-panel-original">
-      <div id="fo-lock-banner"></div>
-      <div class="card">
-        <h2 style="font-size:15px;">Paroles — copie originale</h2>
-        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Le texte simple de la fiche. Une fois révisée, verrouillez-la pour éviter les modifications accidentelles — la copie annotée ci-contre restera toujours modifiable.</p>
-        <div id="fo-sections-wrap"></div>
-        <button class="btn-add" id="fo-add-section-btn" type="button" style="width:100%;border:1.5px dashed var(--petrol);background:transparent;color:var(--petrol-dark);padding:9px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">+ Ajouter une section</button>
+      <div class="fiche-main-col">
+        <div id="fo-lock-banner"></div>
+        <div class="card">
+          <h2 style="font-size:15px;">Paroles — copie originale</h2>
+          <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Le texte simple de la fiche. Une fois révisée, verrouillez-la pour éviter les modifications accidentelles — la copie annotée ci-contre restera toujours modifiable.</p>
+          <div id="fo-sections-wrap"></div>
+          <button class="btn-add" id="fo-add-section-btn" type="button" style="width:100%;border:1.5px dashed var(--petrol);background:transparent;color:var(--petrol-dark);padding:9px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">+ Ajouter une section</button>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button class="btn btn-ghost btn-sm" id="fo-lock-toggle-btn" type="button"></button>
-        <button class="btn btn-primary btn-sm" id="fo-save-btn" type="button">Enregistrer la copie originale</button>
+      <div class="fiche-side-preview">
+        <div class="card">
+          <h2 style="font-size:15px;">Aperçu</h2>
+          <div class="fe-preview-doc" id="fo-preview-doc"></div>
+        </div>
       </div>
     </div>
 
     <div class="fiche-panel" id="fiche-panel-annotee">
-      <div class="card">
-        <h2 style="font-size:15px;">🎨 Légende des élèves</h2>
-        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Assigne une couleur à chaque élève (même couleur pour un duo/trio qui chante la même partie), puis utilise cette couleur dans le surligneur pour marquer son nom et ses passages.</p>
-        <div class="fe-legend-list" id="fe-legend-list"></div>
-        <button class="btn btn-ghost btn-sm" id="fe-legend-add-btn" type="button">+ Ajouter un·e élève</button>
+      <div class="fiche-main-col">
+        <div class="card">
+          <h2 style="font-size:15px;">🎨 Légende des élèves</h2>
+          <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Assigne une couleur à chaque élève (même couleur pour un duo/trio qui chante la même partie), puis utilise cette couleur dans le surligneur pour marquer son nom et ses passages.</p>
+          <div class="fe-legend-list" id="fe-legend-list"></div>
+          <button class="btn btn-ghost btn-sm" id="fe-legend-add-btn" type="button">+ Ajouter un·e élève</button>
+        </div>
+        <div class="card">
+          <h2 style="font-size:15px;">Paroles — copie annotée</h2>
+          <div id="fe-sections-wrap"></div>
+        </div>
       </div>
-      <div class="card">
-        <h2 style="font-size:15px;">Paroles — copie annotée</h2>
-        <div id="fe-sections-wrap"></div>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
-        <button class="btn btn-ghost btn-sm" id="fe-preview-toggle-btn" type="button">👁 Aperçu</button>
-        <button class="btn btn-ghost btn-sm" id="fe-download-btn" type="button">⬇ Télécharger (Word)</button>
-        <button class="btn btn-primary btn-sm" id="fe-save-btn" type="button">Enregistrer la copie annotée</button>
-      </div>
-      <div class="card hidden" id="fe-preview-card" style="margin-top:14px;">
-        <h2 style="font-size:15px;">Aperçu (lecture seule)</h2>
-        <div class="fe-preview-doc" id="fe-preview-doc"></div>
+      <div class="fiche-side-preview">
+        <div class="card">
+          <h2 style="font-size:15px;">Aperçu</h2>
+          <div class="fe-preview-doc" id="fe-preview-doc"></div>
+        </div>
       </div>
     </div>
 
@@ -1311,7 +1333,7 @@ function foMakeInsertConnector(canEdit, insertAtIndex){
   btn.onmouseleave = () => { btn.style.opacity = ".6"; };
   btn.onclick = () => {
     foSections.splice(insertAtIndex, 0, { id: feGenId(), label: "", lyrics: "" });
-    foRenderSections(canEdit);
+    foRenderSections(canEdit); foUpdatePreview();
   };
   row.appendChild(btn);
   return row;
@@ -1327,25 +1349,36 @@ function foRenderSections(canEdit){
     head.className = "fe-section-head";
     const labelInput = document.createElement("input");
     labelInput.type = "text"; labelInput.value = sec.label; labelInput.disabled = !canEdit;
-    labelInput.oninput = (e) => { sec.label = e.target.value; };
+    labelInput.oninput = (e) => { sec.label = e.target.value; foUpdatePreview(); };
     const removeBtn = document.createElement("button");
     removeBtn.type = "button"; removeBtn.className = "btn btn-danger-ghost"; removeBtn.textContent = "Retirer";
     removeBtn.disabled = !canEdit || foSections.length <= 1;
-    removeBtn.onclick = () => { foSections = foSections.filter(s => s.id !== sec.id); foRenderSections(canEdit); };
+    removeBtn.onclick = () => { foSections = foSections.filter(s => s.id !== sec.id); foRenderSections(canEdit); foUpdatePreview(); };
     head.appendChild(labelInput); head.appendChild(removeBtn);
     card.appendChild(head);
     const textarea = document.createElement("textarea");
     textarea.value = sec.lyrics; textarea.disabled = !canEdit;
     textarea.style.cssText = "width:100%;min-height:100px;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;";
-    textarea.oninput = (e) => { sec.lyrics = e.target.value; };
+    textarea.oninput = (e) => { sec.lyrics = e.target.value; foUpdatePreview(); };
     card.appendChild(textarea);
     wrap.appendChild(card);
   });
 }
 document.getElementById("fo-add-section-btn").addEventListener("click", () => {
   foSections.push({ id: feGenId(), label: "", lyrics: "" });
-  foRenderSections(true);
+  foRenderSections(true); foUpdatePreview();
 });
+function foUpdatePreview(){
+  const box = document.getElementById("fo-preview-doc");
+  if (!box || !feCurrentEntry) return;
+  let html = `<div class="fe-preview-title">${feEscHtml(feCurrentEntry.titre || "[Titre]")}</div>`;
+  foSections.forEach(sec => {
+    if (!sec.label && !(sec.lyrics || "").trim()) return;
+    html += `<div class="fe-preview-chip">[${feEscHtml(sec.label || "Section")}]</div>`;
+    html += `<div class="fe-preview-lyrics">${feEscHtml(sec.lyrics || "").split("\n").join("<br>") || "…"}</div>`;
+  });
+  box.innerHTML = html;
+}
 
 function feRole(){ return roleFromSession(); }
 
@@ -1395,8 +1428,14 @@ document.getElementById("fe-save-btn").addEventListener("click", async () => {
   showToast(ok ? "Copie annotée enregistrée ✓" : "Erreur lors de l'enregistrement.", !ok);
 });
 document.getElementById("fe-preview-toggle-btn").addEventListener("click", () => {
-  document.getElementById("fe-preview-card").classList.toggle("hidden");
   feUpdatePreview();
+  document.getElementById("preview-doc-fullwidth").innerHTML = document.getElementById("fe-preview-doc").innerHTML;
+  document.getElementById("preview-fullwidth-overlay").classList.remove("hidden");
+});
+document.getElementById("fo-preview-toggle-btn").addEventListener("click", () => {
+  foUpdatePreview();
+  document.getElementById("preview-doc-fullwidth").innerHTML = document.getElementById("fo-preview-doc").innerHTML;
+  document.getElementById("preview-fullwidth-overlay").classList.remove("hidden");
 });
 document.getElementById("fe-download-btn").addEventListener("click", async () => {
   const btn = document.getElementById("fe-download-btn");
@@ -1411,8 +1450,12 @@ document.getElementById("fe-download-btn").addEventListener("click", async () =>
 document.querySelectorAll("[data-fe-tab]").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll("[data-fe-tab]").forEach(b => b.classList.toggle("active", b === btn));
-    document.getElementById("fiche-panel-original").classList.toggle("active", btn.dataset.feTab === "original");
-    document.getElementById("fiche-panel-annotee").classList.toggle("active", btn.dataset.feTab === "annotee");
+    const isOriginal = btn.dataset.feTab === "original";
+    document.getElementById("fiche-panel-original").classList.toggle("active", isOriginal);
+    document.getElementById("fiche-panel-annotee").classList.toggle("active", !isOriginal);
+    document.getElementById("fo-bar-actions").classList.toggle("hidden", !isOriginal);
+    document.getElementById("fe-bar-actions").classList.toggle("hidden", isOriginal);
+    if (isOriginal) foUpdatePreview(); else feUpdatePreview();
   });
 });
 document.getElementById("fiche-close-btn").addEventListener("click", () => {
@@ -1463,9 +1506,11 @@ async function openFicheEditor(entryId, onClose, initialTab){
   document.querySelectorAll("[data-fe-tab]").forEach(b => b.classList.toggle("active", b.dataset.feTab === tab));
   document.getElementById("fiche-panel-original").classList.toggle("active", tab === "original");
   document.getElementById("fiche-panel-annotee").classList.toggle("active", tab === "annotee");
-  document.getElementById("fe-preview-card").classList.add("hidden");
+  document.getElementById("fo-bar-actions").classList.toggle("hidden", tab !== "original");
+  document.getElementById("fe-bar-actions").classList.toggle("hidden", tab !== "annotee");
 
   foRefreshLockUI();
+  foUpdatePreview();
   feRenderLegend();
   feRenderSections();
   if (synced.removedTouched > 0){
