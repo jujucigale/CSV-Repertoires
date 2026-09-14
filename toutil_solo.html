@@ -1259,8 +1259,14 @@ function feRenderSections(){
     clearFormatBtn.onclick = () => {
       if (!clearArmed){ clearArmed = true; clearFormatBtn.textContent = "Confirmer ?"; setTimeout(() => { clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme"; }, 2500); return; }
       clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme";
-      const tmp = document.createElement("div"); tmp.innerHTML = sec.html;
-      sec.html = feEscHtml(feHtmlToPlainTextWithBreaks(tmp));
+      // Réinitialise complètement la section annotée à partir des paroles originales (texte brut) —
+      // pas seulement un dépouillage du HTML actuel. Les symboles insérés via la barre d'outils
+      // (respirations, nuances, etc.) sont toujours des balises stylées, jamais du texte brut, donc
+      // un simple dépouillage de balises ne les enlève pas. Repartir de l'Original garantit une
+      // section vraiment propre, prête pour une nouvelle passe d'annotation.
+      const origIdx = feSections.findIndex(s => s.id === sec.id);
+      const origSec = (origIdx > -1) ? foSections[origIdx] : null;
+      sec.html = feEscHtml(origSec ? (origSec.lyrics || "") : "");
       sec.pristine = false;
       feRenderSections(); feUpdatePreview();
     };
