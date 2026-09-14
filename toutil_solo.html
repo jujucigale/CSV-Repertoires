@@ -1457,7 +1457,7 @@ function feRenderSections(){
       ["♪","croche","color:#103243;font-weight:700;"],
       ["♩","noire","color:#103243;font-weight:700;"],
       ["\u{1D15E}","blanche","color:#103243;font-weight:700;font-size:20pt;"],
-      ["𝅝","ronde","color:#103243;font-weight:700;font-size:23pt;vertical-align:middle;"]
+      ["𝅝","ronde","color:#103243;font-weight:700;font-size:23pt;position:relative;top:-4px;"]
     ].forEach(([g,label,styleCss]) => {
       gSymbols.appendChild(mkNoteBtn(g, "Valeur de note — " + label, g, styleCss));
     });
