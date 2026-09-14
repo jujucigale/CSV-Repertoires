@@ -1146,17 +1146,34 @@ function feToggleStrike(editable){
     document.execCommand("strikeThrough", false, null);
   }
 }
-/* ---- Rayure oblique (voyelle élidée) ----
-   Historique : un caractère Unicode combinant (U+0338) avait été essayé pour que ce soit du texte
-   ordinaire (donc naturellement compatible Word) plutôt qu'un effet visuel CSS — mais ce caractère ne
-   s'est pas comporté comme un vrai trait superposé dans le rendu réel de Juju : il s'affichait comme
-   un trait séparé ENTRE les lettres plutôt que PAR-DESSUS une seule, autant à l'écran que dans Word.
-   Retour à l'effet CSS d'origine (le look qu'elle préfère, un vrai trait superposé) pour l'écran; le
-   passage à l'export Word se fait maintenant par une image générée à la volée pour chaque rayure
-   (texte + trait, recréés dans son propre format à partir de sa mise en forme réelle : police, taille,
-   couleur, surlignage) — donc pas de tailles disparates comme avec les glyphes de nuances, puisque
-   chaque image correspond exactement au texte qu'elle rayure, ni de dépendance à une police spéciale
-   installée sur l'appareil qui ouvre le fichier. */
+/* ---- Marque de voyelle élidée ----
+   Historique : un caractère Unicode combinant (U+0338) donnait des traits séparés entre les lettres
+   plutôt qu'un trait superposé, autant à l'écran que dans Word — abandonné. Une image générée à la
+   volée par rayure (avec le fond de dégradé CSS reproduit en arrière-plan) donnait ensuite un rendu
+   qui variait trop d'un essai à l'autre dans le Word réel de Juju (lettre "remontée" comme un
+   exposant, puis bloc de surlignage plus haut que le reste de la ligne, puis tailles/polices
+   incohérentes selon le contexte) — la position et la taille d'une image insérée dans une ligne de
+   texte ne se calculent pas de façon fiable sans pouvoir tester directement dans Word.
+   Solution retenue : abandon complet de l'effet visuel (diagonal ou dégradé) au profit d'une VRAIE
+   mise en forme de texte native, du même type que gras/italique/souligné/barré — donc garantie
+   identique à l'écran et dans Word, sans image. Un "e" élidé au milieu d'un mot passe inaperçu avec
+   un simple barré (la ligne se confond avec la barre horizontale du "e") : la marque combine donc un
+   double barré (deux traits, plus visible qu'un seul) ET une couleur d'accent distincte, pour que la
+   lettre élidée saute aux yeux même toute seule. */
+const FE_ELISION_COLOR = "#C1121F";
+/* Migre en place les anciennes marques ".fe-elision" (fond en dégradé CSS ou image à l'export, deux
+   versions abandonnées) vers la nouvelle marque native (double barré + couleur) — pour que les fiches
+   déjà annotées avec une version précédente de l'outil s'affichent et s'exportent correctement sans
+   que Juju ait à refaire ses rayures à la main. */
+function feNormalizeLegacyElisions(root){
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll(".fe-elision").forEach(el => {
+    el.style.removeProperty("background-image");
+    el.style.textDecorationLine = "line-through";
+    el.style.textDecorationStyle = "double";
+    el.style.color = FE_ELISION_COLOR;
+  });
+}
 function feIsRangeElided(range, editable){
   const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT, {
     acceptNode(n){ return range.intersectsNode(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
@@ -1198,7 +1215,9 @@ function feToggleElision(editable){
     // d'une copie) pour ne perdre aucune mise en forme déjà présente — notamment le surlignage.
     const wrapper = document.createElement("span");
     wrapper.className = "fe-elision";
-    wrapper.style.backgroundImage = "linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%)";
+    wrapper.style.textDecorationLine = "line-through";
+    wrapper.style.textDecorationStyle = "double";
+    wrapper.style.color = FE_ELISION_COLOR;
     try {
       range.surroundContents(wrapper);
       sel.removeAllRanges();
@@ -1215,7 +1234,7 @@ function feToggleElision(editable){
       tmp.appendChild(frag);
       const inner = tmp.innerHTML;
       if (!inner) return;
-      document.execCommand("insertHTML", false, `<span class="fe-elision" style="background-image:linear-gradient(to top right, transparent 44%, currentColor 47%, currentColor 53%, transparent 56%);">${inner}</span>`);
+      document.execCommand("insertHTML", false, `<span class="fe-elision" style="text-decoration-line:line-through;text-decoration-style:double;color:${FE_ELISION_COLOR};">${inner}</span>`);
     }
   }
 }
@@ -1290,7 +1309,11 @@ function feRenderSections(){
       gFormat.appendChild(b);
     });
     const elisionBtn = document.createElement("button");
-    elisionBtn.type = "button"; elisionBtn.className = "fe-tb-btn"; elisionBtn.textContent = "e̸"; elisionBtn.title = "Rayure oblique (voyelle élidée)";
+    elisionBtn.type = "button"; elisionBtn.className = "fe-tb-btn"; elisionBtn.textContent = "e"; elisionBtn.title = "Voyelle élidée (double barré rouge)";
+    elisionBtn.style.textDecorationLine = "line-through";
+    elisionBtn.style.textDecorationStyle = "double";
+    elisionBtn.style.color = FE_ELISION_COLOR;
+    elisionBtn.style.fontWeight = "700";
     elisionBtn.onmousedown = (e) => e.preventDefault();
     elisionBtn.onclick = () => feToggleElision(editable);
     gFormat.appendChild(elisionBtn);
@@ -1461,6 +1484,7 @@ function feRenderSections(){
     editable.contentEditable = "true";
     editable.dataset.sectionId = sec.id;
     editable.innerHTML = sec.html || "";
+    feNormalizeLegacyElisions(editable);
     editable.addEventListener("paste", feHandlePaste);
     editable.addEventListener("input", () => { sec.html = editable.innerHTML; sec.pristine = false; feUpdatePreview(); feMirrorToOriginalIfBlank(idx); });
     editable.addEventListener("keyup", syncFontUI);
@@ -1766,6 +1790,7 @@ function feStyleToRunProps(styles){
   if (styles.italic) rPr.push("<w:i/>");
   if (styles.underline) rPr.push('<w:u w:val="single"/>');
   if (styles.strike) rPr.push("<w:strike/>");
+  if (styles.dstrike) rPr.push("<w:dstrike/>");
   if (styles.sup) rPr.push('<w:vertAlign w:val="superscript"/>');
   if (styles.sub) rPr.push('<w:vertAlign w:val="subscript"/>');
   rPr.push(`<w:rFonts w:ascii="${styles.font || "Arial"}" w:cs="${styles.font || "Arial"}" w:eastAsia="${styles.font || "Arial"}" w:hAnsi="${styles.font || "Arial"}"/>`);
@@ -1780,59 +1805,6 @@ function feCssColorToHex(c){
   const m = c.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
   if (!m) return null;
   return "#" + [1,2,3].map(i => (+m[i]).toString(16).padStart(2,"0")).join("");
-}
-/* ---- Rendu de la rayure oblique en image (pour l'export Word) ----
-   Chaque rayure devient, au moment de l'export seulement, une petite image générée à la volée à
-   partir du texte réel, de sa police, sa taille, sa couleur et son surlignage — recréant exactement
-   ce qui s'affiche à l'écran, mais sous une forme que Word sait afficher partout, sans dépendre d'une
-   police spéciale installée sur l'appareil qui l'ouvre. Comme chaque image correspond pile au texte
-   qu'elle rayure (pas une combinaison figée parmi un petit jeu de symboles), pas de problème de
-   tailles disparates d'un mot à l'autre. */
-let feExportImages = [];
-function feRenderElisionImageDataUrl(text, st){
-  const sizePt = st.sizePt || 20;
-  const px = Math.round(sizePt * 1.3333);
-  const weight = st.bold ? "bold " : "";
-  const style = st.italic ? "italic " : "";
-  const fontFamily = (st.font || "Arial") + ", Arial, sans-serif";
-  const fontSpec = `${style}${weight}${px}px ${fontFamily}`;
-  const measureCanvas = document.createElement("canvas");
-  const mctx = measureCanvas.getContext("2d");
-  mctx.font = fontSpec;
-  const metrics = mctx.measureText(text);
-  const width = Math.max(6, Math.ceil(metrics.width) + 6);
-  /* La hauteur de l'image est calée sur les métriques DE LA POLICE (ascent/descent "de dessin", les
-     mêmes pour toutes les lettres d'une police/taille donnée) plutôt que sur la boîte serrée du
-     glyphe dessiné — c'est cette mesure-là, constante, que Word utilise pour la bande de surlignage
-     derrière le texte normal. En s'alignant dessus, le rectangle de surlignage peint dans l'image a
-     pile la même hauteur que celui du texte environnant, sans être ni trop court (liseré blanc) ni
-     trop haut (ligne qui s'étire). Et comme Word aligne le BAS de l'image sur la ligne de base du
-     texte, garder ce "descent" réaliste (plutôt qu'exagéré) évite aussi que la lettre paraisse
-     remontée comme un exposant. */
-  const ascent = metrics.fontBoundingBoxAscent || metrics.actualBoundingBoxAscent || px * 0.75;
-  const descent = metrics.fontBoundingBoxDescent || metrics.actualBoundingBoxDescent || px * 0.25;
-  const height = Math.max(10, Math.ceil(ascent + descent));
-  const scale = 3;
-  const canvas = document.createElement("canvas");
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(scale, scale);
-  if (st.hilite){
-    ctx.fillStyle = st.hilite;
-    ctx.fillRect(0, 0, width, height);
-  }
-  ctx.font = fontSpec;
-  ctx.fillStyle = st.color || "#000000";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(text, 3, ascent);
-  ctx.strokeStyle = st.color || "#000000";
-  ctx.lineWidth = Math.max(1, height * 0.07);
-  ctx.beginPath();
-  ctx.moveTo(width * 0.04, height * 0.94);
-  ctx.lineTo(width * 0.96, height * 0.06);
-  ctx.stroke();
-  return { dataUrl: canvas.toDataURL("image/png"), w: width, h: height };
 }
 function feWalkNodeToRuns(node, styles, runs){
   if (node.nodeType === 3){
@@ -1867,13 +1839,13 @@ function feWalkNodeToRuns(node, styles, runs){
   if (cs.backgroundColor && cs.backgroundColor !== "transparent" && cs.backgroundColor !== "rgba(0, 0, 0, 0)") { const hex = feCssColorToHex(cs.backgroundColor); if (hex) st.hilite = hex; }
   if (cs.fontFamily) st.font = cs.fontFamily.split(",")[0].replace(/['"]/g,"").trim();
   if (cs.fontSize){ const raw = String(cs.fontSize).trim(); const num = parseFloat(raw); if (!isNaN(num)) st.sizePt = raw.includes("pt") ? num : Math.round(num * 0.75); }
-  const isElision = (node.classList && node.classList.contains("fe-elision")) || (cs.backgroundImage || "").includes("linear-gradient");
-  if (isElision && node.textContent){
-    const rendered = feRenderElisionImageDataUrl(node.textContent, st);
-    const rId = "rId" + (100 + feExportImages.length);
-    feExportImages.push({ rId, filename: "elision_" + feExportImages.length + ".png", b64: rendered.dataUrl.split(",")[1] });
-    runs.push({ img: true, rId, w: rendered.w, h: rendered.h, imgStyles: st });
-    return;
+  const isElision = (node.classList && node.classList.contains("fe-elision")) || (cs.backgroundImage || "").includes("linear-gradient") || (cs.textDecorationStyle === "double");
+  if (isElision){
+    // Marque de voyelle élidée : vraie mise en forme Word native (double barré + couleur d'accent),
+    // pas une image — voir la note plus haut sur pourquoi l'image a été abandonnée.
+    st.dstrike = true;
+    st.strike = false;
+    st.color = FE_ELISION_COLOR;
   }
   if (node.getAttribute && node.getAttribute("contenteditable") === "false"){
     runs.push({ text: node.textContent, styles: st });
@@ -1881,27 +1853,10 @@ function feWalkNodeToRuns(node, styles, runs){
   }
   node.childNodes.forEach(child => feWalkNodeToRuns(child, st, runs));
 }
-function feImageRunXml(run){
-  const cxEmu = Math.round(run.w * 9525);
-  const cyEmu = Math.round(run.h * 9525);
-  const docPrId = 5000 + feExportImages.findIndex(i => i.rId === run.rId);
-  return '<w:r><w:drawing>'
-    + '<wp:inline distT="0" distB="0" distL="0" distR="0">'
-    + '<wp:extent cx="' + cxEmu + '" cy="' + cyEmu + '"/>'
-    + '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
-    + '<wp:docPr id="' + docPrId + '" name="elision-' + docPrId + '"/>'
-    + '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
-    + '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
-    + '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-    + '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-    + '<pic:nvPicPr><pic:cNvPr id="' + docPrId + '" name="elision-' + docPrId + '.png"/><pic:cNvPicPr/></pic:nvPicPr>'
-    + '<pic:blipFill><a:blip r:embed="' + run.rId + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
-    + '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cxEmu + '" cy="' + cyEmu + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
-    + '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
-}
 function feHtmlToOoxmlParagraph(html, baseFont, baseSizePt){
   const tmp = document.createElement("div");
   tmp.innerHTML = html;
+  feNormalizeLegacyElisions(tmp);
   const runs = [];
   tmp.childNodes.forEach(n => feWalkNodeToRuns(n, { font: baseFont || "Arial", sizePt: baseSizePt || 20 }, runs));
   let xml = "";
@@ -1911,7 +1866,6 @@ function feHtmlToOoxmlParagraph(html, baseFont, baseSizePt){
     if (currentRun){ xml += `<w:r>${feStyleToRunProps(currentProps)}<w:t xml:space="preserve">${escXml(currentRun)}</w:t></w:r>`; currentRun = ""; }
   };
   runs.forEach(r => {
-    if (r.img){ flush(); xml += feImageRunXml(r); return; }
     if (r.br){ flush(); xml += `<w:r>${feStyleToRunProps(currentProps || {font:baseFont,sizePt:baseSizePt})}<w:br/></w:r>`; return; }
     const key = JSON.stringify(r.styles);
     if (currentProps && JSON.stringify(currentProps) === key){ currentRun += r.text; }
@@ -1921,7 +1875,6 @@ function feHtmlToOoxmlParagraph(html, baseFont, baseSizePt){
   return `<w:p><w:pPr><w:spacing w:after="0" w:line="288" w:lineRule="auto"/></w:pPr>${xml || "<w:r><w:t></w:t></w:r>"}</w:p>`;
 }
 async function generateAnnotatedDocxBlob(entry, sectionsData, legendData){
-  feExportImages = [];
   const zip = await JSZip.loadAsync(base64ToBytes(TEMPLATE_B64));
   let xml = await zip.file("word/document.xml").async("string");
   const interpreteAnnee = [entry.interprete, entry.annee].filter(Boolean).join(", ");
@@ -1954,20 +1907,6 @@ async function generateAnnotatedDocxBlob(entry, sectionsData, legendData){
   });
 
   xml = xml.replace(MARKER_XML, bodyXml);
-
-  if (feExportImages.length){
-    let rels = await zip.file("word/_rels/document.xml.rels").async("string");
-    let relsAdd = "";
-    feExportImages.forEach(img => {
-      zip.file("word/media/" + img.filename, base64ToBytes(img.b64));
-      relsAdd += `<Relationship Id="${img.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${img.filename}"/>`;
-    });
-    rels = rels.replace("</Relationships>", relsAdd + "</Relationships>");
-    zip.file("word/_rels/document.xml.rels", rels);
-    if (!xml.includes('xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"')){
-      xml = xml.replace("<w:document ", '<w:document xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" ');
-    }
-  }
   zip.file("word/document.xml", xml);
 
   const footerFiles = Object.keys(zip.files).filter(name => /^word\/footer\d*\.xml$/.test(name));
