@@ -919,6 +919,24 @@ const FE_HIGHLIGHT_COLORS = [
 ];
 function feGenId(){ return Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7); }
 function feEscHtml(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+// Convertit le contenu d'un élément en texte brut en préservant les retours à la ligne — un simple
+// .textContent ignore complètement les <br> et les frontières de <div>/<p> (celles que le navigateur
+// crée automatiquement quand on appuie sur Entrée dans l'éditeur), ce qui collait toutes les lignes
+// ensemble.
+function feHtmlToPlainTextWithBreaks(container){
+  let out = "";
+  const walk = (node) => {
+    if (node.nodeType === 3){ out += node.textContent; return; }
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName.toLowerCase();
+    if (tag === "br"){ out += "\n"; return; }
+    const isBlock = (tag === "div" || tag === "p");
+    if (isBlock && out && !out.endsWith("\n")) out += "\n";
+    node.childNodes.forEach(walk);
+  };
+  container.childNodes.forEach(walk);
+  return out;
+}
 
 let feCurrentEntry = null;
 let feOnClose = null;
@@ -1242,7 +1260,7 @@ function feRenderSections(){
       if (!clearArmed){ clearArmed = true; clearFormatBtn.textContent = "Confirmer ?"; setTimeout(() => { clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme"; }, 2500); return; }
       clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme";
       const tmp = document.createElement("div"); tmp.innerHTML = sec.html;
-      sec.html = feEscHtml(tmp.textContent || "");
+      sec.html = feEscHtml(feHtmlToPlainTextWithBreaks(tmp));
       sec.pristine = false;
       feRenderSections(); feUpdatePreview();
     };
@@ -1517,8 +1535,7 @@ function feMirrorToOriginalIfBlank(idx){
   if (orig.lyrics && orig.lyrics.trim() && orig.mirroredFromAnnotee !== true) return; // contenu original préexistant, jamais issu du mirroir
   const tmp = document.createElement("div");
   tmp.innerHTML = sec.html || "";
-  tmp.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
-  orig.lyrics = tmp.textContent || "";
+  orig.lyrics = feHtmlToPlainTextWithBreaks(tmp);
   orig.mirroredFromAnnotee = true;
   foRenderSections(feCanEditStructure());
   foUpdatePreview();
@@ -1878,6 +1895,12 @@ function feWalkNodeToRuns(node, styles, runs){
   if (node.getAttribute && node.getAttribute("contenteditable") === "false"){
     runs.push({ text: node.textContent, styles: st });
     return;
+  }
+  // Quand on appuie sur Entrée dans l'éditeur, le navigateur enveloppe chaque nouvelle ligne dans un
+  // <div> (pas un <br>) — donc un "div" ou un "p" doit lui aussi compter comme un retour à la ligne,
+  // sinon les lignes qu'il contient se retrouvent collées à la suite de la précédente à l'export.
+  if ((tag === "div" || tag === "p") && runs.length > 0){
+    runs.push({ br: true });
   }
   node.childNodes.forEach(child => feWalkNodeToRuns(child, st, runs));
 }
