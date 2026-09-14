@@ -1857,6 +1857,36 @@ function feRenderElisionImageDataUrl(text, st){
   ctx.stroke();
   return { dataUrl: canvas.toDataURL("image/png"), w: width, h: height };
 }
+function feRenderHairpinImageDataUrl(hairpinEl){
+  // Le soufflet de crescendo/decrescendo est un petit dessin (SVG, deux traits) de largeur variable —
+  // la poignée de l'éditeur ajuste sa largeur réelle via un style inline (largeur/hauteur), qu'on lit
+  // ici directement. On relit les points exacts des <polyline> déjà présentes dans le HTML plutôt que
+  // de recalculer une géométrie de notre côté, pour garantir que l'image exportée reproduit fidèlement
+  // ce que Juju voit à l'écran (même repère que le viewBox du SVG, 0 0 100 20).
+  const widthPx = Math.max(1, Math.round(parseFloat(hairpinEl.style.width) || 70));
+  const heightPx = Math.max(1, Math.round(parseFloat(hairpinEl.style.height) || 16));
+  const polylines = hairpinEl.querySelectorAll("svg polyline");
+  const scale = 3;
+  const canvas = document.createElement("canvas");
+  canvas.width = widthPx * scale;
+  canvas.height = heightPx * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.scale(widthPx / 100, heightPx / 20);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 3;
+  polylines.forEach(pl => {
+    const pts = (pl.getAttribute("points") || "").trim().split(/\s+/).filter(Boolean).map(pair => pair.split(",").map(Number));
+    if (!pts.length) return;
+    ctx.strokeStyle = pl.getAttribute("stroke") || "#900FE6";
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+  });
+  return { dataUrl: canvas.toDataURL("image/png"), w: widthPx, h: heightPx };
+}
 function feWalkNodeToRuns(node, styles, runs){
   if (node.nodeType === 3){
     const text = node.textContent;
@@ -1890,6 +1920,14 @@ function feWalkNodeToRuns(node, styles, runs){
   if (cs.backgroundColor && cs.backgroundColor !== "transparent" && cs.backgroundColor !== "rgba(0, 0, 0, 0)") { const hex = feCssColorToHex(cs.backgroundColor); if (hex) st.hilite = hex; }
   if (cs.fontFamily) st.font = cs.fontFamily.split(",")[0].replace(/['"]/g,"").trim();
   if (cs.fontSize){ const raw = String(cs.fontSize).trim(); const num = parseFloat(raw); if (!isNaN(num)) st.sizePt = raw.includes("pt") ? num : Math.round(num * 0.75); }
+  const isHairpin = node.classList && node.classList.contains("fe-hairpin");
+  if (isHairpin){
+    const rendered = feRenderHairpinImageDataUrl(node);
+    const rId = "rId" + (100 + feExportImages.length);
+    feExportImages.push({ rId, filename: "hairpin_" + feExportImages.length + ".png", b64: rendered.dataUrl.split(",")[1] });
+    runs.push({ img: true, rId, w: rendered.w, h: rendered.h, imgStyles: st });
+    return;
+  }
   const isElision = (node.classList && node.classList.contains("fe-elision")) || (cs.backgroundImage || "").includes("linear-gradient");
   if (isElision && node.textContent){
     const rendered = feRenderElisionImageDataUrl(node.textContent, st);
@@ -1918,12 +1956,12 @@ function feImageRunXml(run){
     + '<wp:inline distT="0" distB="0" distL="0" distR="0">'
     + '<wp:extent cx="' + cxEmu + '" cy="' + cyEmu + '"/>'
     + '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
-    + '<wp:docPr id="' + docPrId + '" name="elision-' + docPrId + '"/>'
+    + '<wp:docPr id="' + docPrId + '" name="annotation-' + docPrId + '"/>'
     + '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
     + '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
     + '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
     + '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-    + '<pic:nvPicPr><pic:cNvPr id="' + docPrId + '" name="elision-' + docPrId + '.png"/><pic:cNvPicPr/></pic:nvPicPr>'
+    + '<pic:nvPicPr><pic:cNvPr id="' + docPrId + '" name="annotation-' + docPrId + '.png"/><pic:cNvPicPr/></pic:nvPicPr>'
     + '<pic:blipFill><a:blip r:embed="' + run.rId + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
     + '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cxEmu + '" cy="' + cyEmu + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
     + '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
