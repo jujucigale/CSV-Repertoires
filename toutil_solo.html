@@ -1419,16 +1419,11 @@ function feRenderSections(){
     gHighlight.appendChild(feSwatchRow((color) => document.execCommand("hiliteColor", false, color), true));
     toolbar.appendChild(gHighlight);
 
-    const gSymbols = document.createElement("div");
-    gSymbols.className = "fe-tb-group";
-    ["p","m","f"].forEach(sym => {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "fe-tb-btn fe-sym"; b.textContent = sym;
-      b.title = sym === "m" ? "Insérer « m » — combine avec p ou f à la suite pour mp / mf" : "Insérer « " + sym + " » — clique 2-3 fois de suite pour " + sym + sym + " / " + sym + sym + sym;
-      b.onmousedown = (e) => e.preventDefault();
-      b.onclick = () => document.execCommand("insertHTML", false, '<span style="color:#900FE6;font-weight:800;font-style:italic;font-size:16pt;">' + sym + '</span>');
-      gSymbols.appendChild(b);
-    });
+    // Deuxième ligne de la barre d'outils : regroupée en 4 blocs logiques séparés par une bordure
+    // (même style de séparateur que les autres groupes de la barre — .fe-tb-group), à la demande de
+    // Juju (17 septembre) pour se rapprocher de l'organisation du prototype d'origine. Purement une
+    // question d'ordre d'affichage : chaque bouton garde exactement la même fonction qu'avant, peu
+    // importe le groupe dans lequel il se trouve maintenant.
     const mkBtn = (label, title, glyph, styleCss) => {
       const b = document.createElement("button");
       b.type = "button"; b.className = "fe-tb-btn fe-sym"; b.textContent = label; b.title = title;
@@ -1436,15 +1431,6 @@ function feRenderSections(){
       b.onclick = () => feInsertAtomicSymbol(editable, feAtomicSymbol(glyph, styleCss));
       return b;
     };
-    gSymbols.appendChild(mkBtn("v", "Respiration", "v", "color:#C94E1F;font-weight:700;vertical-align:super;font-size:23pt;"));
-    const barBtn = document.createElement("button");
-    barBtn.type = "button"; barBtn.className = "fe-tb-btn"; barBtn.textContent = "|"; barBtn.title = "Barre de mesure";
-    barBtn.onmousedown = (e) => e.preventDefault();
-    barBtn.onclick = () => document.execCommand("insertText", false, "|");
-    gSymbols.appendChild(barBtn);
-    gSymbols.appendChild(mkBtn("𝄆", "Barre de reprise (début)", "𝄆", "color:#103243;font-weight:700;"));
-    gSymbols.appendChild(mkBtn("𝄇", "Barre de reprise (fin)", "𝄇", "color:#103243;font-weight:700;"));
-    gSymbols.appendChild(mkBtn("𝄐", "Point d'orgue", "𝄐", "color:#900FE6;font-weight:700;vertical-align:super;font-size:23pt;"));
     const mkNoteBtn = (label, title, glyph, styleCss, isBlanche) => {
       const b = document.createElement("button");
       b.type = "button"; b.className = "fe-tb-btn fe-sym"; b.textContent = label; b.title = title;
@@ -1455,6 +1441,51 @@ function feRenderSections(){
       b.onclick = () => feInsertAtomicSymbol(editable, isBlanche ? feHalfNoteHtml() : feAtomicSymbol(glyph, styleCss), true);
       return b;
     };
+
+    // Groupe 1 — Nuances : p, m, f, crescendo, decrescendo
+    const gNuances = document.createElement("div");
+    gNuances.className = "fe-tb-group";
+    ["p","m","f"].forEach(sym => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "fe-tb-btn fe-sym"; b.textContent = sym;
+      b.title = sym === "m" ? "Insérer « m » — combine avec p ou f à la suite pour mp / mf" : "Insérer « " + sym + " » — clique 2-3 fois de suite pour " + sym + sym + " / " + sym + sym + sym;
+      b.onmousedown = (e) => e.preventDefault();
+      b.onclick = () => document.execCommand("insertHTML", false, '<span style="color:#900FE6;font-weight:800;font-style:italic;font-size:16pt;">' + sym + '</span>');
+      gNuances.appendChild(b);
+    });
+    const crescBtn = document.createElement("button");
+    crescBtn.type = "button"; crescBtn.className = "fe-tb-btn"; crescBtn.textContent = "<"; crescBtn.title = "Crescendo (glisser la poignée pour ajuster la longueur)";
+    crescBtn.onmousedown = (e) => e.preventDefault();
+    crescBtn.onclick = () => document.execCommand("insertHTML", false, feHairpinHtml("cresc"));
+    gNuances.appendChild(crescBtn);
+    const decrescBtn = document.createElement("button");
+    decrescBtn.type = "button"; decrescBtn.className = "fe-tb-btn"; decrescBtn.textContent = ">"; decrescBtn.title = "Decrescendo (glisser la poignée pour ajuster la longueur)";
+    decrescBtn.onmousedown = (e) => e.preventDefault();
+    decrescBtn.onclick = () => document.execCommand("insertHTML", false, feHairpinHtml("decresc"));
+    gNuances.appendChild(decrescBtn);
+    toolbar.appendChild(gNuances);
+
+    // Groupe 2 — Repères de mesure et de direction : barre de mesure, barres de reprise, respiration,
+    // point d'orgue, trois flèches
+    const gReperes = document.createElement("div");
+    gReperes.className = "fe-tb-group";
+    const barBtn = document.createElement("button");
+    barBtn.type = "button"; barBtn.className = "fe-tb-btn"; barBtn.textContent = "|"; barBtn.title = "Barre de mesure";
+    barBtn.onmousedown = (e) => e.preventDefault();
+    barBtn.onclick = () => document.execCommand("insertText", false, "|");
+    gReperes.appendChild(barBtn);
+    gReperes.appendChild(mkBtn("𝄆", "Barre de reprise (début)", "𝄆", "color:#103243;font-weight:700;"));
+    gReperes.appendChild(mkBtn("𝄇", "Barre de reprise (fin)", "𝄇", "color:#103243;font-weight:700;"));
+    gReperes.appendChild(mkBtn("v", "Respiration", "v", "color:#C94E1F;font-weight:700;vertical-align:super;font-size:23pt;"));
+    gReperes.appendChild(mkBtn("𝄐", "Point d'orgue", "𝄐", "color:#900FE6;font-weight:700;vertical-align:super;font-size:23pt;"));
+    gReperes.appendChild(mkBtn("↗", "Montée du pitch", "↗", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
+    gReperes.appendChild(mkBtn("↘", "Descente du pitch", "↘", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
+    gReperes.appendChild(mkBtn("→", "Tenue du pitch", "→", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
+    toolbar.appendChild(gReperes);
+
+    // Groupe 3 — Figures de note
+    const gNotes = document.createElement("div");
+    gNotes.className = "fe-tb-group";
     [
       ["♫","deux croches","color:#103243;font-weight:700;"],
       ["♪","croche","color:#103243;font-weight:700;"],
@@ -1462,24 +1493,16 @@ function feRenderSections(){
       ["\u{1D15E}","blanche","color:#103243;font-weight:700;font-size:20pt;",true],
       ["𝅝","ronde","color:#103243;font-weight:700;font-size:23pt;position:relative;top:-3px;"]
     ].forEach(([g,label,styleCss,isBlanche]) => {
-      gSymbols.appendChild(mkNoteBtn(g, "Valeur de note — " + label, g, styleCss, isBlanche));
+      gNotes.appendChild(mkNoteBtn(g, "Valeur de note — " + label, g, styleCss, isBlanche));
     });
-    gSymbols.appendChild(mkBtn("↗", "Montée du pitch", "↗", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
-    gSymbols.appendChild(mkBtn("↘", "Descente du pitch", "↘", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
-    gSymbols.appendChild(mkBtn("→", "Tenue du pitch", "→", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
-    gSymbols.appendChild(mkBtn("♂", "Voix — répartition (♂)", "♂", "color:#103243;font-weight:700;"));
-    gSymbols.appendChild(mkBtn("♀", "Voix — répartition (♀)", "♀", "color:#103243;font-weight:700;"));
-    const crescBtn = document.createElement("button");
-    crescBtn.type = "button"; crescBtn.className = "fe-tb-btn"; crescBtn.textContent = "<"; crescBtn.title = "Crescendo (glisser la poignée pour ajuster la longueur)";
-    crescBtn.onmousedown = (e) => e.preventDefault();
-    crescBtn.onclick = () => document.execCommand("insertHTML", false, feHairpinHtml("cresc"));
-    gSymbols.appendChild(crescBtn);
-    const decrescBtn = document.createElement("button");
-    decrescBtn.type = "button"; decrescBtn.className = "fe-tb-btn"; decrescBtn.textContent = ">"; decrescBtn.title = "Decrescendo (glisser la poignée pour ajuster la longueur)";
-    decrescBtn.onmousedown = (e) => e.preventDefault();
-    decrescBtn.onclick = () => document.execCommand("insertHTML", false, feHairpinHtml("decresc"));
-    gSymbols.appendChild(decrescBtn);
-    toolbar.appendChild(gSymbols);
+    toolbar.appendChild(gNotes);
+
+    // Groupe 4 — Répartition de la voix
+    const gVoix = document.createElement("div");
+    gVoix.className = "fe-tb-group";
+    gVoix.appendChild(mkBtn("♂", "Voix — répartition (♂)", "♂", "color:#103243;font-weight:700;"));
+    gVoix.appendChild(mkBtn("♀", "Voix — répartition (♀)", "♀", "color:#103243;font-weight:700;"));
+    toolbar.appendChild(gVoix);
 
     block.appendChild(toolbar);
 
