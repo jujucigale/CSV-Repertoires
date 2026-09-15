@@ -1467,6 +1467,22 @@ function feRenderSections(){
     ].forEach(([g,label,styleCss,isBlanche]) => {
       gSymbols.appendChild(mkNoteBtn(g, "Valeur de note — " + label, g, styleCss, isBlanche));
     });
+    // --- TEMPORAIRE (17 sept.) : 4 boutons de test pour comparer la longueur de hampe de la blanche
+    // directement dans l'éditeur (même rond que feBuildBlancheGlyphDataUrl, seule la hampe varie).
+    // À retirer une fois que Juju aura choisi la variante gagnante.
+    [
+      ["Bl-A", 5],
+      ["Bl-B", 12],
+      ["Bl-C", 18],
+      ["Bl-D", 24],
+    ].forEach(([label, stemTopY]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "fe-tb-btn fe-sym"; b.textContent = label;
+      b.title = "TEST — blanche, hampe variante " + label;
+      b.onmousedown = (e) => e.preventDefault();
+      b.onclick = () => feInsertAtomicSymbol(editable, feHalfNoteHtmlVariant(stemTopY), true);
+      gSymbols.appendChild(b);
+    });
     gSymbols.appendChild(mkBtn("↗", "Montée du pitch", "↗", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
     gSymbols.appendChild(mkBtn("↘", "Descente du pitch", "↘", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
     gSymbols.appendChild(mkBtn("→", "Tenue du pitch", "→", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
@@ -1920,12 +1936,11 @@ function feBuildBlancheGlyphDataUrl(){
   ctx.strokeStyle = "#103243";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  // Hampe, attachée au bord droit du notehead, montant vers le haut. Raccourcie de nouveau (Juju
-  // rapporte encore 2-3mm de trop) sans toucher au notehead — seule la hampe change.
+  // Hampe, attachée au bord droit du notehead, montant vers le haut.
   ctx.lineWidth = 2.4;
   ctx.beginPath();
   ctx.moveTo(22.3, 33);
-  ctx.lineTo(22.3, 18);
+  ctx.lineTo(22.3, 5);
   ctx.stroke();
   // Notehead ovale, creux (juste le contour), incliné comme une vraie tête de note.
   ctx.save();
@@ -1942,6 +1957,44 @@ function feBuildBlancheGlyphDataUrl(){
 function feHalfNoteHtml(){
   const g = feBuildBlancheGlyphDataUrl();
   const displayH = 20; // px à l'écran
+  const displayW = Math.round(g.w * (displayH / g.h));
+  return '<img class="fe-note-blanche" contenteditable="false" data-glyph-w="' + g.w + '" data-glyph-h="' + g.h + '" src="' + g.dataUrl + '" style="height:' + displayH + 'px;width:' + displayW + 'px;vertical-align:text-bottom;display:inline-block;margin:0 2px;">';
+}
+// --- TEMPORAIRE (17 sept.) : variante de test, même rond que feBuildBlancheGlyphDataUrl mais avec
+// une longueur de hampe paramétrable, pour comparer plusieurs longueurs directement dans l'éditeur.
+// À retirer une fois la variante gagnante choisie (voir aussi les boutons Bl-A à Bl-D plus haut).
+let feBlancheGlyphVariantCache = {};
+function feBuildBlancheGlyphVariant(stemTopY){
+  if (feBlancheGlyphVariantCache[stemTopY]) return feBlancheGlyphVariantCache[stemTopY];
+  const scale = 6;
+  const w = 30, h = 46;
+  const canvas = document.createElement("canvas");
+  canvas.width = w * scale; canvas.height = h * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = "#103243";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(22.3, 33);
+  ctx.lineTo(22.3, stemTopY);
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(14, 36.5);
+  ctx.rotate(-0.34);
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 9.5, 6.6, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  const result = { dataUrl: canvas.toDataURL("image/png"), w, h };
+  feBlancheGlyphVariantCache[stemTopY] = result;
+  return result;
+}
+function feHalfNoteHtmlVariant(stemTopY){
+  const g = feBuildBlancheGlyphVariant(stemTopY);
+  const displayH = 20;
   const displayW = Math.round(g.w * (displayH / g.h));
   return '<img class="fe-note-blanche" contenteditable="false" data-glyph-w="' + g.w + '" data-glyph-h="' + g.h + '" src="' + g.dataUrl + '" style="height:' + displayH + 'px;width:' + displayW + 'px;vertical-align:text-bottom;display:inline-block;margin:0 2px;">';
 }
