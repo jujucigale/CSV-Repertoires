@@ -1908,8 +1908,11 @@ let feBlancheGlyphCache = null;
 function feBuildBlancheGlyphDataUrl(){
   if (feBlancheGlyphCache) return feBlancheGlyphCache;
   const scale = 6;
-  const w = 30, h = 38; // unités de base — hampe raccourcie (14-15 sept.) pour rester proche de la
-                          // hauteur de la noire plutôt que suivre les proportions d'une vraie partition.
+  // Unités de base ≈ pixels d'affichage final (15 sept.) — plus simple et plus fiable que de
+  // redimensionner un contour taillé pour une vraie partition : le notehead ET la hampe sont
+  // dimensionnés directement à la taille voulue à l'écran, sans passer par un ratio indirect qui,
+  // la fois précédente, avait fait regrossir le notehead en même temps que la hampe raccourcissait.
+  const w = 16, h = 22;
   const canvas = document.createElement("canvas");
   canvas.width = w * scale; canvas.height = h * scale;
   const ctx = canvas.getContext("2d");
@@ -1918,18 +1921,18 @@ function feBuildBlancheGlyphDataUrl(){
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   // Hampe, attachée au bord droit du notehead, montant vers le haut.
-  ctx.lineWidth = 2.4;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(22.3, 25);
-  ctx.lineTo(22.3, 7);
+  ctx.moveTo(13, 15);
+  ctx.lineTo(13, 3);
   ctx.stroke();
   // Notehead ovale, creux (juste le contour), incliné comme une vraie tête de note.
   ctx.save();
-  ctx.translate(14, 28.5);
+  ctx.translate(9, 17);
   ctx.rotate(-0.34);
-  ctx.lineWidth = 2.6;
+  ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.ellipse(0, 0, 9.5, 6.6, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 5.2, 3.6, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
   feBlancheGlyphCache = { dataUrl: canvas.toDataURL("image/png"), w, h };
@@ -1937,7 +1940,7 @@ function feBuildBlancheGlyphDataUrl(){
 }
 function feHalfNoteHtml(){
   const g = feBuildBlancheGlyphDataUrl();
-  const displayH = 20; // px à l'écran — calé sur la taille de la noire (texte ambiant ~18px), pas sur la ronde
+  const displayH = 22; // px à l'écran — proche de la taille de base du dessin (voir feBuildBlancheGlyphDataUrl)
   const displayW = Math.round(g.w * (displayH / g.h));
   return '<img class="fe-note-blanche" contenteditable="false" data-glyph-w="' + g.w + '" data-glyph-h="' + g.h + '" src="' + g.dataUrl + '" style="height:' + displayH + 'px;width:' + displayW + 'px;vertical-align:text-bottom;display:inline-block;margin:0 2px;">';
 }
