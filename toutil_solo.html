@@ -949,7 +949,10 @@ function feAtomicSymbol(glyph, styleCss){
 }
 function feInsertAtomicSymbol(editable, html, pad){
   const marker = "fesym-" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-  const marked = html.replace("<span ", '<span data-ins="' + marker + '" ');
+  // Marque la première balise du HTML inséré, quelle qu'elle soit (span pour les symboles-texte, img
+  // pour un symbole dessiné à la main comme la blanche) — pour toujours pouvoir replacer le curseur
+  // juste après une fois l'insertion faite.
+  const marked = html.replace(/^<([a-zA-Z]+)(\s)/, '<$1 data-ins="' + marker + '"$2');
   document.execCommand("insertHTML", false, (pad ? " " : "") + marked + " ");
   const el = editable.querySelector('[data-ins="' + marker + '"]');
   if (el){
@@ -1445,21 +1448,24 @@ function feRenderSections(){
     gSymbols.appendChild(mkBtn("𝄆", "Barre de reprise (début)", "𝄆", "color:#103243;font-weight:700;"));
     gSymbols.appendChild(mkBtn("𝄇", "Barre de reprise (fin)", "𝄇", "color:#103243;font-weight:700;"));
     gSymbols.appendChild(mkBtn("𝄐", "Point d'orgue", "𝄐", "color:#900FE6;font-weight:700;vertical-align:super;font-size:23pt;"));
-    const mkNoteBtn = (label, title, glyph, styleCss) => {
+    const mkNoteBtn = (label, title, glyph, styleCss, isBlanche) => {
       const b = document.createElement("button");
       b.type = "button"; b.className = "fe-tb-btn fe-sym"; b.textContent = label; b.title = title;
       b.onmousedown = (e) => e.preventDefault();
-      b.onclick = () => feInsertAtomicSymbol(editable, feAtomicSymbol(glyph, styleCss), true);
+      // La blanche s'insère maintenant comme une petite image dessinée sur mesure (voir
+      // feHalfNoteHtml) plutôt qu'un caractère Unicode — règle l'écart notehead/hampe ET la hampe
+      // disproportionnée héritée d'une police de secours, à l'écran comme à l'export Word.
+      b.onclick = () => feInsertAtomicSymbol(editable, isBlanche ? feHalfNoteHtml() : feAtomicSymbol(glyph, styleCss), true);
       return b;
     };
     [
       ["♫","deux croches","color:#103243;font-weight:700;"],
       ["♪","croche","color:#103243;font-weight:700;"],
       ["♩","noire","color:#103243;font-weight:700;"],
-      ["\u{1D15E}","blanche","color:#103243;font-weight:700;font-size:20pt;"],
-      ["𝅝","ronde","color:#103243;font-weight:700;font-size:23pt;position:relative;top:-4px;"]
-    ].forEach(([g,label,styleCss]) => {
-      gSymbols.appendChild(mkNoteBtn(g, "Valeur de note — " + label, g, styleCss));
+      ["\u{1D15E}","blanche","color:#103243;font-weight:700;font-size:20pt;",true],
+      ["𝅝","ronde","color:#103243;font-weight:700;font-size:23pt;position:relative;top:-3px;"]
+    ].forEach(([g,label,styleCss,isBlanche]) => {
+      gSymbols.appendChild(mkNoteBtn(g, "Valeur de note — " + label, g, styleCss, isBlanche));
     });
     gSymbols.appendChild(mkBtn("↗", "Montée du pitch", "↗", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
     gSymbols.appendChild(mkBtn("↘", "Descente du pitch", "↘", "color:#227373;font-weight:900;vertical-align:super;font-size:23pt;"));
@@ -1887,6 +1893,59 @@ function feRenderHairpinImageDataUrl(hairpinEl){
   });
   return { dataUrl: canvas.toDataURL("image/png"), w: widthPx, h: heightPx };
 }
+/* ---- Blanche — glyphe dessiné sur mesure (14 septembre) ----
+   Le caractère Unicode dédié (U+1D15E) réglait l'écart visuel entre le cercle et la barre, mais sa
+   hampe restait nettement plus haute/épaisse que celle de la noire — parce que ce caractère appartient
+   à un bloc Unicode rare, très peu couvert par les polices courantes, donc silencieusement remplacé par
+   une police de secours aux proportions imprévisibles (différente de celle qui affiche la noire, bien
+   couverte). Retirer le gras n'a rien réglé (confirmé par Juju) — la cause est la forme du glyphe de
+   secours lui-même, pas son épaisseur.
+   Solution : dessiner la blanche nous-mêmes (notehead + hampe, mêmes proportions partout) et l'insérer
+   comme une petite image — exactement le même principe que les soufflets de crescendo/decrescendo,
+   déjà éprouvé. Comme le dessin ne dépend plus d'aucune police, il est identique à l'écran et dans le
+   Word téléchargé, avec des proportions qu'on contrôle nous-mêmes plutôt que subies. */
+let feBlancheGlyphCache = null;
+function feBuildBlancheGlyphDataUrl(){
+  if (feBlancheGlyphCache) return feBlancheGlyphCache;
+  const scale = 6;
+  // Retour aux proportions du notehead confirmées par Juju comme les meilleures (15 sept.) : un
+  // contour à l'échelle d'une vraie partition, réduit ensuite à l'affichage — plutôt que l'approche
+  // "unités = pixels finaux" tentée juste avant, qui donnait un notehead correct mais que Juju a jugé
+  // moins bien proportionné que celui-ci.
+  const w = 30, h = 46;
+  const canvas = document.createElement("canvas");
+  canvas.width = w * scale; canvas.height = h * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = "#103243";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  // Hampe, attachée au bord droit du notehead, montant vers le haut. Raccourcie de quelques px par
+  // rapport à la version précédente (le haut de la hampe remonte moins) sans toucher au notehead —
+  // pour garder exactement sa taille et son alignement, seule la hampe change.
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(22.3, 33);
+  ctx.lineTo(22.3, 9);
+  ctx.stroke();
+  // Notehead ovale, creux (juste le contour), incliné comme une vraie tête de note.
+  ctx.save();
+  ctx.translate(14, 36.5);
+  ctx.rotate(-0.34);
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 9.5, 6.6, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  feBlancheGlyphCache = { dataUrl: canvas.toDataURL("image/png"), w, h };
+  return feBlancheGlyphCache;
+}
+function feHalfNoteHtml(){
+  const g = feBuildBlancheGlyphDataUrl();
+  const displayH = 20; // px à l'écran
+  const displayW = Math.round(g.w * (displayH / g.h));
+  return '<img class="fe-note-blanche" contenteditable="false" data-glyph-w="' + g.w + '" data-glyph-h="' + g.h + '" src="' + g.dataUrl + '" style="height:' + displayH + 'px;width:' + displayW + 'px;vertical-align:text-bottom;display:inline-block;margin:0 2px;">';
+}
 function feWalkNodeToRuns(node, styles, runs){
   if (node.nodeType === 3){
     const text = node.textContent;
@@ -1926,6 +1985,17 @@ function feWalkNodeToRuns(node, styles, runs){
     const rId = "rId" + (100 + feExportImages.length);
     feExportImages.push({ rId, filename: "hairpin_" + feExportImages.length + ".png", b64: rendered.dataUrl.split(",")[1] });
     runs.push({ img: true, rId, w: rendered.w, h: rendered.h, imgStyles: st });
+    return;
+  }
+  const isBlancheImg = tag === "img" && node.classList && node.classList.contains("fe-note-blanche");
+  if (isBlancheImg){
+    const glyphW = parseInt(node.dataset.glyphW, 10) || 30;
+    const glyphH = parseInt(node.dataset.glyphH, 10) || 46;
+    const displayH = parseFloat(node.style.height) || glyphH;
+    const factor = displayH / glyphH;
+    const rId = "rId" + (100 + feExportImages.length);
+    feExportImages.push({ rId, filename: "note_" + feExportImages.length + ".png", b64: (node.getAttribute("src") || "").split(",")[1] || "" });
+    runs.push({ img: true, rId, w: Math.round(glyphW * factor), h: Math.round(glyphH * factor), imgStyles: st });
     return;
   }
   const isElision = (node.classList && node.classList.contains("fe-elision")) || (cs.backgroundImage || "").includes("linear-gradient");
