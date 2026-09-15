@@ -103,6 +103,35 @@
   .field.invalid input{border-color:var(--danger);}
   .field .err{color:var(--danger);font-size:12px;margin-top:4px;display:none;}
   .field.invalid .err{display:block;}
+  .field-label-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;}
+  .field-label-row label{margin-bottom:0;}
+  .info-icon{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:15px;height:15px;border-radius:50%;
+    background:var(--highlight-deep,var(--petrol));color:#fff;
+    font-size:10.5px;font-weight:700;font-family:Georgia,serif;font-style:italic;
+    cursor:help;flex-shrink:0;line-height:1;
+  }
+  .tooltip-wrap{position:relative;display:inline-flex;}
+  .tooltip-bubble{
+    position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);
+    width:260px;max-width:70vw;padding:10px 12px;border-radius:8px;
+    background:var(--ink);color:#fff;font-size:12.5px;line-height:1.45;font-weight:400;
+    text-transform:none;letter-spacing:normal;
+    box-shadow:var(--shadow);
+    opacity:0;visibility:hidden;pointer-events:none;
+    transition:opacity .15s ease,transform .15s ease;
+    z-index:20;
+  }
+  .tooltip-bubble::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:var(--ink);
+  }
+  .tooltip-wrap:hover .tooltip-bubble,
+  .tooltip-wrap:focus-within .tooltip-bubble,
+  .info-icon:hover + .tooltip-bubble{
+    opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);
+  }
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   @media (max-width:520px){ .row2{grid-template-columns:1fr;} }
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
@@ -456,9 +485,14 @@
               <div class="err">L'interprète est requis.</div>
             </div>
             <div class="field" id="f-annee">
-              <label for="annee">Année de sortie originale *</label>
+              <div class="field-label-row">
+                <label for="annee">Année(s) de sortie *</label>
+                <span class="tooltip-wrap" tabindex="0">
+                  <span class="info-icon">i</span>
+                  <span class="tooltip-bubble">L'année où la chanson est sortie pour la première fois — cherchez « [Titre + nom de l'artiste] + année de sortie ». Si vraiment introuvable, écrivez « à confirmer ». Pour une reprise, inscrivez entre parenthèses l'année de sortie de la reprise, après celle de la version originale.</span>
+                </span>
+              </div>
               <input id="annee" type="text" placeholder="Ex. 1991">
-              <p class="privacy-note" style="margin-top:4px;">L'année où la chanson est sortie pour la première fois — cherchez « [nom de l'artiste] année de sortie ». Si vraiment introuvable, écrivez « à confirmer ».</p>
               <div class="err">L'année de sortie est requise (ou « à confirmer »).</div>
             </div>
           </div>
