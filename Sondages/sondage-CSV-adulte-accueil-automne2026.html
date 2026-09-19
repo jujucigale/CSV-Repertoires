@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sondage - CSV Automne 2026</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <!-- Firebase SDK - chargement asynchrone -->
-    <script async src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-    <script async src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -900,43 +900,52 @@
         let firebaseReady = false;
         let db = null;
 
-        // Attendre les scripts Firebase
-        document.addEventListener('DOMContentLoaded', () => {
-            // Vérifier que Firebase est chargé
-            if (typeof firebase === 'undefined') {
-                console.error('Firebase SDK not loaded yet, waiting...');
-                // Attendre 2 secondes et retry
-                setTimeout(() => {
-                    if (typeof firebase !== 'undefined') {
-                        initializeFirebase();
-                    } else {
-                        console.error('Firebase SDK failed to load');
-                    }
-                }, 2000);
-            } else {
+        // Fonction pour vérifier et initialiser Firebase
+        function checkAndInitializeFirebase() {
+            if (typeof firebase !== 'undefined') {
+                console.log('Firebase SDK détecté, initialisation...');
                 initializeFirebase();
+            } else {
+                console.log('Firebase SDK pas encore chargé, nouvelle tentative...');
+                setTimeout(checkAndInitializeFirebase, 500);
             }
-        });
+        }
 
         function initializeFirebase() {
-            // Configuration Firebase
-            const firebaseConfig = {
-                apiKey: "AIzaSyB4rZWSJLD5aGWm6Us6sezm6CNMzoUPbFI",
-                authDomain: "sondage-csv-automne-2026.firebaseapp.com",
-                projectId: "sondage-csv-automne-2026",
-                storageBucket: "sondage-csv-automne-2026.firebasestorage.app",
-                messagingSenderId: "999755099446",
-                appId: "1:999755099446:web:33da3eb26e0083818b3197"
-            };
-
             try {
+                // Vérifier si déjà initialisé
+                if (firebase.apps.length > 0) {
+                    console.log('Firebase déjà initialisé');
+                    db = firebase.firestore();
+                    firebaseReady = true;
+                    return;
+                }
+
+                // Configuration Firebase
+                const firebaseConfig = {
+                    apiKey: "AIzaSyB4rZWSJLD5aGWm6Us6sezm6CNMzoUPbFI",
+                    authDomain: "sondage-csv-automne-2026.firebaseapp.com",
+                    projectId: "sondage-csv-automne-2026",
+                    storageBucket: "sondage-csv-automne-2026.firebasestorage.app",
+                    messagingSenderId: "999755099446",
+                    appId: "1:999755099446:web:33da3eb26e0083818b3197"
+                };
+
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
                 firebaseReady = true;
-                console.log('Firebase initialisé avec succès!');
+                console.log('✅ Firebase initialisé avec succès!');
             } catch(error) {
-                console.error('Erreur init Firebase:', error);
+                console.error('❌ Erreur init Firebase:', error);
+                firebaseReady = false;
             }
+        }
+
+        // Démarrer la vérification quand le DOM est chargé
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkAndInitializeFirebase);
+        } else {
+            checkAndInitializeFirebase();
         }
 
         // ===== PASSWORD & AUTH =====
@@ -944,22 +953,32 @@
 
         function showPasswordPrompt() {
             if (!firebaseReady) {
-                alert('Chargement en cours... Veuillez attendre quelques secondes et réessayer.');
+                console.warn('Firebase pas encore prêt');
+                // Essayer de l'initialiser maintenant
+                checkAndInitializeFirebase();
+                
+                // Attendre un peu
+                setTimeout(() => {
+                    if (!firebaseReady) {
+                        alert('⏳ Firebase est en cours de chargement...\n\nVeuillez patienter quelques secondes et réessayer.');
+                        return;
+                    } else {
+                        showPasswordPrompt(); // Relancer la fonction
+                    }
+                }, 1500);
                 return;
             }
             
             const password = prompt('Mot de passe enseignant:');
             console.log('Mot de passe entré, vérification...');
             if (password === TEACHER_PASSWORD) {
-                console.log('Mot de passe correct! Initialisation du dashboard...');
+                console.log('✅ Mot de passe correct!');
                 initializeTeacherDashboard();
-                console.log('Dashboard initialisé. Masquage de authScreen...');
                 document.getElementById('authScreen').classList.add('hidden');
-                console.log('Affichage du teacherDashboard...');
                 document.getElementById('teacherDashboard').classList.remove('hidden');
-                console.log('Affichage réussi!');
-            } else {
-                console.log('Mot de passe incorrect');
+                console.log('✅ Accès enseignant activé!');
+            } else if (password !== null) {
+                console.log('❌ Mot de passe incorrect');
                 alert('Mot de passe incorrect');
             }
         }
