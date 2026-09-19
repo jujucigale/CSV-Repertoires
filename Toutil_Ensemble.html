@@ -279,6 +279,35 @@
   }
   .coord-row{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;background:#fff;}
   .coord-row .coord-name{font-weight:600;}
+  .res-tiles-grid{display:flex;flex-wrap:wrap;gap:14px;margin-top:4px;}
+  .res-tile-wrap{display:flex;flex-direction:column;align-items:center;width:112px;}
+  .res-tile{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    width:112px;height:100px;border-radius:16px;padding:10px;text-decoration:none;
+    text-align:center;box-shadow:var(--shadow);transition:transform .12s ease;box-sizing:border-box;
+  }
+  a.res-tile:hover{transform:translateY(-2px);}
+  .res-tile.res-empty{opacity:.55;cursor:default;}
+  .res-tile-icon{font-size:26px;line-height:1;}
+  .res-tile-icon img{width:30px;height:30px;object-fit:contain;border-radius:6px;}
+  .res-tile-label{font-size:11.5px;font-weight:700;line-height:1.25;}
+  .res-tile.res-generique{background:var(--surface);border:1.5px solid var(--border);}
+  .res-tile.res-generique .res-tile-label{color:var(--ink);}
+  .res-tile.res-moises{background:#14141f;}
+  .res-tile.res-moises .res-tile-label{color:#fff;}
+  .res-tile.res-youtube{background:#FF0000;}
+  .res-tile.res-youtube .res-tile-label{color:#fff;}
+  .res-tile.res-dossier{background:var(--highlight-deep);border-radius:50%;}
+  .res-tile.res-dossier .res-tile-label{color:#fff;font-size:10.5px;}
+  .res-tile.res-reglements{background:var(--surface);border:1.5px solid var(--border);}
+  .res-tile.res-reglements .res-tile-label{color:var(--ink);}
+  .res-tile.res-excel{background:#1D6F42;}
+  .res-tile.res-excel .res-tile-label{color:#fff;}
+  .res-tile.res-personnalise{background:var(--surface);border:1.5px solid var(--border);}
+  .res-tile.res-personnalise .res-tile-label{color:var(--ink);}
+  .res-tile-actions{display:flex;gap:4px;margin-top:5px;}
+  .res-tile-actions button{padding:2px 7px;font-size:11px;}
+  .res-tile-empty-note{font-size:10px;color:var(--ink-soft);margin-top:3px;}
   .seance-card{border:2.5px solid var(--petrol);border-radius:12px;padding:0;margin-bottom:16px;background:#fff;overflow:hidden;}
   .seance-card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px;background:#EAF3F2;border-bottom:2.5px solid var(--petrol);}
   .seance-card-header input[type="date"]{padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:13.5px;font-weight:600;}
@@ -650,14 +679,12 @@
       <h3>Chansons</h3>
       <div class="table-wrap repertoire-scroll" id="mygroup-chansons-wrap"><div class="loading-state">Chargement…</div></div>
 
-      <h3>Horaire</h3>
-      <div id="mygroup-horaire-wrap"><div class="loading-state">Chargement…</div></div>
-    </div>
-
-    <div class="card">
-      <h2>Ressources</h2>
+      <h3>Ressources</h3>
       <div class="note">Liens et documents ajoutés par votre enseignante pour votre groupe.</div>
       <div id="mygroup-ressources-wrap"><div class="loading-state">Chargement…</div></div>
+
+      <h3>Horaire</h3>
+      <div id="mygroup-horaire-wrap"><div class="loading-state">Chargement…</div></div>
     </div>
 
     <div class="card">
@@ -705,13 +732,32 @@
       <div class="note">Gérez les liens et documents partagés avec un groupe — utilisez le filtre de groupe ci-dessus pour choisir lequel.</div>
       <div id="admin-ressources-wrap"></div>
       <div id="admin-ressources-form-wrap" class="hidden">
-        <h3>Ajouter une ressource</h3>
+        <h3 id="res-form-title">Ajouter une ressource</h3>
         <div class="row3">
           <div class="field"><label for="res-titre">Titre</label><input id="res-titre" type="text" placeholder="Ex. Liste de chansons partagée"></div>
           <div class="field"><label for="res-lien">Lien</label><input id="res-lien" type="url" placeholder="https://..."></div>
           <div class="field"><label for="res-description">Description (optionnelle)</label><input id="res-description" type="text" placeholder="Ex. Vidéo de démonstration"></div>
         </div>
+        <div class="row3">
+          <div class="field">
+            <label for="res-icone">Icône</label>
+            <select id="res-icone">
+              <option value="generique">Générique (lien)</option>
+              <option value="moises">Moises</option>
+              <option value="youtube">YouTube</option>
+              <option value="dossier">Dossier partagé</option>
+              <option value="reglements">Feuille de règles et d'accueil</option>
+              <option value="excel">Fichier Excel / Admin</option>
+              <option value="personnalise">Personnalisée (image)</option>
+            </select>
+          </div>
+          <div class="field" id="res-icone-url-field" style="display:none;">
+            <label for="res-icone-url">Lien de l'image (icône personnalisée)</label>
+            <input id="res-icone-url" type="url" placeholder="https://.../icone.png">
+          </div>
+        </div>
         <button class="btn btn-primary btn-sm" id="res-add-btn" type="button">Ajouter</button>
+        <button class="btn btn-ghost btn-sm hidden" id="res-cancel-edit-btn" type="button">Annuler</button>
         <span id="res-status" style="font-size:13px;color:var(--ink-soft);margin-left:10px;"></span>
       </div>
     </div>
@@ -2143,27 +2189,82 @@ document.getElementById("coord-add-btn").addEventListener("click", async () => {
 });
 
 /* ---------------- Ressources (ajoutées par l'admin, consultées par le groupe) ---------------- */
+const RESSOURCE_ICONS = { generique:"🔗", moises:"🎚️", youtube:"▶️", dossier:"📁", reglements:"📋", excel:"📊" };
+const DEFAULT_RESSOURCE_TYPES = [
+  { type:"moises1", titre:"Moises", icone:"moises" },
+  { type:"moises2", titre:"Moises (2)", icone:"moises" },
+  { type:"youtube", titre:"YouTube", icone:"youtube" },
+  { type:"dossier", titre:"Dossier partagé", icone:"dossier" },
+  { type:"reglements", titre:"Règles et accueil", icone:"reglements" },
+];
+
+function ressourceTileHtml(r, adminMode){
+  const empty = !r.lien;
+  const cls = "res-tile res-" + (r.icone || "generique") + (empty ? " res-empty" : "");
+  const iconInner = (r.icone === "personnalise" && r.iconeUrl)
+    ? `<img src="${escXml(r.iconeUrl)}" alt="">`
+    : (RESSOURCE_ICONS[r.icone] || RESSOURCE_ICONS.generique);
+  const tag = empty ? "div" : "a";
+  const hrefAttr = empty ? "" : ` href="${escXml(r.lien)}" target="_blank" rel="noopener"`;
+  const tile = `<${tag} class="${cls}"${hrefAttr}><span class="res-tile-icon">${iconInner}</span><span class="res-tile-label">${escXml(r.titre)}</span></${tag}>`;
+  if (!adminMode) return `<div class="res-tile-wrap">${tile}</div>`;
+  return `<div class="res-tile-wrap">
+    ${tile}
+    ${empty ? '<div class="res-tile-empty-note">lien à ajouter</div>' : ""}
+    <div class="res-tile-actions">
+      <button class="btn btn-ghost btn-sm" data-edit-res="${r.key}" title="Modifier">✎</button>
+      <button class="btn btn-danger-ghost" data-remove-res="${r.key}" title="Supprimer">✕</button>
+    </div>
+  </div>`;
+}
+
+async function fetchGroupRessources(groupe){
+  const listRes = await window.storage.list("ressource:" + safeKeyPart(groupe) + ":", true);
+  const keys = (listRes && listRes.keys) || [];
+  const rows = [];
+  for (const k of keys) {
+    const r = await storageGet(k);
+    if (r) rows.push(Object.assign({ key: k }, r));
+  }
+  return rows;
+}
+
+async function ensureDefaultRessources(groupe, rows){
+  const existingTypes = new Set(rows.map(r => r.type).filter(Boolean));
+  const missing = DEFAULT_RESSOURCE_TYPES.filter(d => !existingTypes.has(d.type));
+  for (const d of missing) {
+    const key = "ressource:" + safeKeyPart(groupe) + ":" + genId();
+    const entry = { titre: d.titre, lien: "", description: "", icone: d.icone, type: d.type, dateAjout: new Date().toISOString() };
+    await storageSet(key, entry);
+    rows.push(Object.assign({ key }, entry));
+  }
+  return rows;
+}
+
+function sortRessources(rows){
+  const order = DEFAULT_RESSOURCE_TYPES.map(d => d.type);
+  return rows.slice().sort((a, b) => {
+    const ia = a.type ? order.indexOf(a.type) : -1;
+    const ib = b.type ? order.indexOf(b.type) : -1;
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return (a.titre || "").localeCompare(b.titre || "");
+  });
+}
+
 async function loadMyGroupRessources(){
   const wrap = document.getElementById("mygroup-ressources-wrap");
   wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
   try {
-    const listRes = await window.storage.list("ressource:" + safeKeyPart(session.groupe) + ":", true);
-    const keys = (listRes && listRes.keys) || [];
-    const rows = [];
-    for (const k of keys) {
-      const r = await storageGet(k);
-      if (r) rows.push(Object.assign({ key: k }, r));
-    }
-    rows.sort((a, b) => (a.titre || "").localeCompare(b.titre || ""));
+    let rows = await fetchGroupRessources(session.groupe);
+    rows = await ensureDefaultRessources(session.groupe, rows);
+    rows = sortRessources(rows).filter(r => r.lien);
     if (!rows.length){
       wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune ressource ajoutée pour l’instant.</p>';
       return;
     }
-    wrap.innerHTML = rows.map(r => `
-      <div class="coord-row">
-        <div class="coord-name"><a href="${escXml(r.lien)}" target="_blank" rel="noopener">${escXml(r.titre)}</a></div>
-        ${r.description ? `<div>${escXml(r.description)}</div>` : ""}
-      </div>`).join("");
+    wrap.innerHTML = `<div class="res-tiles-grid">${rows.map(r => ressourceTileHtml(r, false)).join("")}</div>`;
   } catch(e){
     console.error(e);
     wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger les ressources.</p>';
@@ -2171,12 +2272,27 @@ async function loadMyGroupRessources(){
 }
 
 let currentRessourceGroup = "";
+let editingRessourceKey = null;
+
+function resetRessourceForm(){
+  editingRessourceKey = null;
+  document.getElementById("res-titre").value = "";
+  document.getElementById("res-lien").value = "";
+  document.getElementById("res-description").value = "";
+  document.getElementById("res-icone").value = "generique";
+  document.getElementById("res-icone-url").value = "";
+  document.getElementById("res-icone-url-field").style.display = "none";
+  document.getElementById("res-form-title").textContent = "Ajouter une ressource";
+  document.getElementById("res-add-btn").textContent = "Ajouter";
+  document.getElementById("res-cancel-edit-btn").classList.add("hidden");
+}
 
 async function loadAdminRessources(){
   const groupFilter = document.getElementById("inv-group-filter").value;
   const wrap = document.getElementById("admin-ressources-wrap");
   const formWrap = document.getElementById("admin-ressources-form-wrap");
   currentRessourceGroup = groupFilter;
+  resetRessourceForm();
   if (!groupFilter){
     wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Choisissez un groupe dans le filtre ci-dessus pour voir et gérer ses ressources.</p>';
     formWrap.classList.add("hidden");
@@ -2185,26 +2301,27 @@ async function loadAdminRessources(){
   formWrap.classList.remove("hidden");
   wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
   try {
-    const listRes = await window.storage.list("ressource:" + safeKeyPart(groupFilter) + ":", true);
-    const keys = (listRes && listRes.keys) || [];
-    const rows = [];
-    for (const k of keys) {
-      const r = await storageGet(k);
-      if (r) rows.push(Object.assign({ key: k }, r));
-    }
-    rows.sort((a, b) => (a.titre || "").localeCompare(b.titre || ""));
-    if (!rows.length){
-      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune ressource pour ce groupe pour l’instant.</p>';
-      return;
-    }
-    wrap.innerHTML = rows.map(r => `
-      <div class="coord-row">
-        <div class="coord-name"><a href="${escXml(r.lien)}" target="_blank" rel="noopener">${escXml(r.titre)}</a></div>
-        ${r.description ? `<div>${escXml(r.description)}</div>` : ""}
-        <div class="row-actions" style="margin-top:6px;">
-          <button class="btn btn-danger-ghost" data-remove-res="${r.key}">Supprimer</button>
-        </div>
-      </div>`).join("");
+    let rows = await fetchGroupRessources(groupFilter);
+    rows = await ensureDefaultRessources(groupFilter, rows);
+    rows = sortRessources(rows);
+    wrap.innerHTML = `<div class="res-tiles-grid">${rows.map(r => ressourceTileHtml(r, true)).join("")}</div>`;
+    wrap.querySelectorAll("[data-edit-res]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const r = rows.find(x => x.key === btn.dataset.editRes);
+        if (!r) return;
+        editingRessourceKey = r.key;
+        document.getElementById("res-titre").value = r.titre || "";
+        document.getElementById("res-lien").value = r.lien || "";
+        document.getElementById("res-description").value = r.description || "";
+        document.getElementById("res-icone").value = r.icone || "generique";
+        document.getElementById("res-icone-url").value = r.iconeUrl || "";
+        document.getElementById("res-icone-url-field").style.display = (r.icone === "personnalise") ? "" : "none";
+        document.getElementById("res-form-title").textContent = "Modifier la ressource";
+        document.getElementById("res-add-btn").textContent = "Enregistrer les modifications";
+        document.getElementById("res-cancel-edit-btn").classList.remove("hidden");
+        document.getElementById("admin-ressources-form-wrap").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    });
     wrap.querySelectorAll("[data-remove-res]").forEach(btn => {
       btn.addEventListener("click", async () => {
         if (!(await customConfirm("Supprimer cette ressource ?"))) return;
@@ -2218,28 +2335,44 @@ async function loadAdminRessources(){
   }
 }
 
+document.getElementById("res-icone").addEventListener("change", () => {
+  document.getElementById("res-icone-url-field").style.display = (document.getElementById("res-icone").value === "personnalise") ? "" : "none";
+});
+
+document.getElementById("res-cancel-edit-btn").addEventListener("click", () => resetRessourceForm());
+
 document.getElementById("res-add-btn").addEventListener("click", async () => {
   const titre = document.getElementById("res-titre").value.trim();
   const lien = document.getElementById("res-lien").value.trim();
   const description = document.getElementById("res-description").value.trim();
+  const icone = document.getElementById("res-icone").value;
+  const iconeUrl = document.getElementById("res-icone-url").value.trim();
   const status = document.getElementById("res-status");
-  if (!titre || !lien){
-    showToast("Titre et lien requis.", true);
+  if (!titre){
+    showToast("Titre requis.", true);
     return;
   }
   if (!currentRessourceGroup){
     showToast("Choisissez d'abord un groupe.", true);
     return;
   }
-  status.textContent = "Ajout en cours…";
-  const ok = await storageSet("ressource:" + safeKeyPart(currentRessourceGroup) + ":" + genId(), { titre, lien, description, dateAjout: new Date().toISOString() });
+  status.textContent = editingRessourceKey ? "Enregistrement…" : "Ajout en cours…";
+  const entry = { titre, lien, description, icone, iconeUrl: icone === "personnalise" ? iconeUrl : "", dateAjout: new Date().toISOString() };
+  let key = editingRessourceKey;
+  if (editingRessourceKey) {
+    const existing = await storageGet(editingRessourceKey);
+    if (existing && existing.type) entry.type = existing.type;
+  } else {
+    key = "ressource:" + safeKeyPart(currentRessourceGroup) + ":" + genId();
+  }
+  const ok = await storageSet(key, entry);
   status.textContent = "";
   if (ok){
-    showToast("Ressource ajoutée ✓");
-    ["res-titre","res-lien","res-description"].forEach(id => document.getElementById(id).value = "");
+    showToast(editingRessourceKey ? "Ressource mise à jour ✓" : "Ressource ajoutée ✓");
+    resetRessourceForm();
     loadAdminRessources();
   } else {
-    showToast("Erreur lors de l'ajout.", true);
+    showToast("Erreur lors de l'enregistrement.", true);
   }
 });
 
