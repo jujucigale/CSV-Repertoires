@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sondage - CSV Automne 2026</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .section {
+            margin-bottom: 35px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .section:last-child {
+            border-bottom: none;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        input[type="text"],
+        input[type="password"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .radio-group {
+            margin-top: 12px;
+        }
+        .radio-item {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+        }
+        input[type="radio"],
+        input[type="checkbox"] {
+            margin-right: 10px;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+        .radio-label,
+        .checkbox-label {
+            cursor: pointer;
+            color: #333;
+        }
+        .scale-container {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .scale-btn {
+            flex: 1;
+            min-width: 50px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            background: #f5f5f5;
+            color: #333;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .scale-btn:hover {
+            border-color: #667eea;
+            background: #f5f5ff;
+        }
+        .scale-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .tool-item {
+            padding: 12px;
+            background: #f9f9f9;
+            border-left: 3px solid #667eea;
+            margin-bottom: 10px;
+            border-radius: 2px;
+        }
+        .tool-item label {
+            margin: 0;
+        }
+        .hidden {
+            display: none;
+        }
+        .info-box {
+            background: #f0f5ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+        }
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        button.secondary {
+            background: #999;
+        }
+        button.secondary:hover {
+            background: #666;
+        }
+        button.danger {
+            background: #d32f2f;
+        }
+        button.danger:hover {
+            background: #b71c1c;
+        }
+        .auth-screen {
+            text-align: center;
+        }
+        .auth-screen h2 {
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .auth-buttons button {
+            flex: 1;
+            max-width: 200px;
+            margin: 0;
+        }
+        .password-login {
+            max-width: 400px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .password-login input {
+            margin-bottom: 15px;
+        }
+        .password-login button {
+            width: 100%;
+            margin: 0;
+        }
+        .student-response-card {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .student-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .response-item {
+            margin-bottom: 12px;
+            padding: 8px;
+            background: white;
+            border-radius: 3px;
+        }
+        .response-label {
+            font-weight: 500;
+            color: #667eea;
+            font-size: 13px;
+        }
+        .response-value {
+            color: #333;
+            margin-top: 4px;
+        }
+        .toggle-switch {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 20px;
+            margin-bottom: 15px;
+        }
+        .toggle-switch input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 30px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .summary-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .summary-card-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        .summary-card-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .carousel-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        .carousel-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        .carousel-nav button {
+            margin: 0;
+            padding: 10px 15px;
+            font-size: 13px;
+        }
+        .carousel-counter {
+            font-size: 13px;
+            color: #666;
+            min-width: 120px;
+            text-align: center;
+        }
+        .carousel-card {
+            display: none;
+        }
+        .carousel-card.active {
+            display: block;
+        }
+        .breadcrumb {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <!-- Auth Screen -->
+        <div id="authScreen" class="auth-screen">
+            <h1>📋 Sondage - CSV Automne 2026</h1>
+            <p class="subtitle">Tes retours nous aident à améliorer nos cours!</p>
+            
+            <h2>Qui es-tu?</h2>
+            <div class="auth-buttons">
+                <button onclick="startStudentForm()">Je suis élève</button>
+                <button onclick="showPasswordPrompt()" class="secondary">Je suis Judith</button>
+            </div>
+        </div>
+
+        <!-- Student Form -->
+        <div id="studentFormScreen" class="hidden">
+            <div class="breadcrumb">
+                <a onclick="goBack()">← Retour</a>
+            </div>
+            <h1>📋 Sondage - CSV Automne 2026</h1>
+            <p class="subtitle">Tes retours nous aident à améliorer nos cours!</p>
+
+            <form id="surveyForm">
+                <!-- Initial Section -->
+                <div class="section">
+                    <div class="section-title">À propos de toi</div>
+                    
+                    <div class="form-group">
+                        <label for="prenom">Prénom *</label>
+                        <input type="text" id="prenom" name="prenom" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="groupe">Groupe auquel tu es inscrit·e *</label>
+                        <select id="groupe" name="groupe" required>
+                            <option value="">-- Sélectionne ton groupe --</option>
+                            <option value="Adultes Découverte (Vendredi soir)">Adultes Découverte (Vendredi soir)</option>
+                            <option value="Adultes Exploration (Mardi soir)">Adultes Exploration (Mardi soir)</option>
+                            <option value="Adultes Approfondissement (Mercredi soir)">Adultes Approfondissement (Mercredi soir)</option>
+                            <option value="14-17 ans (Vendredi PM)">14-17 ans (Vendredi PM)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sessions">Combien de sessions de chant as-tu suivi avec Judith à ce jour? *</label>
+                        <select id="sessions" name="sessions" onchange="updateSections()" required>
+                            <option value="">-- Sélectionne --</option>
+                            <option value="0">0 (je suis nouveau/nouvelle)</option>
+                            <option value="1-2">1-2 sessions</option>
+                            <option value="3-5">3-5 sessions</option>
+                            <option value="6-10">6-10 sessions</option>
+                            <option value="10+">Plus de 10 sessions</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section 1: Tools Usefulness (ONLY if sessions > 0) -->
+                <div id="section1" class="section hidden">
+                    <div class="section-title">📚 Utilité des outils partagés</div>
+                    <div class="info-box">
+                        Sur une échelle de 0 à 5, où <strong>0 = je ne m'en servais pas du tout</strong> et <strong>5 = ça m'a été extrêmement utile</strong>
+                    </div>
+
+                    <!-- Tools (13 total) -->
+                    <div class="tool-item">
+                        <label>Site Web (Général)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_site_general')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_site_general" name="tool_site_general">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Page de groupe du site Web</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_page_groupe')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_page_groupe" name="tool_page_groupe">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Liste YouTube partagée</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_youtube')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_youtube" name="tool_youtube">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Liste Moises partagée</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_moises')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_moises" name="tool_moises">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Dossier partagé de paroles (version propre)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_paroles_propre')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_paroles_propre" name="tool_paroles_propre">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Dossier partagé de paroles (annotées)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_paroles_annotees')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_paroles_annotees" name="tool_paroles_annotees">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Dossier partagé de fichiers musicaux (mp3 ou mp4)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_musique')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_musique" name="tool_musique">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Dossier partagé de partitions</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_partitions')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_partitions" name="tool_partitions">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Feuille de paroles imprimées</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_feuille_imprimee')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_feuille_imprimee" name="tool_feuille_imprimee">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Partitions imprimées</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_partitions_imprimees')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_partitions_imprimees" name="tool_partitions_imprimees">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Excel (onglet chansons et vote)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_excel_chansons')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_excel_chansons" name="tool_excel_chansons">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Excel (onglet horaire)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_excel_horaire')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_excel_horaire" name="tool_excel_horaire">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Excel (onglet coordonnées)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'tool_excel_coordonnees')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="tool_excel_coordonnees" name="tool_excel_coordonnees">
+                    </div>
+                </div>
+
+                <!-- Section 2: Interests (ALL except sessions=0) -->
+                <div id="section2" class="section hidden">
+                    <div class="section-title">🎯 Sujets qui m'intéressent pour la prochaine session</div>
+                    <div class="info-box">
+                        Sur une échelle de 0 à 5, où <strong>0 = pas du tout d'intérêt</strong> et <strong>5 = très grand intérêt</strong>
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Se doter d'un thème choisi par le groupe pour la prochaine session</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_theme')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_theme" name="interet_theme">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Suivre des courtes séances de coaching individuel (sur réservation) devant ses pairs</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_coaching')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_coaching" name="interet_coaching">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Travailler des chansons en grand groupe</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_grand_groupe')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_grand_groupe" name="interet_grand_groupe">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Travailler des chansons en petit groupe</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_petit_groupe')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_petit_groupe" name="interet_petit_groupe">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Participer à un segment technique vocal avec exercices (indépendant du travail sur une chanson en particulier)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_technique')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_technique" name="interet_technique">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Apprendre la théorie musicale</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_theorie')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_theorie" name="interet_theorie">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Apprendre le chant harmonisé</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_harmonise')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_harmonise" name="interet_harmonise">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Apprendre à chanter avec une musicienne ou un musicien accompagnateur invité</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_accompagnateur')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_accompagnateur" name="interet_accompagnateur">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Apprendre des trucs de gestion du trac et d'hygiène de la voix</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_trac_hygiene')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_trac_hygiene" name="interet_trac_hygiene">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Apprendre des trucs d'interprétation scéniques</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_interpretation')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_interpretation" name="interet_interpretation">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Apprendre des trucs de mise en scène et de constitution de répertoire (en vue de la conception d'un spectacle)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_mise_en_scene')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_mise_en_scene" name="interet_mise_en_scene">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Relever un défi de chanson imposée par la professeure, choisie de façon ciblée pour chaque interprète ou petit groupe d'interprètes</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_defi_chanson')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_defi_chanson" name="interet_defi_chanson">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Explorer l'écriture de chansons originales (paroles)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_ecriture_paroles')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_ecriture_paroles" name="interet_ecriture_paroles">
+                    </div>
+
+                    <div class="tool-item">
+                        <label>Explorer l'écriture de chansons originales (musique)</label>
+                        <div class="scale-container" onclick="handleScaleClick(event, 'interet_ecriture_musique')">
+                            <button type="button" class="scale-btn" data-value="0">0</button>
+                            <button type="button" class="scale-btn" data-value="1">1</button>
+                            <button type="button" class="scale-btn" data-value="2">2</button>
+                            <button type="button" class="scale-btn" data-value="3">3</button>
+                            <button type="button" class="scale-btn" data-value="4">4</button>
+                            <button type="button" class="scale-btn" data-value="5">5</button>
+                        </div>
+                        <input type="hidden" id="interet_ecriture_musique" name="interet_ecriture_musique">
+                    </div>
+                </div>
+
+                <!-- Section 3: About Me & Resources -->
+                <div id="section3" class="section hidden">
+                    <div class="section-title">❓ À propos de moi et de mes ressources</div>
+
+                    <div class="form-group">
+                        <label>J'ai accès ou non à une tablette électronique que je pourrais amener et utiliser en classe. *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="tablette_oui" name="tablette" value="Oui" required>
+                                <label for="tablette_oui" class="radio-label">Oui</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="tablette_non" name="tablette" value="Non" required>
+                                <label for="tablette_non" class="radio-label">Non</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>J'ai accès ou non à une imprimante. *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="imprimante_oui" name="imprimante" value="Oui" required>
+                                <label for="imprimante_oui" class="radio-label">Oui</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="imprimante_non" name="imprimante" value="Non" required>
+                                <label for="imprimante_non" class="radio-label">Non</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Je joue d'un instrument de musique. *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="instrument_oui" name="instrument_oui_non" value="Oui" onchange="toggleInstrumentField()" required>
+                                <label for="instrument_oui" class="radio-label">Oui</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="instrument_non" name="instrument_oui_non" value="Non" onchange="toggleInstrumentField()" required>
+                                <label for="instrument_non" class="radio-label">Non</label>
+                            </div>
+                        </div>
+                        <div id="instrument_field" class="form-group hidden" style="margin-top: 12px;">
+                            <label for="instrument_lequel">Si oui, lequel ou lesquels?</label>
+                            <input type="text" id="instrument_lequel" name="instrument_lequel" placeholder="Ex: Piano, guitare, flûte...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Wishes & Objectives -->
+                <div id="section4" class="section hidden">
+                    <div class="section-title">💭 Mes souhaits et mes objectifs</div>
+
+                    <div class="form-group">
+                        <label for="objectif">Mon ou mes objectif(s) personnel(s) pour la prochaine session (ce que je veux accomplir, travailler ou améliorer, personnellement) *</label>
+                        <textarea id="objectif" name="objectif" placeholder="Écris ici..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="souhait_groupe">Mon plus grand souhait pour le groupe. *</label>
+                        <textarea id="souhait_groupe" name="souhait_groupe" placeholder="Écris ici..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="suggestions">Suggestions, commentaires ou précisions sur des points abordés ci-haut ou sur des points non abordés</label>
+                        <textarea id="suggestions" name="suggestions" placeholder="Tes idées ici..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="themes">Boîte à idées de thèmes (si nous choisissons cette avenue pour orienter nos choix de chanson)</label>
+                        <textarea id="themes" name="themes" placeholder="Ex: Musique des années 80, Chansons québécoises, Variété française..."></textarea>
+                    </div>
+                </div>
+
+                <button type="submit">📤 Envoyer mes réponses</button>
+            </form>
+        </div>
+
+        <!-- Teacher Dashboard -->
+        <div id="teacherDashboard" class="hidden">
+            <div class="breadcrumb">
+                <a onclick="goBack()">← Retour</a>
+            </div>
+            <h1>👨‍🏫 Espace Enseignant</h1>
+            <p class="subtitle">Gestion des réponses au sondage</p>
+
+            <div class="section">
+                <div class="section-title">⚙️ Contrôle de visibilité par groupe</div>
+                <p style="color: #666; margin-bottom: 20px; font-size: 13px;">Cochez pour rendre le résumé visible aux élèves de chaque groupe</p>
+                
+                <div id="visibilityControls"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">📊 Navigation</div>
+                <button onclick="showStudentCards()">Voir toutes les réponses (Fiches)</button>
+                <button onclick="showSummary()">Voir le résumé et les graphiques</button>
+            </div>
+
+            <div class="export-buttons">
+                <button onclick="exportCSV()">📥 Exporter en CSV</button>
+                <button onclick="exportJSON()">📥 Exporter en JSON</button>
+            </div>
+        </div>
+
+        <!-- Student Cards View (Teacher) -->
+        <div id="studentCardsView" class="hidden">
+            <div class="breadcrumb">
+                <a onclick="showTeacherDashboard()">← Retour au tableau de bord</a>
+            </div>
+            <h2>📋 Réponses par groupe</h2>
+            
+            <div class="form-group">
+                <label for="groupFilter">Filtrer par groupe:</label>
+                <select id="groupFilter" onchange="updateStudentCards()">
+                    <option value="">-- Tous les groupes --</option>
+                    <option value="Adultes Découverte (Vendredi soir)">Adultes Découverte</option>
+                    <option value="Adultes Exploration (Mardi soir)">Adultes Exploration</option>
+                    <option value="Adultes Approfondissement (Mercredi soir)">Adultes Approfondissement</option>
+                    <option value="14-17 ans (Vendredi PM)">14-17 ans</option>
+                </select>
+            </div>
+
+            <div id="studentCardsContainer"></div>
+        </div>
+
+        <!-- Summary View -->
+        <div id="summaryView" class="hidden">
+            <div class="breadcrumb">
+                <a onclick="showTeacherDashboard()">← Retour au tableau de bord</a>
+            </div>
+            <h2>📊 Résumé des réponses</h2>
+            
+            <div class="form-group">
+                <label for="summaryGroupFilter">Filtrer par groupe:</label>
+                <select id="summaryGroupFilter" onchange="updateSummaryView()">
+                    <option value="">-- Tous les groupes --</option>
+                    <option value="Adultes Découverte (Vendredi soir)">Adultes Découverte</option>
+                    <option value="Adultes Exploration (Mardi soir)">Adultes Exploration</option>
+                    <option value="Adultes Approfondissement (Mercredi soir)">Adultes Approfondissement</option>
+                    <option value="14-17 ans (Vendredi PM)">14-17 ans</option>
+                </select>
+            </div>
+
+            <div id="summaryContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // ===== FIREBASE CONFIGURATION =====
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4rZWSJLD5aGWm6Us6sezm6CNMzoUPbFI",
+            authDomain: "sondage-csv-automne-2026.firebaseapp.com",
+            projectId: "sondage-csv-automne-2026",
+            storageBucket: "sondage-csv-automne-2026.firebasestorage.app",
+            messagingSenderId: "999755099446",
+            appId: "1:999755099446:web:33da3eb26e0083818b3197"
+        };
+
+        // Initialiser Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ===== PASSWORD & AUTH =====
+        const TEACHER_PASSWORD = 'Musiqu3!';
+
+        function showPasswordPrompt() {
+            const password = prompt('Mot de passe enseignant:');
+            if (password === TEACHER_PASSWORD) {
+                initializeTeacherDashboard();
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('teacherDashboard').classList.remove('hidden');
+            } else {
+                alert('Mot de passe incorrect');
+            }
+        }
+
+        function goBack() {
+            document.querySelectorAll('[id$="Screen"], [id$="Dashboard"], [id$="View"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('authScreen').classList.remove('hidden');
+        }
+
+        // ===== DATA MANAGEMENT =====
+        function loadResponses() {
+            const data = localStorage.getItem('survey_responses');
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveResponse(formData) {
+            const responseData = {
+                timestamp: new Date().toISOString(),
+                ...formData
+            };
+
+            // Sauvegarder en localStorage comme backup
+            const responses = loadResponses();
+            responses.push(responseData);
+            localStorage.setItem('survey_responses', JSON.stringify(responses));
+
+            // Envoyer à Firestore
+            db.collection('sondage_csv_automne_2026').add(responseData)
+                .then(docRef => {
+                    console.log('Réponse envoyée à Firestore avec ID:', docRef.id);
+                })
+                .catch(error => {
+                    console.error('Erreur lors de l\'envoi à Firestore:', error);
+                    // Les données sont déjà en localStorage, c'est ok
+                });
+        }
+
+        function getVisibilitySettings() {
+            const data = localStorage.getItem('visibility_settings');
+            return data ? JSON.parse(data) : {
+                'Adultes Découverte (Vendredi soir)': false,
+                'Adultes Exploration (Mardi soir)': false,
+                'Adultes Approfondissement (Mercredi soir)': false,
+                '14-17 ans (Vendredi PM)': false
+            };
+        }
+
+        function saveVisibilitySettings(settings) {
+            localStorage.setItem('visibility_settings', JSON.stringify(settings));
+        }
+
+        // ===== STUDENT FORM =====
+        function startStudentForm() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('studentFormScreen').classList.remove('hidden');
+        }
+
+        function updateSections() {
+            const sessionsValue = document.getElementById('sessions').value;
+            const section1 = document.getElementById('section1');
+            const section2 = document.getElementById('section2');
+            const section3 = document.getElementById('section3');
+            const section4 = document.getElementById('section4');
+
+            if (sessionsValue === '0') {
+                section1.classList.add('hidden');
+            } else {
+                section1.classList.remove('hidden');
+            }
+
+            if (sessionsValue && sessionsValue !== '') {
+                section2.classList.remove('hidden');
+                section3.classList.remove('hidden');
+                section4.classList.remove('hidden');
+            } else {
+                section2.classList.add('hidden');
+                section3.classList.add('hidden');
+                section4.classList.add('hidden');
+            }
+        }
+
+        function handleScaleClick(event, fieldId) {
+            if (event.target.classList.contains('scale-btn')) {
+                event.preventDefault();
+                const value = event.target.dataset.value;
+                
+                const buttons = event.target.parentElement.querySelectorAll('.scale-btn');
+                buttons.forEach(btn => btn.classList.remove('selected'));
+                
+                event.target.classList.add('selected');
+                document.getElementById(fieldId).value = value;
+            }
+        }
+
+        function toggleInstrumentField() {
+            const instrumentYes = document.getElementById('instrument_oui').checked;
+            const instrumentField = document.getElementById('instrument_field');
+            
+            if (instrumentYes) {
+                instrumentField.classList.remove('hidden');
+            } else {
+                instrumentField.classList.add('hidden');
+                document.getElementById('instrument_lequel').value = '';
+            }
+        }
+
+        document.getElementById('surveyForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {
+                prenom: formData.get('prenom'),
+                groupe: formData.get('groupe'),
+                sessions: formData.get('sessions')
+            };
+
+            // Add all other responses
+            for (let [key, value] of formData.entries()) {
+                if (!['prenom', 'groupe', 'sessions'].includes(key)) {
+                    data[key] = value;
+                }
+            }
+
+            saveResponse(data);
+            alert('Tes réponses ont été enregistrées. Merci d\'avoir pris le temps de répondre à mes questions, ce me sera très utile pour préparer notre session de cours.');
+            goBack();
+        });
+
+        // ===== TEACHER DASHBOARD =====
+        function initializeTeacherDashboard() {
+            const settings = getVisibilitySettings();
+            const container = document.getElementById('visibilityControls');
+            container.innerHTML = '';
+
+            for (const [group, isVisible] of Object.entries(settings)) {
+                const div = document.createElement('div');
+                div.className = 'toggle-switch';
+                div.innerHTML = `
+                    <input type="checkbox" id="toggle_${group}" ${isVisible ? 'checked' : ''} onchange="updateVisibility('${group}', this.checked)">
+                    <label for="toggle_${group}" class="checkbox-label">${group}</label>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        function updateVisibility(group, isVisible) {
+            const settings = getVisibilitySettings();
+            settings[group] = isVisible;
+            saveVisibilitySettings(settings);
+        }
+
+        function showTeacherDashboard() {
+            document.querySelectorAll('[id$="View"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('teacherDashboard').classList.remove('hidden');
+        }
+
+        // Charger les réponses depuis Firestore
+        async function loadResponsesFromFirestore() {
+            try {
+                const snapshot = await db.collection('sondage_csv_automne_2026').get();
+                const responses = [];
+                snapshot.forEach(doc => {
+                    responses.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                return responses;
+            } catch (error) {
+                console.error('Erreur lors du chargement depuis Firestore:', error);
+                // Fallback vers localStorage en cas d'erreur
+                return loadResponses();
+            }
+        }
+
+        function showStudentCards() {
+            document.getElementById('studentCardsView').classList.remove('hidden');
+            document.getElementById('teacherDashboard').classList.add('hidden');
+            updateStudentCardsAsync();
+        }
+
+        async function updateStudentCardsAsync() {
+            await updateStudentCards();
+        }
+
+        async function updateStudentCards() {
+            const responses = await loadResponsesFromFirestore();
+            const groupFilter = document.getElementById('groupFilter').value;
+            const container = document.getElementById('studentCardsContainer');
+            container.innerHTML = '';
+
+            const filtered = groupFilter 
+                ? responses.filter(r => r.groupe === groupFilter)
+                : responses;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Aucune réponse</p>';
+                return;
+            }
+
+            // Create carousel container
+            const carousel = document.createElement('div');
+            carousel.className = 'carousel-container';
+
+            // Create nav controls
+            const nav = document.createElement('div');
+            nav.className = 'carousel-nav';
+            
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '← Précédent';
+            prevBtn.onclick = () => showCard(currentCardIndex - 1);
+            
+            const counter = document.createElement('div');
+            counter.className = 'carousel-counter';
+            counter.id = 'carouselCounter';
+            counter.textContent = `Répondant(e) 1 sur ${filtered.length}`;
+            
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Suivant →';
+            nextBtn.onclick = () => showCard(currentCardIndex + 1);
+            
+            nav.appendChild(prevBtn);
+            nav.appendChild(counter);
+            nav.appendChild(nextBtn);
+            carousel.appendChild(nav);
+
+            // Create cards
+            const cardsContainer = document.createElement('div');
+            cardsContainer.id = 'cardsContainer';
+
+            filtered.forEach((response, idx) => {
+                const card = document.createElement('div');
+                card.className = `student-response-card carousel-card ${idx === 0 ? 'active' : ''}`;
+                card.id = `card-${idx}`;
+                
+                let html = `<div class="student-name">Répondant(e) ${idx + 1}: ${response.prenom} (${response.groupe})</div>`;
+                
+                for (const [key, value] of Object.entries(response)) {
+                    if (!['timestamp', 'prenom', 'groupe'].includes(key) && value) {
+                        const label = key.replace(/_/g, ' ').toUpperCase();
+                        html += `<div class="response-item"><div class="response-label">${label}</div><div class="response-value">${value}</div></div>`;
+                    }
+                }
+                
+                card.innerHTML = html;
+                cardsContainer.appendChild(card);
+            });
+
+            carousel.appendChild(cardsContainer);
+            container.appendChild(carousel);
+
+            // Store filtered data for carousel
+            window.currentCardIndex = 0;
+            window.totalCards = filtered.length;
+            
+            // Define showCard function
+            window.showCard = function(index) {
+                if (index < 0) index = 0;
+                if (index >= window.totalCards) index = window.totalCards - 1;
+                
+                window.currentCardIndex = index;
+                
+                // Hide all cards
+                document.querySelectorAll('.carousel-card').forEach(card => card.classList.remove('active'));
+                
+                // Show current card
+                document.getElementById(`card-${index}`).classList.add('active');
+                
+                // Update counter
+                document.getElementById('carouselCounter').textContent = `Répondant(e) ${index + 1} sur ${window.totalCards}`;
+            };
+        }
+
+        function showSummary() {
+            document.getElementById('summaryView').classList.remove('hidden');
+            document.getElementById('teacherDashboard').classList.add('hidden');
+            updateSummaryView();
+        }
+
+        async function updateSummaryView() {
+            const responses = await loadResponsesFromFirestore();
+            const groupFilter = document.getElementById('summaryGroupFilter').value;
+            const container = document.getElementById('summaryContainer');
+            container.innerHTML = '';
+
+            const filtered = groupFilter 
+                ? responses.filter(r => r.groupe === groupFilter)
+                : responses;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Aucune réponse</p>';
+                return;
+            }
+
+            // --- STATS GÉNÉRALES ---
+            const stats = document.createElement('div');
+            stats.className = 'summary-grid';
+            stats.innerHTML = `
+                <div class="summary-card">
+                    <div class="summary-card-title">Nombre de réponses</div>
+                    <div class="summary-card-value">${filtered.length}</div>
+                </div>
+            `;
+            container.appendChild(stats);
+
+            // --- HISTOGRAMMES POUR CHAQUE QUESTION D'ÉCHELLE ---
+            const scaleQuestions = {
+                // Section 1: Outils
+                'tool_site_general': 'Site Web (Général)',
+                'tool_page_groupe': 'Page de groupe du site Web',
+                'tool_youtube': 'Liste YouTube partagée',
+                'tool_moises': 'Liste Moises partagée',
+                'tool_paroles_propre': 'Dossier partagé de paroles (version propre)',
+                'tool_paroles_annotees': 'Dossier partagé de paroles (annotées)',
+                'tool_musique': 'Dossier partagé de fichiers musicaux',
+                'tool_partitions': 'Dossier partagé de partitions',
+                'tool_feuille_imprimee': 'Feuille de paroles imprimées',
+                'tool_partitions_imprimees': 'Partitions imprimées',
+                'tool_excel_chansons': 'Excel (onglet chansons et vote)',
+                'tool_excel_horaire': 'Excel (onglet horaire)',
+                'tool_excel_coordonnees': 'Excel (onglet coordonnées)',
+                // Section 2: Intérêts
+                'interet_theme': 'Se doter d\'un thème choisi par le groupe',
+                'interet_coaching': 'Suivre des courtes séances de coaching individuel',
+                'interet_grand_groupe': 'Travailler des chansons en grand groupe',
+                'interet_petit_groupe': 'Travailler des chansons en petit groupe',
+                'interet_technique': 'Participer à un segment technique vocal',
+                'interet_theorie': 'Apprendre la théorie musicale',
+                'interet_harmonise': 'Apprendre le chant harmonisé',
+                'interet_accompagnateur': 'Apprendre à chanter avec un accompagnateur invité',
+                'interet_trac_hygiene': 'Apprendre des trucs de gestion du trac et d\'hygiène',
+                'interet_interpretation': 'Apprendre des trucs d\'interprétation scéniques',
+                'interet_mise_en_scene': 'Apprendre des trucs de mise en scène',
+                'interet_defi_chanson': 'Relever un défi de chanson imposée',
+                'interet_ecriture_paroles': 'Explorer l\'écriture de chansons (paroles)',
+                'interet_ecriture_musique': 'Explorer l\'écriture de chansons (musique)'
+            };
+
+            const chartsToCreate = [];
+
+            for (const [questionKey, questionLabel] of Object.entries(scaleQuestions)) {
+                // Compter les réponses pour chaque valeur (0-5)
+                const distribution = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                let totalAnswers = 0;
+
+                filtered.forEach(response => {
+                    const value = parseInt(response[questionKey]) || 0;
+                    if (value >= 0 && value <= 5) {
+                        distribution[value]++;
+                        totalAnswers++;
+                    }
+                });
+
+                // Ne montrer que si au moins une réponse
+                if (totalAnswers > 0) {
+                    const chartDiv = document.createElement('div');
+                    chartDiv.style.marginBottom = '40px';
+                    
+                    const chartTitle = document.createElement('h4');
+                    chartTitle.style.marginBottom = '8px';
+                    chartTitle.style.color = '#667eea';
+                    chartTitle.style.fontSize = '14px';
+                    chartTitle.style.fontWeight = '600';
+                    chartTitle.textContent = questionLabel;
+                    chartDiv.appendChild(chartTitle);
+
+                    // Calculer la moyenne
+                    let sum = 0;
+                    let count = 0;
+                    filtered.forEach(response => {
+                        const value = parseInt(response[questionKey]);
+                        if (!isNaN(value) && value >= 0 && value <= 5) {
+                            sum += value;
+                            count++;
+                        }
+                    });
+                    const average = count > 0 ? (sum / count).toFixed(2) : 'N/A';
+
+                    const avgDiv = document.createElement('div');
+                    avgDiv.style.marginBottom = '12px';
+                    avgDiv.style.fontSize = '12px';
+                    avgDiv.style.color = '#666';
+                    avgDiv.textContent = `Moyenne : ${average}`;
+                    chartDiv.appendChild(avgDiv);
+
+                    const canvasContainer = document.createElement('div');
+                    canvasContainer.style.position = 'relative';
+                    canvasContainer.style.height = '250px';
+                    canvasContainer.style.marginBottom = '30px';
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.id = `chart-${chartsToCreate.length}`;
+                    canvasContainer.appendChild(canvas);
+                    chartDiv.appendChild(canvasContainer);
+                    
+                    container.appendChild(chartDiv);
+
+                    // Stocker pour créer après
+                    chartsToCreate.push({
+                        canvasId: `chart-${chartsToCreate.length}`,
+                        distribution: distribution
+                    });
+                }
+            }
+
+            // Créer les graphiques maintenant que tout est rendu
+            chartsToCreate.forEach(chart => {
+                try {
+                    const ctx = document.getElementById(chart.canvasId).getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['0', '1', '2', '3', '4', '5'],
+                            datasets: [{
+                                label: 'Nombre de réponses',
+                                data: [chart.distribution[0], chart.distribution[1], chart.distribution[2], chart.distribution[3], chart.distribution[4], chart.distribution[5]],
+                                backgroundColor: '#667eea',
+                                borderColor: '#764ba2',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch(e) {
+                    console.error('Erreur création graphique:', e);
+                }
+            });
+
+            // --- RÉPONSES TEXTE ANONYMISÉES ---
+            const textResponses = ['objectif', 'souhait_groupe', 'suggestions', 'themes'];
+            const textLabels = {
+                'objectif': 'Objectifs personnels',
+                'souhait_groupe': 'Souhaits pour le groupe',
+                'suggestions': 'Suggestions et commentaires',
+                'themes': 'Idées de thèmes'
+            };
+
+            const textSection = document.createElement('div');
+            textSection.style.marginTop = '50px';
+            textSection.style.paddingTop = '30px';
+            textSection.style.borderTop = '2px solid #f0f0f0';
+
+            const textTitle = document.createElement('h3');
+            textTitle.style.color = '#667eea';
+            textTitle.style.marginBottom = '20px';
+            textTitle.textContent = '📝 Réponses texte (anonymisées)';
+            textSection.appendChild(textTitle);
+
+            textResponses.forEach(fieldKey => {
+                const textAnswers = filtered
+                    .map(r => r[fieldKey])
+                    .filter(a => a && a.trim().length > 0);
+
+                if (textAnswers.length > 0) {
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.style.marginBottom = '30px';
+
+                    const fieldTitle = document.createElement('h4');
+                    fieldTitle.style.color = '#333';
+                    fieldTitle.style.fontSize = '14px';
+                    fieldTitle.style.marginBottom = '12px';
+                    fieldTitle.style.fontWeight = '600';
+                    fieldTitle.textContent = `${textLabels[fieldKey]} (${textAnswers.length} réponse${textAnswers.length > 1 ? 's' : ''})`;
+                    fieldDiv.appendChild(fieldTitle);
+
+                    textAnswers.forEach((answer, idx) => {
+                        const answerDiv = document.createElement('div');
+                        answerDiv.style.padding = '12px';
+                        answerDiv.style.marginBottom = '10px';
+                        answerDiv.style.backgroundColor = '#f9f9f9';
+                        answerDiv.style.borderLeft = '3px solid #667eea';
+                        answerDiv.style.borderRadius = '2px';
+                        answerDiv.style.fontSize = '13px';
+                        answerDiv.style.lineHeight = '1.5';
+                        answerDiv.style.color = '#333';
+                        answerDiv.innerHTML = `<strong>[Répondant(e) ${idx + 1}]</strong> ${answer}`;
+                        fieldDiv.appendChild(answerDiv);
+                    });
+
+                    textSection.appendChild(fieldDiv);
+                }
+            });
+
+            container.appendChild(textSection);
+        }
+
+        // ===== EXPORT =====
+        function exportCSV() {
+            const responses = loadResponses();
+            if (responses.length === 0) {
+                alert('Aucune réponse à exporter');
+                return;
+            }
+
+            const headers = Object.keys(responses[0]);
+            const csv = [headers.join(','), ...responses.map(r => headers.map(h => JSON.stringify(r[h] || '')).join(','))].join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sondage_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function exportJSON() {
+            const responses = loadResponses();
+            if (responses.length === 0) {
+                alert('Aucune réponse à exporter');
+                return;
+            }
+
+            const json = JSON.stringify(responses, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sondage_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+    </script>
+</body>
+</html>
