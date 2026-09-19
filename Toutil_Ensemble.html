@@ -655,6 +655,12 @@
     </div>
 
     <div class="card">
+      <h2>Ressources</h2>
+      <div class="note">Liens et documents ajoutés par votre enseignante pour votre groupe.</div>
+      <div id="mygroup-ressources-wrap"><div class="loading-state">Chargement…</div></div>
+    </div>
+
+    <div class="card">
       <h2>Coordonnées (partage volontaire entre vous)</h2>
       <div class="note">Ce partage est entièrement optionnel et sert seulement à échanger vos coordonnées avec les autres élèves de votre groupe. Votre enseignante ne rend jamais cette liste publique.</div>
       <div id="coord-list"></div>
@@ -691,6 +697,22 @@
       <div class="note">Cette vue regroupe les chansons de tous les groupes. Les coordonnées personnelles des élèves n'apparaissent jamais ici — elles restent visibles uniquement à l'intérieur de chaque groupe.</div>
       <div class="table-wrap repertoire-scroll" id="inv-table-wrap">
         <div class="loading-state">Chargement du répertoire…</div>
+      </div>
+    </div>
+
+    <div class="card" id="admin-ressources-card">
+      <h2>Ressources</h2>
+      <div class="note">Gérez les liens et documents partagés avec un groupe — utilisez le filtre de groupe ci-dessus pour choisir lequel.</div>
+      <div id="admin-ressources-wrap"></div>
+      <div id="admin-ressources-form-wrap" class="hidden">
+        <h3>Ajouter une ressource</h3>
+        <div class="row3">
+          <div class="field"><label for="res-titre">Titre</label><input id="res-titre" type="text" placeholder="Ex. Liste de chansons partagée"></div>
+          <div class="field"><label for="res-lien">Lien</label><input id="res-lien" type="url" placeholder="https://..."></div>
+          <div class="field"><label for="res-description">Description (optionnelle)</label><input id="res-description" type="text" placeholder="Ex. Vidéo de démonstration"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="res-add-btn" type="button">Ajouter</button>
+        <span id="res-status" style="font-size:13px;color:var(--ink-soft);margin-left:10px;"></span>
       </div>
     </div>
   </div>
@@ -1136,7 +1158,7 @@ function activateTab(key){
   document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
   document.getElementById("panel-" + key).classList.add("active");
   if (key === "mygroup") loadMyGroupPanel();
-  if (key === "inventory") loadInventory();
+  if (key === "inventory") { loadInventory(); loadAdminRessources(); }
   if (key === "admin") loadAdminPanel();
 }
 
@@ -1387,7 +1409,7 @@ function bindVoteAddName(){
 
 async function loadMyGroupPanel(){
   document.getElementById("mygroup-title").textContent = "Répertoire de " + session.groupe;
-  await Promise.all([loadMyGroupChansons(), loadMyGroupHoraire(), loadCoordList()]);
+  await Promise.all([loadMyGroupChansons(), loadMyGroupHoraire(), loadCoordList(), loadMyGroupRessources()]);
 }
 
 async function loadMyGroupChansons(){
@@ -2120,6 +2142,107 @@ document.getElementById("coord-add-btn").addEventListener("click", async () => {
   }
 });
 
+/* ---------------- Ressources (ajoutées par l'admin, consultées par le groupe) ---------------- */
+async function loadMyGroupRessources(){
+  const wrap = document.getElementById("mygroup-ressources-wrap");
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const listRes = await window.storage.list("ressource:" + safeKeyPart(session.groupe) + ":", true);
+    const keys = (listRes && listRes.keys) || [];
+    const rows = [];
+    for (const k of keys) {
+      const r = await storageGet(k);
+      if (r) rows.push(Object.assign({ key: k }, r));
+    }
+    rows.sort((a, b) => (a.titre || "").localeCompare(b.titre || ""));
+    if (!rows.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune ressource ajoutée pour l’instant.</p>';
+      return;
+    }
+    wrap.innerHTML = rows.map(r => `
+      <div class="coord-row">
+        <div class="coord-name"><a href="${escXml(r.lien)}" target="_blank" rel="noopener">${escXml(r.titre)}</a></div>
+        ${r.description ? `<div>${escXml(r.description)}</div>` : ""}
+      </div>`).join("");
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger les ressources.</p>';
+  }
+}
+
+let currentRessourceGroup = "";
+
+async function loadAdminRessources(){
+  const groupFilter = document.getElementById("inv-group-filter").value;
+  const wrap = document.getElementById("admin-ressources-wrap");
+  const formWrap = document.getElementById("admin-ressources-form-wrap");
+  currentRessourceGroup = groupFilter;
+  if (!groupFilter){
+    wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Choisissez un groupe dans le filtre ci-dessus pour voir et gérer ses ressources.</p>';
+    formWrap.classList.add("hidden");
+    return;
+  }
+  formWrap.classList.remove("hidden");
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const listRes = await window.storage.list("ressource:" + safeKeyPart(groupFilter) + ":", true);
+    const keys = (listRes && listRes.keys) || [];
+    const rows = [];
+    for (const k of keys) {
+      const r = await storageGet(k);
+      if (r) rows.push(Object.assign({ key: k }, r));
+    }
+    rows.sort((a, b) => (a.titre || "").localeCompare(b.titre || ""));
+    if (!rows.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune ressource pour ce groupe pour l’instant.</p>';
+      return;
+    }
+    wrap.innerHTML = rows.map(r => `
+      <div class="coord-row">
+        <div class="coord-name"><a href="${escXml(r.lien)}" target="_blank" rel="noopener">${escXml(r.titre)}</a></div>
+        ${r.description ? `<div>${escXml(r.description)}</div>` : ""}
+        <div class="row-actions" style="margin-top:6px;">
+          <button class="btn btn-danger-ghost" data-remove-res="${r.key}">Supprimer</button>
+        </div>
+      </div>`).join("");
+    wrap.querySelectorAll("[data-remove-res]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!(await customConfirm("Supprimer cette ressource ?"))) return;
+        try { await window.storage.delete(btn.dataset.removeRes, true); showToast("Ressource supprimée."); loadAdminRessources(); }
+        catch(e){ showToast("Erreur lors de la suppression.", true); }
+      });
+    });
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger les ressources.</p>';
+  }
+}
+
+document.getElementById("res-add-btn").addEventListener("click", async () => {
+  const titre = document.getElementById("res-titre").value.trim();
+  const lien = document.getElementById("res-lien").value.trim();
+  const description = document.getElementById("res-description").value.trim();
+  const status = document.getElementById("res-status");
+  if (!titre || !lien){
+    showToast("Titre et lien requis.", true);
+    return;
+  }
+  if (!currentRessourceGroup){
+    showToast("Choisissez d'abord un groupe.", true);
+    return;
+  }
+  status.textContent = "Ajout en cours…";
+  const ok = await storageSet("ressource:" + safeKeyPart(currentRessourceGroup) + ":" + genId(), { titre, lien, description, dateAjout: new Date().toISOString() });
+  status.textContent = "";
+  if (ok){
+    showToast("Ressource ajoutée ✓");
+    ["res-titre","res-lien","res-description"].forEach(id => document.getElementById(id).value = "");
+    loadAdminRessources();
+  } else {
+    showToast("Erreur lors de l'ajout.", true);
+  }
+});
+
 async function buildZipAndDownload(entries, zipFilename, groupByFolder, btn){
   if (!entries.length){ showToast("Aucun fichier à télécharger.", true); return; }
   const originalText = btn ? btn.textContent : "";
@@ -2375,7 +2498,7 @@ function renderInventoryTable(entries){
 }
 
 document.getElementById("inv-search-input").addEventListener("input", () => renderInventoryTable(allEntries));
-document.getElementById("inv-group-filter").addEventListener("change", () => renderInventoryTable(allEntries));
+document.getElementById("inv-group-filter").addEventListener("change", () => { renderInventoryTable(allEntries); loadAdminRessources(); });
 document.getElementById("refresh-btn").addEventListener("click", loadInventory);
 
 function sanitizeSheetName(name){
