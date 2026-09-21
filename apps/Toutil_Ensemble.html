@@ -684,31 +684,10 @@
   </div>
 
   <!-- ===================== ONGLET RÉPERTOIRE DE MON GROUPE (élève) ===================== -->
-  <div class="panel" id="panel-mygroup">
-    <div class="card">
-      <div class="inv-toolbar">
-        <h2 style="margin:0;" id="mygroup-title">Répertoire de mon groupe</h2>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" id="mygroup-refresh-btn" type="button">Actualiser</button>
-          <button class="btn btn-ghost btn-sm" id="mygroup-zip-btn" type="button">Télécharger tous les fichiers Paroles (.zip)</button>
-          <button class="btn btn-primary btn-sm" id="mygroup-export-btn" type="button">Exporter mon répertoire (Excel)</button>
-        </div>
-      </div>
-      <h3>Chansons</h3>
-      <div class="table-wrap repertoire-scroll" id="mygroup-chansons-wrap"><div class="loading-state">Chargement…</div></div>
-
-      <h3>Ressources</h3>
-      <div class="note">Liens et documents ajoutés par votre enseignante pour votre groupe.</div>
-      <div id="mygroup-ressources-wrap"><div class="loading-state">Chargement…</div></div>
-
-      <h3>Horaire</h3>
-      <div id="mygroup-horaire-wrap"><div class="loading-state">Chargement…</div></div>
-    </div>
-
+  <div class="panel" id="panel-inscription">
     <div class="card">
       <h2>Coordonnées et objectifs</h2>
-      <div class="note">Le nom, le courriel et le téléphone ne sont jamais affichés à l'écran — ils ne servent qu'à l'export Excel de votre enseignante. Les allergies et les contacts parent/urgence restent toujours confidentiels. Votre objectif pour la session peut être visible ci-dessous au reste du groupe, seulement si vous cochez la case pour le partager.</div>
-      <div id="objectifs-list"></div>
+      <div class="note">Les coordonnées téléphonique et courriel ne s'afficheront pas directement dans l'appli. Conditionnellement à votre autorisation de partage, elle s'afficheront dans l'export Excel spécifique à votre groupe. Si vous n'autorisez pas cet affichage, seule votre enseignante ou seul ou votre enseignant y aura accès.</div>
       <h3>Coordonnées de l'élève</h3>
       <div class="row3">
         <div class="field"><label for="coord-nom">Nom, prénom</label><input id="coord-nom" type="text"></div>
@@ -727,7 +706,7 @@
       <div class="field"><label for="coord-objectif">Objectif pour la session</label><textarea id="coord-objectif" rows="3" placeholder="Ex. Travailler la justesse, préparer une chanson pour le spectacle…"></textarea></div>
       <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
         <input type="checkbox" id="coord-objectif-partage" style="width:auto;margin-top:3px;">
-        <label for="coord-objectif-partage" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon objectif avec le reste de mon groupe (visible à l'écran ci-dessus et dans l'Excel de groupe — sinon, il reste visible seulement par votre enseignante).</label>
+        <label for="coord-objectif-partage" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon objectif avec le reste de mon groupe (visible dans l'onglet Répertoire et horaire, et dans l'Excel de groupe — sinon, il reste visible seulement par votre enseignante).</label>
       </div>
       <div class="field"><label for="coord-allergies">Allergies (confidentiel)</label><input id="coord-allergies" type="text" placeholder="Ex. Aucune, ou : arachides"></div>
       <h3>Adulte(s) ou parent(s) responsable(s) ou contact(s) d'urgence (confidentiel)</h3>
@@ -755,6 +734,32 @@
       </div>
       <span id="coord-lookup-status" style="font-size:13px;color:var(--ink-soft);"></span>
       <div id="coord-self-edit-wrap" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-mygroup">
+    <div class="card">
+      <div class="inv-toolbar">
+        <h2 style="margin:0;" id="mygroup-title">Répertoire de mon groupe</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" id="mygroup-refresh-btn" type="button">Actualiser</button>
+          <button class="btn btn-ghost btn-sm" id="mygroup-zip-btn" type="button">Télécharger tous les fichiers Paroles (.zip)</button>
+          <button class="btn btn-primary btn-sm" id="mygroup-export-btn" type="button">Exporter mon répertoire (Excel)</button>
+        </div>
+      </div>
+      <h3>Chansons</h3>
+      <div class="table-wrap repertoire-scroll" id="mygroup-chansons-wrap"><div class="loading-state">Chargement…</div></div>
+
+      <h3>Ressources</h3>
+      <div class="note">Liens et documents ajoutés par votre enseignante pour votre groupe.</div>
+      <div id="mygroup-ressources-wrap"><div class="loading-state">Chargement…</div></div>
+
+      <h3>Horaire</h3>
+      <div id="mygroup-horaire-wrap"><div class="loading-state">Chargement…</div></div>
+
+      <h3>Objectifs du groupe</h3>
+      <div class="note">Objectifs pour la session, partagés par les élèves du groupe qui ont autorisé cet affichage.</div>
+      <div id="objectifs-list"></div>
     </div>
   </div>
 
@@ -1295,7 +1300,7 @@ function buildTabsForSession(){
   const tabs = document.getElementById("main-tabs");
   tabs.innerHTML = "";
   const defs = (session.type === "eleve" || session.type === "assistant")
-    ? [["form","Nouvelle fiche"],["mygroup","Mon répertoire"]]
+    ? [["inscription","M'inscrire"],["form","Soumettre une chanson"],["mygroup","Répertoire et horaire"]]
     : [["admin","Administration"],["inventory","Vue d'ensemble"]];
   defs.forEach(([key, label], i) => {
     const btn = document.createElement("button");
