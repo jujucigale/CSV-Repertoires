@@ -707,22 +707,27 @@
 
     <div class="card">
       <h2>Coordonnées</h2>
-      <div class="note">Le nom, le courriel et le téléphone ne sont partagés avec le reste du groupe que si vous cochez la case ci-dessous. Les allergies et les contacts parent/urgence restent toujours confidentiels, visibles seulement par votre enseignante. Seule votre enseignante peut modifier ou retirer une fiche déjà soumise.</div>
-      <div id="coord-list"></div>
+      <div class="note">Le nom, le courriel et le téléphone ne sont jamais affichés à l'écran — ils ne servent qu'à l'export Excel de votre enseignante. Les allergies et les contacts parent/urgence restent toujours confidentiels. Votre objectif pour la session peut être visible ci-dessous au reste du groupe, seulement si vous cochez la case pour le partager.</div>
+      <div id="objectifs-list"></div>
       <h3>Coordonnées de l'élève</h3>
       <div class="row3">
         <div class="field"><label for="coord-nom">Nom, prénom</label><input id="coord-nom" type="text"></div>
         <div class="field"><label for="coord-courriel">Courriel</label><input id="coord-courriel" type="email"></div>
         <div class="field"><label for="coord-telephone">Téléphone</label><input id="coord-telephone" type="tel"></div>
       </div>
+      <div class="field" style="max-width:240px;">
+        <label for="coord-pin">Choisissez un code personnel (4 chiffres)</label>
+        <input id="coord-pin" type="password" maxlength="4" placeholder="Ex. 1234">
+      </div>
+      <div class="note" style="margin-top:-8px;">Ce code vous permettra de retrouver et modifier votre fiche plus tard, sans dépendre de votre enseignante — gardez-le en mémoire.</div>
       <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
         <input type="checkbox" id="coord-partager-groupe" style="width:auto;margin-top:3px;">
-        <label for="coord-partager-groupe" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon nom, mon courriel et mon téléphone avec le reste de mon groupe (facultatif — décoché par défaut).</label>
+        <label for="coord-partager-groupe" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon nom, mon courriel et mon téléphone (facultatif — sert uniquement à l'export Excel de l'enseignante, décoché par défaut).</label>
       </div>
       <div class="field"><label for="coord-objectif">Objectif pour la session</label><textarea id="coord-objectif" rows="3" placeholder="Ex. Travailler la justesse, préparer une chanson pour le spectacle…"></textarea></div>
       <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
         <input type="checkbox" id="coord-objectif-partage" style="width:auto;margin-top:3px;">
-        <label for="coord-objectif-partage" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon objectif dans l'Excel du groupe (sinon, il reste visible seulement par votre enseignante). Ce champ n'apparaît jamais à l'écran, seulement dans les exports Excel.</label>
+        <label for="coord-objectif-partage" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon objectif avec le reste de mon groupe (visible à l'écran ci-dessus et dans l'Excel de groupe — sinon, il reste visible seulement par votre enseignante).</label>
       </div>
       <div class="field"><label for="coord-allergies">Allergies (confidentiel)</label><input id="coord-allergies" type="text" placeholder="Ex. Aucune, ou : arachides"></div>
       <h3>Adulte(s) ou parent(s) responsable(s) ou contact(s) d'urgence (confidentiel)</h3>
@@ -740,6 +745,16 @@
       </div>
       <button class="btn btn-primary" id="coord-add-btn" type="button">Enregistrer mes coordonnées</button>
       <span id="coord-status" style="font-size:13px;color:var(--ink-soft);margin-left:10px;"></span>
+
+      <h3 style="margin-top:24px;">Modifier mes coordonnées ou mon objectif</h3>
+      <div class="note" style="margin-bottom:10px;">Entrez votre nom et votre code personnel pour retrouver votre fiche et la modifier — y compris changer d'avis sur le partage.<br>Nom ou code oublié? Communique avec la personne qui t'enseigne pour récupérer l'information.</div>
+      <div class="row3">
+        <div class="field"><label for="coord-lookup-nom">Nom, prénom</label><input id="coord-lookup-nom" type="text"></div>
+        <div class="field"><label for="coord-lookup-pin">Code personnel (4 chiffres)</label><input id="coord-lookup-pin" type="password" maxlength="4"></div>
+        <div class="field" style="display:flex;align-items:flex-end;"><button class="btn btn-ghost" id="coord-lookup-btn" type="button">Retrouver ma fiche</button></div>
+      </div>
+      <span id="coord-lookup-status" style="font-size:13px;color:var(--ink-soft);"></span>
+      <div id="coord-self-edit-wrap" style="margin-top:12px;"></div>
     </div>
   </div>
 
@@ -761,16 +776,6 @@
       <div class="table-wrap repertoire-scroll" id="inv-table-wrap">
         <div class="loading-state">Chargement du répertoire…</div>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>Coordonnées des élèves</h2>
-      <div class="note">Vue admin : voyez et modifiez ici les coordonnées complètes de chaque élève (y compris allergies et contacts parent/urgence, jamais visibles par le reste du groupe) — aucun code personnel requis.</div>
-      <div class="field" style="max-width:300px;">
-        <label for="admin-coord-group-select">Groupe à afficher</label>
-        <select id="admin-coord-group-select"><option value="">— Choisir un groupe —</option></select>
-      </div>
-      <div id="admin-coord-list" style="margin-top:12px;"></div>
     </div>
 
     <div class="card" id="admin-ressources-card">
@@ -839,6 +844,22 @@
         </div>
         <div id="horaire-editor" style="margin-top:16px;"></div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Coordonnées des élèves</h2>
+      <div class="note">Vue admin : voyez et modifiez ici les coordonnées complètes de chaque élève (y compris allergies, objectif et contacts parent/urgence, jamais visibles par le reste du groupe) — aucun code personnel requis.</div>
+      <div class="field" style="max-width:300px;">
+        <label for="admin-coord-group-select">Groupe à afficher</label>
+        <select id="admin-coord-group-select"><option value="">— Choisir un groupe —</option></select>
+      </div>
+      <div id="admin-coord-nav" class="hidden" style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="admin-coord-prev-btn" type="button">◀ Précédent</button>
+        <select id="admin-coord-student-select" style="max-width:260px;"></select>
+        <button class="btn btn-ghost btn-sm" id="admin-coord-next-btn" type="button">Suivant ▶</button>
+        <span id="admin-coord-position" style="font-size:12.5px;color:var(--ink-soft);white-space:nowrap;"></span>
+      </div>
+      <div id="admin-coord-list" style="margin-top:12px;"></div>
     </div>
   </div>
 
@@ -1528,7 +1549,7 @@ function bindVoteAddName(){
 
 async function loadMyGroupPanel(){
   document.getElementById("mygroup-title").textContent = "Répertoire de " + session.groupe;
-  await Promise.all([loadMyGroupChansons(), loadMyGroupHoraire(), loadCoordList(), loadMyGroupRessources()]);
+  await Promise.all([loadMyGroupChansons(), loadMyGroupHoraire(), loadObjectifsList(), loadMyGroupRessources()]);
 }
 
 async function loadMyGroupChansons(){
@@ -2214,8 +2235,13 @@ function contactRoleLabel(c){
   return roles.length ? roles.join(" + ") : "contact";
 }
 
-async function loadCoordList(){
-  const wrap = document.getElementById("coord-list");
+async function loadObjectifsList(){
+  const wrap = document.getElementById("objectifs-list");
+  const cfg = groupesConfig[session.groupe] || {};
+  if (cfg.objectifsVisibles === false){
+    wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Les objectifs partagés ne sont pas activés pour ce groupe.</p>';
+    return;
+  }
   wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
   try {
     const listRes = await window.storage.list("coord:" + safeKeyPart(session.groupe) + ":", true);
@@ -2223,16 +2249,16 @@ async function loadCoordList(){
     const rows = [];
     for (const k of keys) {
       const r = await storageGet(k);
-      if (r && r.partagerGroupe) rows.push(Object.assign({ key: k }, r));
+      if (r && r.objectifPartageGroupe && (r.objectif || "").trim()) rows.push(r);
     }
     if (!rows.length){
-      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Personne n’a encore partagé ses coordonnées dans ce groupe.</p>';
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Personne n’a encore partagé d’objectif dans ce groupe.</p>';
       return;
     }
     wrap.innerHTML = rows.map(r => `
       <div class="coord-row">
         <div class="coord-name">${escXml(r.nom)}</div>
-        <div>${escXml(r.courriel || "—")} · ${escXml(r.telephone || "—")}</div>
+        <div>${escXml(r.objectif)}</div>
       </div>`).join("");
   } catch(e){
     console.error(e);
@@ -2274,9 +2300,10 @@ document.getElementById("coord-contact-add-btn").addEventListener("click", () =>
 
 document.getElementById("coord-add-btn").addEventListener("click", async () => {
   const nom = document.getElementById("coord-nom").value.trim();
+  const pin = document.getElementById("coord-pin").value.trim();
   const status = document.getElementById("coord-status");
-  if (!nom){
-    showToast("Le nom est requis.", true);
+  if (!nom || !/^[0-9]{4}$/.test(pin)){
+    showToast("Nom requis, et code personnel = 4 chiffres.", true);
     return;
   }
   // Si des champs de contact sont remplis mais n'ont pas été ajoutés via le bouton, on les ajoute automatiquement.
@@ -2300,24 +2327,167 @@ document.getElementById("coord-add-btn").addEventListener("click", async () => {
     objectifPartageGroupe: document.getElementById("coord-objectif-partage").checked,
     allergies: document.getElementById("coord-allergies").value.trim(),
     contacts,
+    pin,
   };
   status.textContent = "Enregistrement en cours…";
   const ok = await storageSet("coord:" + safeKeyPart(session.groupe) + ":" + genId(), entry);
   status.textContent = "";
   if (ok){
     showToast("Coordonnées enregistrées ✓");
-    ["coord-nom","coord-courriel","coord-telephone","coord-objectif","coord-allergies","coord-contact-nom","coord-contact-courriel","coord-contact-telephone"].forEach(id => document.getElementById(id).value = "");
+    ["coord-nom","coord-courriel","coord-telephone","coord-pin","coord-objectif","coord-allergies","coord-contact-nom","coord-contact-courriel","coord-contact-telephone"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("coord-partager-groupe").checked = false;
     document.getElementById("coord-objectif-partage").checked = false;
     document.getElementById("coord-contact-resp").checked = false;
     document.getElementById("coord-contact-urgence").checked = false;
     coordContactsDraft = [];
     renderCoordContactsDraft();
-    loadCoordList();
+    loadObjectifsList();
   } else {
     showToast("Erreur lors de l'enregistrement.", true);
   }
 });
+
+/* ---------------- Coordonnées — modification en libre-service (nom + code) ---------------- */
+document.getElementById("coord-lookup-btn").addEventListener("click", async () => {
+  const nom = document.getElementById("coord-lookup-nom").value.trim();
+  const pin = document.getElementById("coord-lookup-pin").value.trim();
+  const status = document.getElementById("coord-lookup-status");
+  const editWrap = document.getElementById("coord-self-edit-wrap");
+  editWrap.innerHTML = "";
+  if (!nom || !/^[0-9]{4}$/.test(pin)){
+    status.textContent = "Entrez votre nom et votre code à 4 chiffres.";
+    return;
+  }
+  status.textContent = "Recherche en cours…";
+  try {
+    const listRes = await window.storage.list("coord:" + safeKeyPart(session.groupe) + ":", true);
+    const keys = (listRes && listRes.keys) || [];
+    let found = null, foundKey = null;
+    for (const k of keys) {
+      const r = await storageGet(k);
+      if (r && String(r.nom || "").trim().toLowerCase() === nom.toLowerCase() && String(r.pin || "") === pin) {
+        found = normalizeCoordEntry(r);
+        foundKey = k;
+        break;
+      }
+    }
+    if (!found){
+      status.textContent = "Aucune fiche trouvée avec ce nom et ce code. Nom ou code oublié? Communique avec la personne qui t'enseigne pour récupérer l'information.";
+      return;
+    }
+    status.textContent = "";
+    renderCoordSelfEdit(foundKey, found);
+  } catch(e){
+    console.error(e);
+    status.textContent = "Erreur lors de la recherche.";
+  }
+});
+
+function renderCoordSelfEdit(key, r){
+  const wrap = document.getElementById("coord-self-edit-wrap");
+  wrap.innerHTML = `
+    <div class="card" style="background:var(--paper-alt,#faf8f3);" data-sc-card="${escXml(key)}">
+      <div class="row3">
+        <div class="field"><label>Nom, prénom</label><input type="text" data-scfield="nom" value="${escXml(r.nom || "")}"></div>
+        <div class="field"><label>Courriel</label><input type="text" data-scfield="courriel" value="${escXml(r.courriel || "")}"></div>
+        <div class="field"><label>Téléphone</label><input type="text" data-scfield="telephone" value="${escXml(r.telephone || "")}"></div>
+      </div>
+      <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" data-scfield-cb="partagerGroupe" ${r.partagerGroupe ? "checked" : ""} style="width:auto;margin-top:3px;">
+        <label style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon nom, mon courriel et mon téléphone (sert uniquement à l'export Excel de l'enseignante).</label>
+      </div>
+      <div class="field"><label>Objectif pour la session</label><textarea data-scfield="objectif" rows="3">${escXml(r.objectif || "")}</textarea></div>
+      <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" data-scfield-cb="objectifPartageGroupe" ${r.objectifPartageGroupe ? "checked" : ""} style="width:auto;margin-top:3px;">
+        <label style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon objectif avec le reste de mon groupe.</label>
+      </div>
+      <div class="field"><label>Allergies (confidentiel)</label><input type="text" data-scfield="allergies" value="${escXml(r.allergies || "")}"></div>
+      <div style="margin-top:8px;">
+        <div style="font-weight:600;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;">Adulte(s) ou parent(s) responsable(s) ou contact(s) d'urgence (confidentiel)</div>
+        <div data-sc-contacts="${escXml(key)}">
+          ${r.contacts.map(c => `
+            <div class="coord-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;" data-sc-contact="${escXml(c.id)}">
+              <input type="text" placeholder="Nom" data-scc-field="nom" value="${escXml(c.nom || "")}" style="flex:1;min-width:110px;">
+              <input type="text" placeholder="Courriel" data-scc-field="courriel" value="${escXml(c.courriel || "")}" style="flex:1;min-width:110px;">
+              <input type="text" placeholder="Téléphone" data-scc-field="telephone" value="${escXml(c.telephone || "")}" style="flex:1;min-width:110px;">
+              <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-scc-field="parentResponsable" ${c.parentResponsable ? "checked" : ""} style="width:auto;"> Parent ou adulte responsable</label>
+              <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-scc-field="urgence" ${c.urgence ? "checked" : ""} style="width:auto;"> Contact d'urgence</label>
+              <button class="btn btn-danger-ghost btn-sm" data-sc-remove-contact="${escXml(c.id)}" type="button">Retirer</button>
+            </div>`).join("") || '<p style="color:var(--ink-soft);font-size:12.5px;">Aucun contact.</p>'}
+        </div>
+        <button class="btn btn-ghost btn-sm" data-sc-add-contact="${escXml(key)}" type="button" style="margin-top:6px;">+ Ajouter un contact</button>
+      </div>
+      <div class="row-actions" style="margin-top:12px;">
+        <button class="btn btn-primary btn-sm" data-sc-save="${escXml(key)}" type="button">Enregistrer les modifications</button>
+        <button class="btn btn-danger-ghost btn-sm" data-sc-delete="${escXml(key)}" type="button">Retirer complètement ma fiche</button>
+      </div>
+    </div>`;
+
+  function readSelfEntry(){
+    const card = wrap.querySelector(`[data-sc-card="${CSS.escape(key)}"]`);
+    const entry = { nom: "", courriel: "", telephone: "", allergies: "", objectif: "", partagerGroupe: false, objectifPartageGroupe: false, contacts: [] };
+    card.querySelectorAll("[data-scfield]").forEach(inp => { entry[inp.dataset.scfield] = inp.value.trim(); });
+    card.querySelectorAll("[data-scfield-cb]").forEach(inp => { entry[inp.dataset.scfieldCb] = inp.checked; });
+    card.querySelectorAll("[data-sc-contact]").forEach(row => {
+      const id = row.dataset.scContact;
+      const c = { id, nom: "", courriel: "", telephone: "", parentResponsable: false, urgence: false };
+      row.querySelectorAll("[data-scc-field]").forEach(inp => {
+        if (inp.type === "checkbox") c[inp.dataset.sccField] = inp.checked;
+        else c[inp.dataset.sccField] = inp.value.trim();
+      });
+      entry.contacts.push(c);
+    });
+    return entry;
+  }
+
+  wrap.querySelectorAll("[data-sc-add-contact]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const contactsWrap = wrap.querySelector(`[data-sc-contacts="${CSS.escape(key)}"]`);
+      const id = genId();
+      const div = document.createElement("div");
+      div.className = "coord-row";
+      div.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;";
+      div.dataset.scContact = id;
+      div.innerHTML = `
+        <input type="text" placeholder="Nom" data-scc-field="nom" value="" style="flex:1;min-width:110px;">
+        <input type="text" placeholder="Courriel" data-scc-field="courriel" value="" style="flex:1;min-width:110px;">
+        <input type="text" placeholder="Téléphone" data-scc-field="telephone" value="" style="flex:1;min-width:110px;">
+        <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-scc-field="parentResponsable" style="width:auto;"> Parent ou adulte responsable</label>
+        <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-scc-field="urgence" style="width:auto;"> Contact d'urgence</label>
+        <button class="btn btn-danger-ghost btn-sm" data-sc-remove-contact="${id}" type="button">Retirer</button>`;
+      const emptyMsg = contactsWrap.querySelector("p");
+      if (emptyMsg) emptyMsg.remove();
+      contactsWrap.appendChild(div);
+      div.querySelector(`[data-sc-remove-contact="${id}"]`).addEventListener("click", () => div.remove());
+    });
+  });
+  wrap.querySelectorAll("[data-sc-remove-contact]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      wrap.querySelector(`[data-sc-contact="${CSS.escape(btn.dataset.scRemoveContact)}"]`)?.remove();
+    });
+  });
+  wrap.querySelectorAll("[data-sc-save]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const entry = Object.assign({}, r, readSelfEntry());
+      const ok = await storageSet(key, entry);
+      if (ok){ showToast("Coordonnées mises à jour ✓"); loadObjectifsList(); }
+      else showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  wrap.querySelectorAll("[data-sc-delete]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!(await customConfirm("Retirer définitivement votre fiche de coordonnées? Cette action est irréversible."))) return;
+      try {
+        await window.storage.delete(key, true);
+        showToast("Fiche retirée.");
+        wrap.innerHTML = "";
+        document.getElementById("coord-lookup-nom").value = "";
+        document.getElementById("coord-lookup-pin").value = "";
+        loadObjectifsList();
+      } catch(e){ showToast("Erreur lors du retrait.", true); }
+    });
+  });
+}
 
 /* ---------------- Ressources (ajoutées par l'admin, consultées par le groupe) ---------------- */
 const RES_BADGE_MOISES = "data:image/png;base64,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";
@@ -3132,11 +3302,16 @@ async function loadInventoryGroupSelects(){
 }
 
 /* ---------------- Coordonnées — vue admin (édition/suppression sans code) ---------------- */
+let adminCoordRows = [];
+let adminCoordIndex = 0;
+
 async function loadAdminCoordList(groupe){
   const wrap = document.getElementById("admin-coord-list");
+  const nav = document.getElementById("admin-coord-nav");
   if (!wrap) return;
-  if (!groupe){ wrap.innerHTML = ""; return; }
+  if (!groupe){ wrap.innerHTML = ""; if (nav) nav.classList.add("hidden"); return; }
   wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  if (nav) nav.classList.add("hidden");
   try {
     const listRes = await window.storage.list("coord:" + safeKeyPart(groupe) + ":", true);
     const keys = (listRes && listRes.keys) || [];
@@ -3145,12 +3320,37 @@ async function loadAdminCoordList(groupe){
       const r = await storageGet(k);
       if (r) rows.push(normalizeCoordEntry(Object.assign({ key: k }, r)));
     }
+    rows.sort((a, b) => (a.nom || "").localeCompare(b.nom || "", "fr"));
+    adminCoordRows = rows;
+    adminCoordIndex = 0;
     if (!rows.length){
       wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune fiche de coordonnées pour ce groupe.</p>';
       return;
     }
-    wrap.innerHTML = rows.map(r => `
-      <div class="card" style="background:var(--paper-alt,#faf8f3);margin-bottom:12px;" data-admin-coord-card="${escXml(r.key)}">
+    if (nav) nav.classList.remove("hidden");
+    renderAdminCoordNav();
+    renderAdminCoordCard(groupe);
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger la liste.</p>';
+  }
+}
+
+function renderAdminCoordNav(){
+  const sel = document.getElementById("admin-coord-student-select");
+  sel.innerHTML = adminCoordRows.map((r, i) => `<option value="${i}">${escXml(r.nom || "(sans nom)")}</option>`).join("");
+  sel.value = String(adminCoordIndex);
+  document.getElementById("admin-coord-position").textContent = `${adminCoordIndex + 1} / ${adminCoordRows.length}`;
+  document.getElementById("admin-coord-prev-btn").disabled = adminCoordIndex <= 0;
+  document.getElementById("admin-coord-next-btn").disabled = adminCoordIndex >= adminCoordRows.length - 1;
+}
+
+function renderAdminCoordCard(groupe){
+  const wrap = document.getElementById("admin-coord-list");
+  const r = adminCoordRows[adminCoordIndex];
+  if (!r){ wrap.innerHTML = ""; return; }
+  wrap.innerHTML = `
+      <div class="card" style="background:var(--paper-alt,#faf8f3);" data-admin-coord-card="${escXml(r.key)}">
         <div style="display:flex;flex-wrap:wrap;gap:10px;">
           <div class="field" style="flex:1;min-width:140px;"><label>Nom, prénom</label><input type="text" data-acfield="nom" value="${escXml(r.nom || "")}"></div>
           <div class="field" style="flex:1;min-width:140px;"><label>Courriel</label><input type="text" data-acfield="courriel" value="${escXml(r.courriel || "")}"></div>
@@ -3174,7 +3374,7 @@ async function loadAdminCoordList(groupe){
                 <input type="text" placeholder="Téléphone" data-acc-field="telephone" value="${escXml(c.telephone || "")}" style="flex:1;min-width:110px;">
                 <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="parentResponsable" ${c.parentResponsable ? "checked" : ""} style="width:auto;"> Parent ou adulte responsable</label>
                 <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="urgence" ${c.urgence ? "checked" : ""} style="width:auto;"> Contact d'urgence</label>
-                <button class="btn btn-danger-ghost btn-sm" data-ac-remove-contact="${escXml(c.id)}" type="button">Retirer</button>
+                <button class="btn btn-danger-ghost btn-sm" data-acc-remove-contact="${escXml(c.id)}" type="button">Retirer</button>
               </div>`).join("") || '<p style="color:var(--ink-soft);font-size:12.5px;">Aucun contact.</p>'}
           </div>
           <button class="btn btn-ghost btn-sm" data-ac-add-contact="${escXml(r.key)}" type="button" style="margin-top:6px;">+ Ajouter un contact</button>
@@ -3183,77 +3383,85 @@ async function loadAdminCoordList(groupe){
           <button class="btn btn-primary btn-sm" data-ac-save="${escXml(r.key)}" type="button">Enregistrer les modifications</button>
           <button class="btn btn-danger-ghost btn-sm" data-ac-delete="${escXml(r.key)}" type="button">Supprimer cette fiche</button>
         </div>
-      </div>`).join("");
+      </div>`;
 
-    function readCardEntry(key){
-      const card = wrap.querySelector(`[data-admin-coord-card="${CSS.escape(key)}"]`);
-      const entry = { nom: "", courriel: "", telephone: "", allergies: "", objectif: "", partagerGroupe: false, objectifPartageGroupe: false, contacts: [] };
-      card.querySelectorAll("[data-acfield]").forEach(inp => { entry[inp.dataset.acfield] = inp.value.trim(); });
-      card.querySelectorAll("[data-acfield-cb]").forEach(inp => { entry[inp.dataset.acfieldCb] = inp.checked; });
-      card.querySelectorAll("[data-ac-contact]").forEach(row => {
-        const id = row.dataset.acContact;
-        const c = { id, nom: "", courriel: "", telephone: "", parentResponsable: false, urgence: false };
-        row.querySelectorAll("[data-acc-field]").forEach(inp => {
-          if (inp.type === "checkbox") c[inp.dataset.accField] = inp.checked;
-          else c[inp.dataset.accField] = inp.value.trim();
-        });
-        entry.contacts.push(c);
+  function readCardEntry(key){
+    const card = wrap.querySelector(`[data-admin-coord-card="${CSS.escape(key)}"]`);
+    const entry = { nom: "", courriel: "", telephone: "", allergies: "", objectif: "", partagerGroupe: false, objectifPartageGroupe: false, contacts: [] };
+    card.querySelectorAll("[data-acfield]").forEach(inp => { entry[inp.dataset.acfield] = inp.value.trim(); });
+    card.querySelectorAll("[data-acfield-cb]").forEach(inp => { entry[inp.dataset.acfieldCb] = inp.checked; });
+    card.querySelectorAll("[data-ac-contact]").forEach(row => {
+      const id = row.dataset.acContact;
+      const c = { id, nom: "", courriel: "", telephone: "", parentResponsable: false, urgence: false };
+      row.querySelectorAll("[data-acc-field]").forEach(inp => {
+        if (inp.type === "checkbox") c[inp.dataset.accField] = inp.checked;
+        else c[inp.dataset.accField] = inp.value.trim();
       });
-      return entry;
-    }
-
-    wrap.querySelectorAll("[data-ac-add-contact]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const key = btn.dataset.acAddContact;
-        const contactsWrap = wrap.querySelector(`[data-ac-contacts="${CSS.escape(key)}"]`);
-        const id = genId();
-        const div = document.createElement("div");
-        div.className = "coord-row";
-        div.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;";
-        div.dataset.acContact = id;
-        div.innerHTML = `
-          <input type="text" placeholder="Nom" data-acc-field="nom" value="" style="flex:1;min-width:110px;">
-          <input type="text" placeholder="Courriel" data-acc-field="courriel" value="" style="flex:1;min-width:110px;">
-          <input type="text" placeholder="Téléphone" data-acc-field="telephone" value="" style="flex:1;min-width:110px;">
-          <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="parentResponsable" style="width:auto;"> Parent ou adulte responsable</label>
-          <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="urgence" style="width:auto;"> Contact d'urgence</label>
-          <button class="btn btn-danger-ghost btn-sm" data-ac-remove-contact="${id}" type="button">Retirer</button>`;
-        const emptyMsg = contactsWrap.querySelector("p");
-        if (emptyMsg) emptyMsg.remove();
-        contactsWrap.appendChild(div);
-        div.querySelector(`[data-ac-remove-contact="${id}"]`).addEventListener("click", () => div.remove());
-      });
+      entry.contacts.push(c);
     });
-    wrap.querySelectorAll("[data-ac-remove-contact]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        wrap.querySelector(`[data-ac-contact="${CSS.escape(btn.dataset.acRemoveContact)}"]`)?.remove();
-      });
-    });
-    wrap.querySelectorAll("[data-ac-save]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const key = btn.dataset.acSave;
-        const existing = await storageGet(key);
-        const entry = Object.assign({}, existing, readCardEntry(key));
-        const ok = await storageSet(key, entry);
-        if (ok){ showToast("Fiche mise à jour ✓"); loadAdminCoordList(groupe); }
-        else showToast("Erreur lors de la mise à jour.", true);
-      });
-    });
-    wrap.querySelectorAll("[data-ac-delete]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const key = btn.dataset.acDelete;
-        if (!(await customConfirm("Supprimer définitivement cette fiche de coordonnées? Cette action est irréversible."))) return;
-        try { await window.storage.delete(key, true); showToast("Fiche supprimée."); loadAdminCoordList(groupe); }
-        catch(e){ showToast("Erreur lors de la suppression.", true); }
-      });
-    });
-  } catch(e){
-    console.error(e);
-    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger la liste.</p>';
+    return entry;
   }
+
+  wrap.querySelectorAll("[data-ac-add-contact]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.acAddContact;
+      const contactsWrap = wrap.querySelector(`[data-ac-contacts="${CSS.escape(key)}"]`);
+      const id = genId();
+      const div = document.createElement("div");
+      div.className = "coord-row";
+      div.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;";
+      div.dataset.acContact = id;
+      div.innerHTML = `
+        <input type="text" placeholder="Nom" data-acc-field="nom" value="" style="flex:1;min-width:110px;">
+        <input type="text" placeholder="Courriel" data-acc-field="courriel" value="" style="flex:1;min-width:110px;">
+        <input type="text" placeholder="Téléphone" data-acc-field="telephone" value="" style="flex:1;min-width:110px;">
+        <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="parentResponsable" style="width:auto;"> Parent ou adulte responsable</label>
+        <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="urgence" style="width:auto;"> Contact d'urgence</label>
+        <button class="btn btn-danger-ghost btn-sm" data-acc-remove-contact="${id}" type="button">Retirer</button>`;
+      const emptyMsg = contactsWrap.querySelector("p");
+      if (emptyMsg) emptyMsg.remove();
+      contactsWrap.appendChild(div);
+      div.querySelector(`[data-acc-remove-contact="${id}"]`).addEventListener("click", () => div.remove());
+    });
+  });
+  wrap.querySelectorAll("[data-acc-remove-contact]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      wrap.querySelector(`[data-ac-contact="${CSS.escape(btn.dataset.accRemoveContact)}"]`)?.remove();
+    });
+  });
+  wrap.querySelectorAll("[data-ac-save]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const key = btn.dataset.acSave;
+      const existing = await storageGet(key);
+      const entry = Object.assign({}, existing, readCardEntry(key));
+      const ok = await storageSet(key, entry);
+      if (ok){ showToast("Fiche mise à jour ✓"); loadAdminCoordList(groupe); }
+      else showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  wrap.querySelectorAll("[data-ac-delete]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const key = btn.dataset.acDelete;
+      if (!(await customConfirm("Supprimer définitivement cette fiche de coordonnées? Cette action est irréversible."))) return;
+      try { await window.storage.delete(key, true); showToast("Fiche supprimée."); loadAdminCoordList(groupe); }
+      catch(e){ showToast("Erreur lors de la suppression.", true); }
+    });
+  });
 }
+
 document.getElementById("admin-coord-group-select").addEventListener("change", (e) => {
   loadAdminCoordList(e.target.value);
+});
+document.getElementById("admin-coord-prev-btn").addEventListener("click", () => {
+  if (adminCoordIndex > 0){ adminCoordIndex--; renderAdminCoordNav(); renderAdminCoordCard(document.getElementById("admin-coord-group-select").value); }
+});
+document.getElementById("admin-coord-next-btn").addEventListener("click", () => {
+  if (adminCoordIndex < adminCoordRows.length - 1){ adminCoordIndex++; renderAdminCoordNav(); renderAdminCoordCard(document.getElementById("admin-coord-group-select").value); }
+});
+document.getElementById("admin-coord-student-select").addEventListener("change", (e) => {
+  adminCoordIndex = Number(e.target.value) || 0;
+  renderAdminCoordNav();
+  renderAdminCoordCard(document.getElementById("admin-coord-group-select").value);
 });
 
 function renderAdminEmailsList(){
@@ -3322,6 +3530,9 @@ function renderGroupsList(){
       <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;">
         <input type="checkbox" data-togglegroupvisible="${escXml(n)}" ${cfg.visible !== false ? "checked" : ""} style="width:auto;"> Visible pour les élèves
       </label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;" title="À décocher pour les groupes de mineurs, par précaution.">
+        <input type="checkbox" data-toggleobjectifsvisibles="${escXml(n)}" ${cfg.objectifsVisibles !== false ? "checked" : ""} style="width:auto;"> Objectifs partagés visibles au groupe
+      </label>
       <button class="btn btn-danger-ghost" data-remove-group="${escXml(n)}">Retirer</button>
     </div>`;
   }).join("");
@@ -3352,6 +3563,14 @@ function renderGroupsList(){
     chk.addEventListener("change", async () => {
       const n = chk.dataset.togglevisible;
       groupesConfig[n].contenuVisible = chk.checked;
+      const ok = await storageSet("config:groupes", groupesConfig);
+      if (!ok) showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  wrap.querySelectorAll("[data-toggleobjectifsvisibles]").forEach(chk => {
+    chk.addEventListener("change", async () => {
+      const n = chk.dataset.toggleobjectifsvisibles;
+      groupesConfig[n].objectifsVisibles = chk.checked;
       const ok = await storageSet("config:groupes", groupesConfig);
       if (!ok) showToast("Erreur lors de la mise à jour.", true);
     });
