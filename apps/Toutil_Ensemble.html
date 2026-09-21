@@ -3160,6 +3160,10 @@ async function loadAdminCoordList(groupe){
           <label style="display:flex;align-items:center;gap:5px;text-transform:none;font-weight:500;font-size:13px;"><input type="checkbox" data-acfield-cb="partagerGroupe" ${r.partagerGroupe ? "checked" : ""} style="width:auto;"> Partagé avec le reste du groupe</label>
         </div>
         <div class="field"><label>Allergies</label><input type="text" data-acfield="allergies" value="${escXml(r.allergies || "")}"></div>
+        <div class="field"><label>Objectif pour la session</label><textarea data-acfield="objectif" rows="2">${escXml(r.objectif || "")}</textarea></div>
+        <div class="field" style="max-width:340px;">
+          <label style="display:flex;align-items:center;gap:5px;text-transform:none;font-weight:500;font-size:13px;"><input type="checkbox" data-acfield-cb="objectifPartageGroupe" ${r.objectifPartageGroupe ? "checked" : ""} style="width:auto;"> Objectif partagé dans l'Excel du groupe</label>
+        </div>
         <div style="margin-top:8px;">
           <div style="font-weight:600;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;">Adulte(s) ou parent(s) responsable(s) ou contact(s) d'urgence</div>
           <div data-ac-contacts="${escXml(r.key)}">
@@ -3183,7 +3187,7 @@ async function loadAdminCoordList(groupe){
 
     function readCardEntry(key){
       const card = wrap.querySelector(`[data-admin-coord-card="${CSS.escape(key)}"]`);
-      const entry = { nom: "", courriel: "", telephone: "", allergies: "", partagerGroupe: false, contacts: [] };
+      const entry = { nom: "", courriel: "", telephone: "", allergies: "", objectif: "", partagerGroupe: false, objectifPartageGroupe: false, contacts: [] };
       card.querySelectorAll("[data-acfield]").forEach(inp => { entry[inp.dataset.acfield] = inp.value.trim(); });
       card.querySelectorAll("[data-acfield-cb]").forEach(inp => { entry[inp.dataset.acfieldCb] = inp.checked; });
       card.querySelectorAll("[data-ac-contact]").forEach(row => {
