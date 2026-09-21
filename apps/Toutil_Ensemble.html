@@ -849,9 +849,12 @@
     <div class="card">
       <h2>Coordonnées et objectifs des élèves</h2>
       <div class="note">Vue admin : voyez et modifiez ici les coordonnées complètes de chaque élève (y compris allergies, objectif et contacts parent/urgence, jamais visibles par le reste du groupe) — aucun code personnel requis.</div>
-      <div class="field" style="max-width:300px;">
-        <label for="admin-coord-group-select">Groupe à afficher</label>
-        <select id="admin-coord-group-select"><option value="">— Choisir un groupe —</option></select>
+      <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+        <div class="field" style="max-width:300px;">
+          <label for="admin-coord-group-select">Groupe à afficher</label>
+          <select id="admin-coord-group-select"><option value="">— Choisir un groupe —</option></select>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="admin-coord-refresh-btn" type="button" title="Recharger les fiches de ce groupe (au cas où un·e élève viendrait d'en soumettre une nouvelle).">Actualiser</button>
       </div>
       <div id="admin-coord-nav" class="hidden" style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;">
         <button class="btn btn-ghost btn-sm" id="admin-coord-prev-btn" type="button">◀ Précédent</button>
@@ -3327,6 +3330,9 @@ async function loadInventoryGroupSelects(){
     const coordCurrent = coordSel.value;
     coordSel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
     coordSel.value = coordCurrent;
+    // Un groupe était déjà sélectionné : on recharge ses fiches, au cas où une nouvelle
+    // fiche aurait été soumise par un·e élève depuis le dernier chargement de cet onglet.
+    if (coordCurrent) loadAdminCoordList(coordCurrent);
   }
 }
 
@@ -3480,6 +3486,9 @@ function renderAdminCoordCard(groupe){
 
 document.getElementById("admin-coord-group-select").addEventListener("change", (e) => {
   loadAdminCoordList(e.target.value);
+});
+document.getElementById("admin-coord-refresh-btn").addEventListener("click", () => {
+  loadAdminCoordList(document.getElementById("admin-coord-group-select").value);
 });
 document.getElementById("admin-coord-prev-btn").addEventListener("click", () => {
   if (adminCoordIndex > 0){ adminCoordIndex--; renderAdminCoordNav(); renderAdminCoordCard(document.getElementById("admin-coord-group-select").value); }
