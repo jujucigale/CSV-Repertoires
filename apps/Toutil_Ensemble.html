@@ -579,15 +579,9 @@
               <input id="bpmChoisi" type="text" placeholder="Ex. 90 (laisser vide si inconnu)">
             </div>
           </div>
-          <div class="row2">
-            <div class="field">
-              <label for="lienChante">Lien YouTube — version chantée</label>
-              <input id="lienChante" type="url" placeholder="https://youtube.com/...">
-            </div>
-            <div class="field">
-              <label for="lienAccompagnement">Lien YouTube — accompagnement / karaoké</label>
-              <input id="lienAccompagnement" type="url" placeholder="https://youtube.com/...">
-            </div>
+          <div class="field">
+            <label for="lienChante">Lien YouTube — version chantée</label>
+            <input id="lienChante" type="url" placeholder="https://youtube.com/...">
           </div>
           <div class="field">
             <label for="statutVersionChantee">Statut de la version chantée de référence</label>
@@ -598,18 +592,26 @@
               <option value="Confirmée">Confirmée</option>
             </select>
           </div>
+          <div class="field">
+            <label for="lienAccompagnement">Lien YouTube — accompagnement / karaoké</label>
+            <input id="lienAccompagnement" type="url" placeholder="https://youtube.com/...">
+          </div>
+          <div class="field">
+            <label for="statutTrame">Statut trame sonore</label>
+            <select id="statutTrame">
+              <option value="">— Non déterminé —</option>
+              <option value="À trouver">À trouver</option>
+              <option value="Version préliminaire soumise">Version préliminaire soumise</option>
+              <option value="Confirmée">Confirmée</option>
+            </select>
+          </div>
           <div class="row2">
             <div class="field">
-              <label for="statutTrame">Statut trame sonore</label>
-              <select id="statutTrame">
-                <option value="">— Non déterminé —</option>
-                <option value="À trouver">À trouver</option>
-                <option value="Version préliminaire soumise">Version préliminaire soumise</option>
-                <option value="Confirmée">Confirmée</option>
-              </select>
+              <label for="lienPartition">Lien vers la partition</label>
+              <input id="lienPartition" type="url" placeholder="https://...">
             </div>
             <div class="field">
-              <label for="statutPartition">Partition</label>
+              <label for="statutPartition">Statut de la partition</label>
               <select id="statutPartition">
                 <option value="">— Non déterminé —</option>
                 <option value="À trouver">À trouver</option>
@@ -1254,6 +1256,7 @@ const els = {
   tonChoisie: document.getElementById("tonChoisie"),
   lienChante: document.getElementById("lienChante"),
   lienAccompagnement: document.getElementById("lienAccompagnement"),
+  lienPartition: document.getElementById("lienPartition"),
   proposePar: document.getElementById("proposePar"),
   raisonChoix: document.getElementById("raisonChoix"),
   soloCheckbox: document.getElementById("soloCheckbox"),
@@ -1389,7 +1392,7 @@ document.getElementById("submit-btn").addEventListener("click", async () => {
     groupe: session.groupe,
     lienChante: els.lienChante.value.trim(),
     lienAccompagnement: els.lienAccompagnement.value.trim(),
-    lienPartition: "",
+    lienPartition: els.lienPartition.value.trim(),
     proposePar: els.proposePar.value.trim(),
     raisonChoix: els.raisonChoix.value.trim(),
     visee: els.soloCheckbox.checked ? "Solo ou duo, hors cours" : "",
@@ -1415,7 +1418,7 @@ document.getElementById("submit-btn").addEventListener("click", async () => {
 
     els.titre.value = ""; els.interprete.value = ""; els.annee.value = "";
     els.paroliers.value = ""; els.compositeurs.value = ""; els.tonOrigine.value = ""; els.tonChoisie.value = "";
-    els.lienChante.value = ""; els.lienAccompagnement.value = "";
+    els.lienChante.value = ""; els.lienAccompagnement.value = ""; els.lienPartition.value = "";
     els.proposePar.value = ""; els.raisonChoix.value = ""; els.soloCheckbox.checked = false;
     els.statutTrame.value = ""; els.statutPartition.value = ""; els.statutVersionChantee.value = "";
     els.bpmOriginal.value = ""; els.bpmChoisi.value = "";
