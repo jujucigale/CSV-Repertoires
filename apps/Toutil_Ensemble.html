@@ -1373,6 +1373,7 @@ function updatePreview(){
   const auteursDisplay = (parolStr || compoStr) ? `${parolStr || "—"} / ${compoStr || "—"}` : "—";
   html += `<div class="preview-meta">Paroles et musique : ${escXml(auteursDisplay)}</div>`;
   html += `<div class="preview-meta">Tonalité d'origine : ${escXml(els.tonOrigine.value.trim() || "—")}&nbsp;&nbsp;&nbsp;&nbsp;Tonalité choisie : ${escXml(els.tonChoisie.value.trim() || "—")}</div>`;
+  html += `<div class="preview-meta">BPM original : ${escXml(els.bpmOriginal.value.trim() || "—")}&nbsp;&nbsp;&nbsp;&nbsp;BPM choisi : ${escXml(els.bpmChoisi.value.trim() || "—")}</div>`;
 
   sections.forEach(sec => {
     if (!sec.label && !sec.lyrics.trim()) return;
