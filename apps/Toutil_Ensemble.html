@@ -706,21 +706,39 @@
     </div>
 
     <div class="card">
-      <h2>Coordonnées (partage volontaire entre vous)</h2>
-      <div class="note">Ce partage est entièrement optionnel et sert seulement à échanger vos coordonnées avec les autres élèves de votre groupe. Votre enseignante ne rend jamais cette liste publique.</div>
+      <h2>Coordonnées</h2>
+      <div class="note">Le nom, le courriel et le téléphone ne sont partagés avec le reste du groupe que si vous cochez la case ci-dessous. Les allergies et les contacts parent/urgence restent toujours confidentiels, visibles seulement par votre enseignante.</div>
       <div id="coord-list"></div>
-      <h3>Ajouter mes coordonnées</h3>
+      <h3>Mes coordonnées</h3>
       <div class="row3">
         <div class="field"><label for="coord-nom">Nom, prénom</label><input id="coord-nom" type="text"></div>
         <div class="field"><label for="coord-courriel">Courriel</label><input id="coord-courriel" type="email"></div>
         <div class="field"><label for="coord-telephone">Téléphone</label><input id="coord-telephone" type="tel"></div>
+      </div>
+      <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" id="coord-partager-groupe" style="width:auto;margin-top:3px;">
+        <label for="coord-partager-groupe" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon nom, mon courriel et mon téléphone avec le reste de mon groupe (facultatif — décoché par défaut).</label>
       </div>
       <div class="row3">
         <div class="field"><label for="coord-choix1">Choix de chanson 1</label><input id="coord-choix1" type="text"></div>
         <div class="field"><label for="coord-choix2">Choix de chanson 2</label><input id="coord-choix2" type="text"></div>
         <div class="field"><label for="coord-pin">Code personnel (4 chiffres, pour modifier/retirer plus tard)</label><input id="coord-pin" type="password" maxlength="4" placeholder="Ex. 1234"></div>
       </div>
-      <button class="btn btn-primary" id="coord-add-btn" type="button">Ajouter mes coordonnées</button>
+      <div class="field"><label for="coord-allergies">Allergies (confidentiel)</label><input id="coord-allergies" type="text" placeholder="Ex. Aucune, ou : arachides"></div>
+      <h3>Contact(s) parent, adulte responsable ou d'urgence (confidentiel)</h3>
+      <div class="note" style="margin-bottom:10px;">Vous pouvez ajouter plus d'une personne. Cochez si elle est parent/adulte responsable, contact d'urgence, ou les deux. Ces informations ne sont jamais visibles par les autres élèves du groupe.</div>
+      <div id="coord-contacts-draft"></div>
+      <div class="row3">
+        <div class="field"><label for="coord-contact-nom">Nom, prénom</label><input id="coord-contact-nom" type="text"></div>
+        <div class="field"><label for="coord-contact-courriel">Courriel</label><input id="coord-contact-courriel" type="email"></div>
+        <div class="field"><label for="coord-contact-telephone">Téléphone</label><input id="coord-contact-telephone" type="tel"></div>
+      </div>
+      <div style="display:flex;gap:16px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;text-transform:none;letter-spacing:normal;"><input type="checkbox" id="coord-contact-resp" style="width:auto;"> Parent ou adulte responsable</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;text-transform:none;letter-spacing:normal;"><input type="checkbox" id="coord-contact-urgence" style="width:auto;"> Contact d'urgence</label>
+        <button class="btn btn-ghost btn-sm" id="coord-contact-add-btn" type="button">+ Ajouter ce contact</button>
+      </div>
+      <button class="btn btn-primary" id="coord-add-btn" type="button">Enregistrer mes coordonnées</button>
       <span id="coord-status" style="font-size:13px;color:var(--ink-soft);margin-left:10px;"></span>
     </div>
   </div>
@@ -805,6 +823,16 @@
         <input id="new-group-code" type="text" placeholder="Code d'accès élève">
         <button class="btn btn-primary btn-sm" id="add-group-btn" type="button">Ajouter</button>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Coordonnées des élèves</h2>
+      <div class="note">Vue admin : voyez et modifiez ici les coordonnées complètes de chaque élève (y compris allergies et contacts parent/urgence, jamais visibles par le reste du groupe) — aucun code personnel requis.</div>
+      <div class="field" style="max-width:300px;">
+        <label for="admin-coord-group-select">Groupe à afficher</label>
+        <select id="admin-coord-group-select"><option value="">— Choisir un groupe —</option></select>
+      </div>
+      <div id="admin-coord-list" style="margin-top:12px;"></div>
     </div>
 
     <div class="card">
@@ -2166,6 +2194,26 @@ async function loadMyGroupHoraire(){
 }
 
 /* ---------------- Coordonnées (opt-in, PIN, groupe uniquement) ---------------- */
+/* Un "contact" = parent/adulte responsable et/ou contact d'urgence — jamais partagé au groupe. */
+function normalizeCoordEntry(r){
+  return Object.assign({}, r, {
+    contacts: Array.isArray(r.contacts) ? r.contacts.map(c => ({
+      id: c.id || genId(),
+      nom: c.nom || "",
+      courriel: c.courriel || "",
+      telephone: c.telephone || "",
+      parentResponsable: !!c.parentResponsable,
+      urgence: !!c.urgence,
+    })) : [],
+  });
+}
+function contactRoleLabel(c){
+  const roles = [];
+  if (c.parentResponsable) roles.push("parent ou adulte responsable");
+  if (c.urgence) roles.push("contact d'urgence");
+  return roles.length ? roles.join(" + ") : "contact";
+}
+
 async function loadCoordList(){
   const wrap = document.getElementById("coord-list");
   wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
@@ -2175,10 +2223,10 @@ async function loadCoordList(){
     const rows = [];
     for (const k of keys) {
       const r = await storageGet(k);
-      if (r) rows.push(Object.assign({ key: k }, r));
+      if (r && r.partagerGroupe) rows.push(Object.assign({ key: k }, r));
     }
     if (!rows.length){
-      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Personne n\u2019a encore partagé ses coordonnées dans ce groupe.</p>';
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Personne n’a encore partagé ses coordonnées dans ce groupe.</p>';
       return;
     }
     wrap.innerHTML = rows.map(r => `
@@ -2206,6 +2254,38 @@ async function loadCoordList(){
   }
 }
 
+/* Liste de contacts en cours de saisie, avant l'enregistrement de la fiche */
+let coordContactsDraft = [];
+function renderCoordContactsDraft(){
+  const wrap = document.getElementById("coord-contacts-draft");
+  if (!wrap) return;
+  if (!coordContactsDraft.length){ wrap.innerHTML = ""; return; }
+  wrap.innerHTML = coordContactsDraft.map(c => `
+    <div class="coord-row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;">
+      <span style="flex:1;"><strong>${escXml(c.nom || "—")}</strong> (${contactRoleLabel(c)}) — ${escXml(c.courriel || "—")} · ${escXml(c.telephone || "—")}</span>
+      <button class="btn btn-danger-ghost btn-sm" data-remove-contact-draft="${c.id}" type="button">Retirer</button>
+    </div>`).join("");
+  wrap.querySelectorAll("[data-remove-contact-draft]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      coordContactsDraft = coordContactsDraft.filter(c => c.id !== btn.dataset.removeContactDraft);
+      renderCoordContactsDraft();
+    });
+  });
+}
+document.getElementById("coord-contact-add-btn").addEventListener("click", () => {
+  const nom = document.getElementById("coord-contact-nom").value.trim();
+  const courriel = document.getElementById("coord-contact-courriel").value.trim();
+  const telephone = document.getElementById("coord-contact-telephone").value.trim();
+  const parentResponsable = document.getElementById("coord-contact-resp").checked;
+  const urgence = document.getElementById("coord-contact-urgence").checked;
+  if (!nom){ showToast("Entrez au moins le nom de la personne à ajouter.", true); return; }
+  coordContactsDraft.push({ id: genId(), nom, courriel, telephone, parentResponsable, urgence });
+  ["coord-contact-nom","coord-contact-courriel","coord-contact-telephone"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("coord-contact-resp").checked = false;
+  document.getElementById("coord-contact-urgence").checked = false;
+  renderCoordContactsDraft();
+});
+
 document.getElementById("coord-add-btn").addEventListener("click", async () => {
   const nom = document.getElementById("coord-nom").value.trim();
   const pin = document.getElementById("coord-pin").value.trim();
@@ -2214,23 +2294,43 @@ document.getElementById("coord-add-btn").addEventListener("click", async () => {
     showToast("Nom requis, et code personnel = 4 chiffres.", true);
     return;
   }
+  // Si des champs de contact sont remplis mais n'ont pas été ajoutés via le bouton, on les ajoute automatiquement.
+  const pendingNom = document.getElementById("coord-contact-nom").value.trim();
+  const contacts = coordContactsDraft.slice();
+  if (pendingNom){
+    contacts.push({
+      id: genId(), nom: pendingNom,
+      courriel: document.getElementById("coord-contact-courriel").value.trim(),
+      telephone: document.getElementById("coord-contact-telephone").value.trim(),
+      parentResponsable: document.getElementById("coord-contact-resp").checked,
+      urgence: document.getElementById("coord-contact-urgence").checked,
+    });
+  }
   const entry = {
     nom,
     courriel: document.getElementById("coord-courriel").value.trim(),
     telephone: document.getElementById("coord-telephone").value.trim(),
+    partagerGroupe: document.getElementById("coord-partager-groupe").checked,
     choix1: document.getElementById("coord-choix1").value.trim(),
     choix2: document.getElementById("coord-choix2").value.trim(),
+    allergies: document.getElementById("coord-allergies").value.trim(),
+    contacts,
     pin,
   };
-  status.textContent = "Ajout en cours…";
+  status.textContent = "Enregistrement en cours…";
   const ok = await storageSet("coord:" + safeKeyPart(session.groupe) + ":" + genId(), entry);
   status.textContent = "";
   if (ok){
-    showToast("Coordonnées ajoutées ✓");
-    ["coord-nom","coord-courriel","coord-telephone","coord-choix1","coord-choix2","coord-pin"].forEach(id => document.getElementById(id).value = "");
+    showToast("Coordonnées enregistrées ✓");
+    ["coord-nom","coord-courriel","coord-telephone","coord-choix1","coord-choix2","coord-allergies","coord-contact-nom","coord-contact-courriel","coord-contact-telephone","coord-pin"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("coord-partager-groupe").checked = false;
+    document.getElementById("coord-contact-resp").checked = false;
+    document.getElementById("coord-contact-urgence").checked = false;
+    coordContactsDraft = [];
+    renderCoordContactsDraft();
     loadCoordList();
   } else {
-    showToast("Erreur lors de l'ajout.", true);
+    showToast("Erreur lors de l'enregistrement.", true);
   }
 });
 
@@ -2759,8 +2859,23 @@ function buildHoraireSheet(seances){
 }
 
 function buildCoordSheet(rows){
+  // Feuille visible par les élèves eux-mêmes : seulement les entrées partagées avec le groupe,
+  // et jamais les champs confidentiels (allergies, contacts parent/urgence).
   const headers = ["Nom, prénom","Courriel","Téléphone","Choix de chanson 1","Choix de chanson 2"];
-  const data = (rows||[]).map(r => [r.nom, r.courriel, r.telephone, r.choix1, r.choix2]);
+  const data = (rows||[]).filter(r => r.partagerGroupe).map(r => [r.nom, r.courriel, r.telephone, r.choix1, r.choix2]);
+  return { headers, rows: data };
+}
+
+function buildCoordConfidentialSheet(rows){
+  // Feuille admin seulement : toutes les entrées, tous les champs (y compris confidentiels).
+  const headers = ["Nom, prénom","Courriel","Téléphone","Partagé au groupe","Allergies","Contact(s) parent/urgence","Choix de chanson 1","Choix de chanson 2"];
+  const data = (rows||[]).map(r => {
+    const rn = normalizeCoordEntry(r);
+    const contactsResume = rn.contacts.length
+      ? rn.contacts.map(c => `${c.nom || "—"} (${contactRoleLabel(c)}) — ${c.courriel || "—"} · ${c.telephone || "—"}`).join(" | ")
+      : "—";
+    return [r.nom, r.courriel, r.telephone, r.partagerGroupe ? "Oui" : "Non", r.allergies || "—", contactsResume, r.choix1, r.choix2];
+  });
   return { headers, rows: data };
 }
 
@@ -2955,9 +3070,21 @@ document.getElementById("export-excel-btn").addEventListener("click", async (evt
       if (!entries.length){ showToast("Aucune fiche pour ce groupe.", true); return; }
       const voteNames = (await storageGet("voteNames:" + safeKeyPart(groupFilter))) || [];
       const chansons = buildChansonsSheet(entries, voteNames);
-      const blob = await buildStyledXlsxBlob([{ name: sanitizeSheetName(groupFilter), headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]), tintColumns: new Set(voteNames.concat(voteNames.length ? ["Total intérêt"] : [])) }]);
+
+      let coordRows = [];
+      try {
+        const listRes = await window.storage.list("coord:" + safeKeyPart(groupFilter) + ":", true);
+        const keys = (listRes && listRes.keys) || [];
+        for (const k of keys) { const r = await storageGet(k); if (r) coordRows.push(r); }
+      } catch(e){ console.error(e); }
+      const coordConfidentiel = buildCoordConfidentialSheet(coordRows);
+
+      const blob = await buildStyledXlsxBlob([
+        { name: sanitizeSheetName(groupFilter), headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]), tintColumns: new Set(voteNames.concat(voteNames.length ? ["Total intérêt"] : [])) },
+        { name: "Coordonnées confidentielles", headers: coordConfidentiel.headers, rows: coordConfidentiel.rows, wrapColumns: new Set(["Contact(s) parent/urgence"]) },
+      ]);
       downloadBlob(blob, `Repertoire_${sanitizeSheetName(groupFilter)}.xlsx`);
-      showToast(`Répertoire exporté pour « ${groupFilter} ».`);
+      showToast(`Répertoire exporté pour « ${groupFilter} » (avec coordonnées confidentielles).`);
       return;
     }
 
@@ -2993,7 +3120,135 @@ async function loadAdminPanel(){
   const current = sel.value;
   sel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
   sel.value = current;
+
+  const coordSel = document.getElementById("admin-coord-group-select");
+  if (coordSel){
+    const coordCurrent = coordSel.value;
+    coordSel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
+    coordSel.value = coordCurrent;
+  }
 }
+
+/* ---------------- Coordonnées — vue admin (édition/suppression sans code) ---------------- */
+async function loadAdminCoordList(groupe){
+  const wrap = document.getElementById("admin-coord-list");
+  if (!wrap) return;
+  if (!groupe){ wrap.innerHTML = ""; return; }
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const listRes = await window.storage.list("coord:" + safeKeyPart(groupe) + ":", true);
+    const keys = (listRes && listRes.keys) || [];
+    const rows = [];
+    for (const k of keys) {
+      const r = await storageGet(k);
+      if (r) rows.push(normalizeCoordEntry(Object.assign({ key: k }, r)));
+    }
+    if (!rows.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucune fiche de coordonnées pour ce groupe.</p>';
+      return;
+    }
+    wrap.innerHTML = rows.map(r => `
+      <div class="card" style="background:var(--paper-alt,#faf8f3);margin-bottom:12px;" data-admin-coord-card="${escXml(r.key)}">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <div class="field" style="flex:1;min-width:140px;"><label>Nom, prénom</label><input type="text" data-acfield="nom" value="${escXml(r.nom || "")}"></div>
+          <div class="field" style="flex:1;min-width:140px;"><label>Courriel</label><input type="text" data-acfield="courriel" value="${escXml(r.courriel || "")}"></div>
+          <div class="field" style="flex:1;min-width:140px;"><label>Téléphone</label><input type="text" data-acfield="telephone" value="${escXml(r.telephone || "")}"></div>
+        </div>
+        <div class="field" style="max-width:260px;">
+          <label style="display:flex;align-items:center;gap:5px;text-transform:none;font-weight:500;font-size:13px;"><input type="checkbox" data-acfield-cb="partagerGroupe" ${r.partagerGroupe ? "checked" : ""} style="width:auto;"> Partagé avec le reste du groupe</label>
+        </div>
+        <div class="field"><label>Allergies</label><input type="text" data-acfield="allergies" value="${escXml(r.allergies || "")}"></div>
+        <div style="margin-top:8px;">
+          <div style="font-weight:600;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;">Contact(s) parent/adulte responsable / urgence</div>
+          <div data-ac-contacts="${escXml(r.key)}">
+            ${r.contacts.map(c => `
+              <div class="coord-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;" data-ac-contact="${escXml(c.id)}">
+                <input type="text" placeholder="Nom" data-acc-field="nom" value="${escXml(c.nom || "")}" style="flex:1;min-width:110px;">
+                <input type="text" placeholder="Courriel" data-acc-field="courriel" value="${escXml(c.courriel || "")}" style="flex:1;min-width:110px;">
+                <input type="text" placeholder="Téléphone" data-acc-field="telephone" value="${escXml(c.telephone || "")}" style="flex:1;min-width:110px;">
+                <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="parentResponsable" ${c.parentResponsable ? "checked" : ""} style="width:auto;"> Parent ou adulte responsable</label>
+                <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="urgence" ${c.urgence ? "checked" : ""} style="width:auto;"> Contact d'urgence</label>
+                <button class="btn btn-danger-ghost btn-sm" data-ac-remove-contact="${escXml(c.id)}" type="button">Retirer</button>
+              </div>`).join("") || '<p style="color:var(--ink-soft);font-size:12.5px;">Aucun contact.</p>'}
+          </div>
+          <button class="btn btn-ghost btn-sm" data-ac-add-contact="${escXml(r.key)}" type="button" style="margin-top:6px;">+ Ajouter un contact</button>
+        </div>
+        <div class="row-actions" style="margin-top:12px;">
+          <button class="btn btn-primary btn-sm" data-ac-save="${escXml(r.key)}" type="button">Enregistrer les modifications</button>
+          <button class="btn btn-danger-ghost btn-sm" data-ac-delete="${escXml(r.key)}" type="button">Supprimer cette fiche</button>
+        </div>
+      </div>`).join("");
+
+    function readCardEntry(key){
+      const card = wrap.querySelector(`[data-admin-coord-card="${CSS.escape(key)}"]`);
+      const entry = { nom: "", courriel: "", telephone: "", allergies: "", partagerGroupe: false, contacts: [] };
+      card.querySelectorAll("[data-acfield]").forEach(inp => { entry[inp.dataset.acfield] = inp.value.trim(); });
+      card.querySelectorAll("[data-acfield-cb]").forEach(inp => { entry[inp.dataset.acfieldCb] = inp.checked; });
+      card.querySelectorAll("[data-ac-contact]").forEach(row => {
+        const id = row.dataset.acContact;
+        const c = { id, nom: "", courriel: "", telephone: "", parentResponsable: false, urgence: false };
+        row.querySelectorAll("[data-acc-field]").forEach(inp => {
+          if (inp.type === "checkbox") c[inp.dataset.accField] = inp.checked;
+          else c[inp.dataset.accField] = inp.value.trim();
+        });
+        entry.contacts.push(c);
+      });
+      return entry;
+    }
+
+    wrap.querySelectorAll("[data-ac-add-contact]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.acAddContact;
+        const contactsWrap = wrap.querySelector(`[data-ac-contacts="${CSS.escape(key)}"]`);
+        const id = genId();
+        const div = document.createElement("div");
+        div.className = "coord-row";
+        div.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;";
+        div.dataset.acContact = id;
+        div.innerHTML = `
+          <input type="text" placeholder="Nom" data-acc-field="nom" value="" style="flex:1;min-width:110px;">
+          <input type="text" placeholder="Courriel" data-acc-field="courriel" value="" style="flex:1;min-width:110px;">
+          <input type="text" placeholder="Téléphone" data-acc-field="telephone" value="" style="flex:1;min-width:110px;">
+          <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="parentResponsable" style="width:auto;"> Parent ou adulte responsable</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:11.5px;white-space:nowrap;"><input type="checkbox" data-acc-field="urgence" style="width:auto;"> Contact d'urgence</label>
+          <button class="btn btn-danger-ghost btn-sm" data-ac-remove-contact="${id}" type="button">Retirer</button>`;
+        const emptyMsg = contactsWrap.querySelector("p");
+        if (emptyMsg) emptyMsg.remove();
+        contactsWrap.appendChild(div);
+        div.querySelector(`[data-ac-remove-contact="${id}"]`).addEventListener("click", () => div.remove());
+      });
+    });
+    wrap.querySelectorAll("[data-ac-remove-contact]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        wrap.querySelector(`[data-ac-contact="${CSS.escape(btn.dataset.acRemoveContact)}"]`)?.remove();
+      });
+    });
+    wrap.querySelectorAll("[data-ac-save]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const key = btn.dataset.acSave;
+        const existing = await storageGet(key);
+        const entry = Object.assign({}, existing, readCardEntry(key));
+        const ok = await storageSet(key, entry);
+        if (ok){ showToast("Fiche mise à jour ✓"); loadAdminCoordList(groupe); }
+        else showToast("Erreur lors de la mise à jour.", true);
+      });
+    });
+    wrap.querySelectorAll("[data-ac-delete]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const key = btn.dataset.acDelete;
+        if (!(await customConfirm("Supprimer définitivement cette fiche de coordonnées? Cette action est irréversible."))) return;
+        try { await window.storage.delete(key, true); showToast("Fiche supprimée."); loadAdminCoordList(groupe); }
+        catch(e){ showToast("Erreur lors de la suppression.", true); }
+      });
+    });
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger la liste.</p>';
+  }
+}
+document.getElementById("admin-coord-group-select").addEventListener("change", (e) => {
+  loadAdminCoordList(e.target.value);
+});
 
 function renderAdminEmailsList(){
   const wrap = document.getElementById("admin-emails-list");
