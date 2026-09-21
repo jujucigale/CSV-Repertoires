@@ -707,9 +707,9 @@
 
     <div class="card">
       <h2>Coordonnées</h2>
-      <div class="note">Le nom, le courriel et le téléphone ne sont partagés avec le reste du groupe que si vous cochez la case ci-dessous. Les allergies et les contacts parent/urgence restent toujours confidentiels, visibles seulement par votre enseignante.</div>
+      <div class="note">Le nom, le courriel et le téléphone ne sont partagés avec le reste du groupe que si vous cochez la case ci-dessous. Les allergies et les contacts parent/urgence restent toujours confidentiels, visibles seulement par votre enseignante. Seule votre enseignante peut modifier ou retirer une fiche déjà soumise.</div>
       <div id="coord-list"></div>
-      <h3>Mes coordonnées</h3>
+      <h3>Coordonnées de l'élève</h3>
       <div class="row3">
         <div class="field"><label for="coord-nom">Nom, prénom</label><input id="coord-nom" type="text"></div>
         <div class="field"><label for="coord-courriel">Courriel</label><input id="coord-courriel" type="email"></div>
@@ -719,13 +719,13 @@
         <input type="checkbox" id="coord-partager-groupe" style="width:auto;margin-top:3px;">
         <label for="coord-partager-groupe" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon nom, mon courriel et mon téléphone avec le reste de mon groupe (facultatif — décoché par défaut).</label>
       </div>
-      <div class="row3">
-        <div class="field"><label for="coord-choix1">Choix de chanson 1</label><input id="coord-choix1" type="text"></div>
-        <div class="field"><label for="coord-choix2">Choix de chanson 2</label><input id="coord-choix2" type="text"></div>
-        <div class="field"><label for="coord-pin">Code personnel (4 chiffres, pour modifier/retirer plus tard)</label><input id="coord-pin" type="password" maxlength="4" placeholder="Ex. 1234"></div>
+      <div class="field"><label for="coord-objectif">Objectif pour la session</label><textarea id="coord-objectif" rows="3" placeholder="Ex. Travailler la justesse, préparer une chanson pour le spectacle…"></textarea></div>
+      <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" id="coord-objectif-partage" style="width:auto;margin-top:3px;">
+        <label for="coord-objectif-partage" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon objectif dans l'Excel du groupe (sinon, il reste visible seulement par votre enseignante). Ce champ n'apparaît jamais à l'écran, seulement dans les exports Excel.</label>
       </div>
       <div class="field"><label for="coord-allergies">Allergies (confidentiel)</label><input id="coord-allergies" type="text" placeholder="Ex. Aucune, ou : arachides"></div>
-      <h3>Contact(s) parent, adulte responsable ou d'urgence (confidentiel)</h3>
+      <h3>Adulte(s) ou parent(s) responsable(s) ou contact(s) d'urgence (confidentiel)</h3>
       <div class="note" style="margin-bottom:10px;">Vous pouvez ajouter plus d'une personne. Cochez si elle est parent/adulte responsable, contact d'urgence, ou les deux. Ces informations ne sont jamais visibles par les autres élèves du groupe.</div>
       <div id="coord-contacts-draft"></div>
       <div class="row3">
@@ -763,6 +763,16 @@
       </div>
     </div>
 
+    <div class="card">
+      <h2>Coordonnées des élèves</h2>
+      <div class="note">Vue admin : voyez et modifiez ici les coordonnées complètes de chaque élève (y compris allergies et contacts parent/urgence, jamais visibles par le reste du groupe) — aucun code personnel requis.</div>
+      <div class="field" style="max-width:300px;">
+        <label for="admin-coord-group-select">Groupe à afficher</label>
+        <select id="admin-coord-group-select"><option value="">— Choisir un groupe —</option></select>
+      </div>
+      <div id="admin-coord-list" style="margin-top:12px;"></div>
+    </div>
+
     <div class="card" id="admin-ressources-card">
       <h2>Ressources</h2>
       <div class="note">Gérez les liens et documents partagés avec un groupe — utilisez le filtre de groupe ci-dessus pour choisir lequel.</div>
@@ -797,61 +807,6 @@
         <span id="res-status" style="font-size:13px;color:var(--ink-soft);margin-left:10px;"></span>
       </div>
     </div>
-  </div>
-
-  <!-- ===================== ONGLET ADMINISTRATION (admin) ===================== -->
-  <div class="panel" id="panel-admin">
-    <div class="card">
-      <h2>Comptes administrateur autorisés</h2>
-      <div class="note">Seules les adresses listées ici peuvent accéder à l'Administration (par Google ou par courriel/mot de passe). Gardez toujours au moins une adresse à laquelle vous avez accès.</div>
-      <div id="admin-emails-list"></div>
-      <h3>Ajouter une adresse autorisée</h3>
-      <div class="group-manage-row">
-        <input id="new-admin-email" type="email" placeholder="nouveau.courriel@exemple.com">
-        <button class="btn btn-primary btn-sm" id="add-admin-email-btn" type="button">Ajouter</button>
-      </div>
-      <div id="admin-email-err" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
-    </div>
-
-    <div class="card">
-      <h2>Groupes et codes d'accès</h2>
-      <div class="note">Communiquez le code élève à tout le groupe. Le code assistant·e (optionnel) donne les mêmes droits que vous, mais seulement pour ce groupe. « Contenu visible » détermine si les élèves voient le déroulement détaillé de l'horaire (voir onglet Horaire).</div>
-      <div id="groups-list"></div>
-      <h3>Ajouter un groupe</h3>
-      <div class="group-manage-row">
-        <input id="new-group-name" type="text" placeholder="Nom du groupe (ex. Groupe 1)">
-        <input id="new-group-code" type="text" placeholder="Code d'accès élève">
-        <button class="btn btn-primary btn-sm" id="add-group-btn" type="button">Ajouter</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Coordonnées des élèves</h2>
-      <div class="note">Vue admin : voyez et modifiez ici les coordonnées complètes de chaque élève (y compris allergies et contacts parent/urgence, jamais visibles par le reste du groupe) — aucun code personnel requis.</div>
-      <div class="field" style="max-width:300px;">
-        <label for="admin-coord-group-select">Groupe à afficher</label>
-        <select id="admin-coord-group-select"><option value="">— Choisir un groupe —</option></select>
-      </div>
-      <div id="admin-coord-list" style="margin-top:12px;"></div>
-    </div>
-
-    <div class="card">
-      <h2>Rappels reçus des élèves</h2>
-      <div class="note">Les élèves peuvent vous envoyer un rappel directement depuis un bloc de l'horaire. Cochez « traité » une fois le suivi fait.</div>
-      <div id="rappels-list"><div class="loading-state">Chargement…</div></div>
-    </div>
-
-    <div class="card">
-      <h2>Suivis admin. à faire (aide-mémoire)</h2>
-      <div class="note">Toutes les tâches « Suivis admin. » ajoutées dans l'horaire, regroupées par groupe. Cocher ici coche aussi dans l'horaire (et vice versa). « Supprimer » retire seulement la tâche de cette liste — elle reste intacte dans l'horaire.</div>
-      <div id="suivis-admin-list"><div class="loading-state">Chargement…</div></div>
-    </div>
-
-    <div class="card">
-      <h2>Charte des permissions</h2>
-      <div class="note">Décidez qui peut faire quoi dans l'horaire. Vous (administratrice) avez toujours tous les droits. Ces réglages s'appliquent à tous les groupes.</div>
-      <div id="permissions-chart"><div class="loading-state">Chargement…</div></div>
-    </div>
 
     <div class="card">
       <h2>Horaire par groupe</h2>
@@ -884,6 +839,51 @@
         </div>
         <div id="horaire-editor" style="margin-top:16px;"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONGLET ADMINISTRATION (admin) ===================== -->
+  <div class="panel" id="panel-admin">
+    <div class="card">
+      <h2>Comptes administrateur autorisés</h2>
+      <div class="note">Seules les adresses listées ici peuvent accéder à l'Administration (par Google ou par courriel/mot de passe). Gardez toujours au moins une adresse à laquelle vous avez accès.</div>
+      <div id="admin-emails-list"></div>
+      <h3>Ajouter une adresse autorisée</h3>
+      <div class="group-manage-row">
+        <input id="new-admin-email" type="email" placeholder="nouveau.courriel@exemple.com">
+        <button class="btn btn-primary btn-sm" id="add-admin-email-btn" type="button">Ajouter</button>
+      </div>
+      <div id="admin-email-err" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Groupes et codes d'accès</h2>
+      <div class="note">Communiquez le code élève à tout le groupe. Le code assistant·e (optionnel) donne les mêmes droits que vous, mais seulement pour ce groupe. « Contenu visible » détermine si les élèves voient le déroulement détaillé de l'horaire (voir onglet Horaire).</div>
+      <div id="groups-list"></div>
+      <h3>Ajouter un groupe</h3>
+      <div class="group-manage-row">
+        <input id="new-group-name" type="text" placeholder="Nom du groupe (ex. Groupe 1)">
+        <input id="new-group-code" type="text" placeholder="Code d'accès élève">
+        <button class="btn btn-primary btn-sm" id="add-group-btn" type="button">Ajouter</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Rappels reçus des élèves</h2>
+      <div class="note">Les élèves peuvent vous envoyer un rappel directement depuis un bloc de l'horaire. Cochez « traité » une fois le suivi fait.</div>
+      <div id="rappels-list"><div class="loading-state">Chargement…</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Suivis admin. à faire (aide-mémoire)</h2>
+      <div class="note">Toutes les tâches « Suivis admin. » ajoutées dans l'horaire, regroupées par groupe. Cocher ici coche aussi dans l'horaire (et vice versa). « Supprimer » retire seulement la tâche de cette liste — elle reste intacte dans l'horaire.</div>
+      <div id="suivis-admin-list"><div class="loading-state">Chargement…</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Charte des permissions</h2>
+      <div class="note">Décidez qui peut faire quoi dans l'horaire. Vous (administratrice) avez toujours tous les droits. Ces réglages s'appliquent à tous les groupes.</div>
+      <div id="permissions-chart"><div class="loading-state">Chargement…</div></div>
     </div>
   </div>
 
@@ -1273,7 +1273,7 @@ function activateTab(key){
   document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
   document.getElementById("panel-" + key).classList.add("active");
   if (key === "mygroup") loadMyGroupPanel();
-  if (key === "inventory") { loadInventory(); loadAdminRessources(); }
+  if (key === "inventory") { loadInventory(); loadAdminRessources(); loadInventoryGroupSelects(); }
   if (key === "admin") loadAdminPanel();
 }
 
@@ -2233,21 +2233,7 @@ async function loadCoordList(){
       <div class="coord-row">
         <div class="coord-name">${escXml(r.nom)}</div>
         <div>${escXml(r.courriel || "—")} · ${escXml(r.telephone || "—")}</div>
-        <div>Choix : ${escXml(r.choix1 || "—")}${r.choix2 ? ", " + escXml(r.choix2) : ""}</div>
-        <div class="row-actions" style="margin-top:6px;">
-          <button class="btn btn-danger-ghost" data-remove="${r.key}">Retirer (avec mon code)</button>
-        </div>
       </div>`).join("");
-    wrap.querySelectorAll("[data-remove]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const pin = await customPrompt("Entrez votre code personnel (4 chiffres) pour retirer cette entrée :", "");
-        if (pin === null) return;
-        const r = await storageGet(btn.dataset.remove);
-        if (!r || String(r.pin) !== String(pin)){ showToast("Code incorrect.", true); return; }
-        try { await window.storage.delete(btn.dataset.remove, true); showToast("Coordonnées retirées."); loadCoordList(); }
-        catch(e){ showToast("Erreur lors du retrait.", true); }
-      });
-    });
   } catch(e){
     console.error(e);
     wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Impossible de charger la liste.</p>';
@@ -2288,10 +2274,9 @@ document.getElementById("coord-contact-add-btn").addEventListener("click", () =>
 
 document.getElementById("coord-add-btn").addEventListener("click", async () => {
   const nom = document.getElementById("coord-nom").value.trim();
-  const pin = document.getElementById("coord-pin").value.trim();
   const status = document.getElementById("coord-status");
-  if (!nom || !/^[0-9]{4}$/.test(pin)){
-    showToast("Nom requis, et code personnel = 4 chiffres.", true);
+  if (!nom){
+    showToast("Le nom est requis.", true);
     return;
   }
   // Si des champs de contact sont remplis mais n'ont pas été ajoutés via le bouton, on les ajoute automatiquement.
@@ -2311,19 +2296,19 @@ document.getElementById("coord-add-btn").addEventListener("click", async () => {
     courriel: document.getElementById("coord-courriel").value.trim(),
     telephone: document.getElementById("coord-telephone").value.trim(),
     partagerGroupe: document.getElementById("coord-partager-groupe").checked,
-    choix1: document.getElementById("coord-choix1").value.trim(),
-    choix2: document.getElementById("coord-choix2").value.trim(),
+    objectif: document.getElementById("coord-objectif").value.trim(),
+    objectifPartageGroupe: document.getElementById("coord-objectif-partage").checked,
     allergies: document.getElementById("coord-allergies").value.trim(),
     contacts,
-    pin,
   };
   status.textContent = "Enregistrement en cours…";
   const ok = await storageSet("coord:" + safeKeyPart(session.groupe) + ":" + genId(), entry);
   status.textContent = "";
   if (ok){
     showToast("Coordonnées enregistrées ✓");
-    ["coord-nom","coord-courriel","coord-telephone","coord-choix1","coord-choix2","coord-allergies","coord-contact-nom","coord-contact-courriel","coord-contact-telephone","coord-pin"].forEach(id => document.getElementById(id).value = "");
+    ["coord-nom","coord-courriel","coord-telephone","coord-objectif","coord-allergies","coord-contact-nom","coord-contact-courriel","coord-contact-telephone"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("coord-partager-groupe").checked = false;
+    document.getElementById("coord-objectif-partage").checked = false;
     document.getElementById("coord-contact-resp").checked = false;
     document.getElementById("coord-contact-urgence").checked = false;
     coordContactsDraft = [];
@@ -2859,22 +2844,31 @@ function buildHoraireSheet(seances){
 }
 
 function buildCoordSheet(rows){
-  // Feuille visible par les élèves eux-mêmes : seulement les entrées partagées avec le groupe,
-  // et jamais les champs confidentiels (allergies, contacts parent/urgence).
-  const headers = ["Nom, prénom","Courriel","Téléphone","Choix de chanson 1","Choix de chanson 2"];
-  const data = (rows||[]).filter(r => r.partagerGroupe).map(r => [r.nom, r.courriel, r.telephone, r.choix1, r.choix2]);
+  // Feuille visible par les élèves eux-mêmes : le nom identifie toujours la ligne, mais le
+  // courriel/téléphone n'apparaissent que si partagerGroupe est coché, et l'objectif seulement
+  // si objectifPartageGroupe est coché (indépendamment l'un de l'autre). Jamais les champs
+  // confidentiels (allergies, contacts parent/urgence).
+  const headers = ["Nom, prénom","Courriel","Téléphone","Objectif pour la session"];
+  const data = (rows||[])
+    .filter(r => r.partagerGroupe || r.objectifPartageGroupe)
+    .map(r => [
+      r.nom,
+      r.partagerGroupe ? (r.courriel || "") : "",
+      r.partagerGroupe ? (r.telephone || "") : "",
+      r.objectifPartageGroupe ? (r.objectif || "") : "",
+    ]);
   return { headers, rows: data };
 }
 
 function buildCoordConfidentialSheet(rows){
   // Feuille admin seulement : toutes les entrées, tous les champs (y compris confidentiels).
-  const headers = ["Nom, prénom","Courriel","Téléphone","Partagé au groupe","Allergies","Contact(s) parent/urgence","Choix de chanson 1","Choix de chanson 2"];
+  const headers = ["Nom, prénom","Courriel","Téléphone","Partagé au groupe","Allergies","Contact(s) parent/urgence","Objectif pour la session","Objectif partagé au groupe"];
   const data = (rows||[]).map(r => {
     const rn = normalizeCoordEntry(r);
     const contactsResume = rn.contacts.length
       ? rn.contacts.map(c => `${c.nom || "—"} (${contactRoleLabel(c)}) — ${c.courriel || "—"} · ${c.telephone || "—"}`).join(" | ")
       : "—";
-    return [r.nom, r.courriel, r.telephone, r.partagerGroupe ? "Oui" : "Non", r.allergies || "—", contactsResume, r.choix1, r.choix2];
+    return [r.nom, r.courriel, r.telephone, r.partagerGroupe ? "Oui" : "Non", r.allergies || "—", contactsResume, r.objectif || "—", r.objectifPartageGroupe ? "Oui" : "Non"];
   });
   return { headers, rows: data };
 }
@@ -3115,11 +3109,19 @@ async function loadAdminPanel(){
   loadRappelsList();
   loadSuivisAdminList();
   loadPermissionsChart();
-  const sel = document.getElementById("horaire-group-select");
+}
+
+/* Sélecteurs de groupe pour Horaire et Coordonnées, tous deux dans l'onglet Vue d'ensemble. */
+async function loadInventoryGroupSelects(){
+  groupesConfig = (await storageGet("config:groupes")) || {};
   const names = Object.keys(groupesConfig).sort();
-  const current = sel.value;
-  sel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
-  sel.value = current;
+
+  const sel = document.getElementById("horaire-group-select");
+  if (sel){
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
+    sel.value = current;
+  }
 
   const coordSel = document.getElementById("admin-coord-group-select");
   if (coordSel){
@@ -3159,7 +3161,7 @@ async function loadAdminCoordList(groupe){
         </div>
         <div class="field"><label>Allergies</label><input type="text" data-acfield="allergies" value="${escXml(r.allergies || "")}"></div>
         <div style="margin-top:8px;">
-          <div style="font-weight:600;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;">Contact(s) parent/adulte responsable / urgence</div>
+          <div style="font-weight:600;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;">Adulte(s) ou parent(s) responsable(s) ou contact(s) d'urgence</div>
           <div data-ac-contacts="${escXml(r.key)}">
             ${r.contacts.map(c => `
               <div class="coord-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;" data-ac-contact="${escXml(c.id)}">
