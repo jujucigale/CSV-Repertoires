@@ -706,7 +706,7 @@
     </div>
 
     <div class="card">
-      <h2>Coordonnées</h2>
+      <h2>Coordonnées et objectifs</h2>
       <div class="note">Le nom, le courriel et le téléphone ne sont jamais affichés à l'écran — ils ne servent qu'à l'export Excel de votre enseignante. Les allergies et les contacts parent/urgence restent toujours confidentiels. Votre objectif pour la session peut être visible ci-dessous au reste du groupe, seulement si vous cochez la case pour le partager.</div>
       <div id="objectifs-list"></div>
       <h3>Coordonnées de l'élève</h3>
@@ -847,7 +847,7 @@
     </div>
 
     <div class="card">
-      <h2>Coordonnées des élèves</h2>
+      <h2>Coordonnées et objectifs des élèves</h2>
       <div class="note">Vue admin : voyez et modifiez ici les coordonnées complètes de chaque élève (y compris allergies, objectif et contacts parent/urgence, jamais visibles par le reste du groupe) — aucun code personnel requis.</div>
       <div class="field" style="max-width:300px;">
         <label for="admin-coord-group-select">Groupe à afficher</label>
@@ -879,13 +879,30 @@
 
     <div class="card">
       <h2>Groupes et codes d'accès</h2>
-      <div class="note">Communiquez le code élève à tout le groupe. Le code assistant·e (optionnel) donne les mêmes droits que vous, mais seulement pour ce groupe. « Contenu visible » détermine si les élèves voient le déroulement détaillé de l'horaire (voir onglet Horaire).</div>
+      <div class="note">Communiquez le code élève à tout le groupe. Le code assistant·e (optionnel) donne les mêmes droits que vous, mais seulement pour ce groupe.</div>
+      <h3>Mots de passe</h3>
       <div id="groups-list"></div>
       <h3>Ajouter un groupe</h3>
       <div class="group-manage-row">
         <input id="new-group-name" type="text" placeholder="Nom du groupe (ex. Groupe 1)">
         <input id="new-group-code" type="text" placeholder="Code d'accès élève">
         <button class="btn btn-primary btn-sm" id="add-group-btn" type="button">Ajouter</button>
+      </div>
+      <h3 style="margin-top:22px;">Visible sur l'interface élèves</h3>
+      <div class="note">Groupe : visible ou non dans le menu déroulant avant la connexion. Contenu horaire : affiche le déroulement détaillé de l'horaire pour ce groupe. Coordonnées : affiche, dans l'export Excel des élèves, les coordonnées de ceux qui ont donné leur consentement (toujours visibles dans l'export admin et la fiche web admin). Objectifs : affiche les objectifs partagés, à l'écran et dans l'export Excel des élèves.</div>
+      <div class="table-wrap" style="margin-top:8px;">
+        <table id="groups-visibility-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--border);">Groupe</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Menu élève</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Contenu horaire</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Coordonnées</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Objectifs</th>
+            </tr>
+          </thead>
+          <tbody id="groups-visibility-tbody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -2470,8 +2487,15 @@ function renderCoordSelfEdit(key, r){
     btn.addEventListener("click", async () => {
       const entry = Object.assign({}, r, readSelfEntry());
       const ok = await storageSet(key, entry);
-      if (ok){ showToast("Coordonnées mises à jour ✓"); loadObjectifsList(); }
-      else showToast("Erreur lors de la mise à jour.", true);
+      if (ok){
+        showToast("Coordonnées mises à jour ✓");
+        wrap.innerHTML = "";
+        document.getElementById("coord-lookup-nom").value = "";
+        document.getElementById("coord-lookup-pin").value = "";
+        loadObjectifsList();
+      } else {
+        showToast("Erreur lors de la mise à jour.", true);
+      }
     });
   });
   wrap.querySelectorAll("[data-sc-delete]").forEach(btn => {
@@ -3013,19 +3037,24 @@ function buildHoraireSheet(seances){
   return { headers, rows };
 }
 
-function buildCoordSheet(rows){
-  // Feuille visible par les élèves eux-mêmes : le nom identifie toujours la ligne, mais le
-  // courriel/téléphone n'apparaissent que si partagerGroupe est coché, et l'objectif seulement
-  // si objectifPartageGroupe est coché (indépendamment l'un de l'autre). Jamais les champs
-  // confidentiels (allergies, contacts parent/urgence).
+function buildCoordSheet(rows, groupCfg){
+  // Feuille visible par les élèves eux-mêmes : le nom identifie toujours la ligne. Le
+  // courriel/téléphone n'apparaissent que si l'élève a coché partagerGroupe ET que
+  // l'admin a activé « Coordonnées » pour ce groupe. L'objectif n'apparaît que si l'élève
+  // a coché objectifPartageGroupe ET que l'admin a activé « Objectifs » pour ce groupe.
+  // Les deux permissions (admin + élève) sont indépendantes l'une de l'autre. Jamais les
+  // champs confidentiels (allergies, contacts parent/urgence).
+  const cfg = groupCfg || {};
+  const coordOk = cfg.coordonneesVisibles !== false;
+  const objectifOk = cfg.objectifsVisibles !== false;
   const headers = ["Nom, prénom","Courriel","Téléphone","Objectif pour la session"];
   const data = (rows||[])
-    .filter(r => r.partagerGroupe || r.objectifPartageGroupe)
+    .filter(r => (coordOk && r.partagerGroupe) || (objectifOk && r.objectifPartageGroupe))
     .map(r => [
       r.nom,
-      r.partagerGroupe ? (r.courriel || "") : "",
-      r.partagerGroupe ? (r.telephone || "") : "",
-      r.objectifPartageGroupe ? (r.objectif || "") : "",
+      (coordOk && r.partagerGroupe) ? (r.courriel || "") : "",
+      (coordOk && r.partagerGroupe) ? (r.telephone || "") : "",
+      (objectifOk && r.objectifPartageGroupe) ? (r.objectif || "") : "",
     ]);
   return { headers, rows: data };
 }
@@ -3204,7 +3233,7 @@ document.getElementById("mygroup-export-btn").addEventListener("click", async (e
       const keys = (listRes && listRes.keys) || [];
       for (const k of keys) { const r = await storageGet(k); if (r) coordRows.push(r); }
     } catch(e){ console.error(e); }
-    const coord = buildCoordSheet(coordRows);
+    const coord = buildCoordSheet(coordRows, groupesConfig[session.groupe]);
 
     const blob = await buildStyledXlsxBlob([
       { name: "Chansons", headers: chansons.headers, rows: chansons.rows, wrapColumns: new Set(["Raison du choix"]), tintColumns: new Set(myGroupVoteNames.concat(myGroupVoteNames.length ? ["Total intérêt"] : [])) },
@@ -3513,53 +3542,86 @@ function renderGroupsList(){
   const names = Object.keys(groupesConfig).sort();
   if (!names.length){
     wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucun groupe configuré.</p>';
+  } else {
+    wrap.innerHTML = names.map(n => {
+      const cfg = groupesConfig[n];
+      return `
+      <div class="group-manage-row">
+        <span style="flex:1;font-weight:600;">${escXml(n)}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12px;">Élève : ${escXml(cfg.code)}</span>
+        <button class="link-btn" data-editcode="${escXml(n)}" title="Modifier le code élève">✎</button>
+        <span style="font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12px;">Assistant·e : ${cfg.codeAssistant ? escXml(cfg.codeAssistant) : "—"}</span>
+        <button class="link-btn" data-editassistant="${escXml(n)}" title="Modifier/ajouter le code assistant·e">✎</button>
+        <button class="btn btn-danger-ghost" data-remove-group="${escXml(n)}">Retirer</button>
+      </div>`;
+    }).join("");
+
+    wrap.querySelectorAll("[data-editcode]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const n = btn.dataset.editcode;
+        const val = await customPrompt(`Nouveau code élève pour « ${n} » :`, groupesConfig[n].code);
+        if (val === null || !val.trim()) return;
+        groupesConfig[n].code = val.trim();
+        const ok = await storageSet("config:groupes", groupesConfig);
+        if (ok){ showToast("Code élève mis à jour ✓"); renderGroupsList(); }
+        else showToast("Erreur lors de la mise à jour.", true);
+      });
+    });
+    wrap.querySelectorAll("[data-editassistant]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const n = btn.dataset.editassistant;
+        const val = await customPrompt(`Code assistant·e pour « ${n} » (laisser vide pour retirer) :`, groupesConfig[n].codeAssistant || "");
+        if (val === null) return;
+        groupesConfig[n].codeAssistant = val.trim();
+        const ok = await storageSet("config:groupes", groupesConfig);
+        if (ok){ showToast("Code assistant·e mis à jour ✓"); renderGroupsList(); }
+        else showToast("Erreur lors de la mise à jour.", true);
+      });
+    });
+    wrap.querySelectorAll("[data-remove-group]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!(await customConfirm(`Retirer le groupe « ${btn.dataset.removeGroup} » ? Les élèves n'auront plus accès avec ce code.`))) return;
+        delete groupesConfig[btn.dataset.removeGroup];
+        await storageSet("config:groupes", groupesConfig);
+        loadAdminPanel();
+        showToast("Groupe retiré.");
+      });
+    });
+  }
+  renderGroupsVisibilityTable();
+}
+
+function renderGroupsVisibilityTable(){
+  const tbody = document.getElementById("groups-visibility-tbody");
+  if (!tbody) return;
+  const names = Object.keys(groupesConfig).sort();
+  if (!names.length){
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
     return;
   }
-  wrap.innerHTML = names.map(n => {
+  const cb = (attr, n, checked) => `<input type="checkbox" ${attr}="${escXml(n)}" ${checked ? "checked" : ""} style="width:auto;">`;
+  tbody.innerHTML = names.map(n => {
     const cfg = groupesConfig[n];
     return `
-    <div class="group-manage-row">
-      <span style="flex:1;font-weight:600;">${escXml(n)}</span>
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12px;">Élève : ${escXml(cfg.code)}</span>
-      <button class="link-btn" data-editcode="${escXml(n)}" title="Modifier le code élève">✎</button>
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12px;">Assistant·e : ${cfg.codeAssistant ? escXml(cfg.codeAssistant) : "—"}</span>
-      <button class="link-btn" data-editassistant="${escXml(n)}" title="Modifier/ajouter le code assistant·e">✎</button>
-      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;">
-        <input type="checkbox" data-togglevisible="${escXml(n)}" ${cfg.contenuVisible ? "checked" : ""} style="width:auto;"> Contenu horaire visible
-      </label>
-      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;">
-        <input type="checkbox" data-togglegroupvisible="${escXml(n)}" ${cfg.visible !== false ? "checked" : ""} style="width:auto;"> Visible pour les élèves
-      </label>
-      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;" title="À décocher pour les groupes de mineurs, par précaution.">
-        <input type="checkbox" data-toggleobjectifsvisibles="${escXml(n)}" ${cfg.objectifsVisibles !== false ? "checked" : ""} style="width:auto;"> Objectifs partagés visibles au groupe
-      </label>
-      <button class="btn btn-danger-ghost" data-remove-group="${escXml(n)}">Retirer</button>
-    </div>`;
+    <tr data-visibility-row="${escXml(n)}">
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">${escXml(n)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-togglegroupvisible", n, cfg.visible !== false)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-togglevisible", n, cfg.contenuVisible)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-togglecoordvisibles", n, cfg.coordonneesVisibles !== false)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-toggleobjectifsvisibles", n, cfg.objectifsVisibles !== false)}</td>
+    </tr>`;
   }).join("");
 
-  wrap.querySelectorAll("[data-editcode]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const n = btn.dataset.editcode;
-      const val = await customPrompt(`Nouveau code élève pour « ${n} » :`, groupesConfig[n].code);
-      if (val === null || !val.trim()) return;
-      groupesConfig[n].code = val.trim();
+  tbody.querySelectorAll("[data-togglegroupvisible]").forEach(chk => {
+    chk.addEventListener("change", async () => {
+      const n = chk.dataset.togglegroupvisible;
+      groupesConfig[n].visible = chk.checked;
       const ok = await storageSet("config:groupes", groupesConfig);
-      if (ok){ showToast("Code élève mis à jour ✓"); renderGroupsList(); }
+      if (ok) showToast(chk.checked ? `« ${n} » visible dans le menu élève ✓` : `« ${n} » caché du menu élève ✓`);
       else showToast("Erreur lors de la mise à jour.", true);
     });
   });
-  wrap.querySelectorAll("[data-editassistant]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const n = btn.dataset.editassistant;
-      const val = await customPrompt(`Code assistant·e pour « ${n} » (laisser vide pour retirer) :`, groupesConfig[n].codeAssistant || "");
-      if (val === null) return;
-      groupesConfig[n].codeAssistant = val.trim();
-      const ok = await storageSet("config:groupes", groupesConfig);
-      if (ok){ showToast("Code assistant·e mis à jour ✓"); renderGroupsList(); }
-      else showToast("Erreur lors de la mise à jour.", true);
-    });
-  });
-  wrap.querySelectorAll("[data-togglevisible]").forEach(chk => {
+  tbody.querySelectorAll("[data-togglevisible]").forEach(chk => {
     chk.addEventListener("change", async () => {
       const n = chk.dataset.togglevisible;
       groupesConfig[n].contenuVisible = chk.checked;
@@ -3567,30 +3629,20 @@ function renderGroupsList(){
       if (!ok) showToast("Erreur lors de la mise à jour.", true);
     });
   });
-  wrap.querySelectorAll("[data-toggleobjectifsvisibles]").forEach(chk => {
+  tbody.querySelectorAll("[data-togglecoordvisibles]").forEach(chk => {
+    chk.addEventListener("change", async () => {
+      const n = chk.dataset.togglecoordvisibles;
+      groupesConfig[n].coordonneesVisibles = chk.checked;
+      const ok = await storageSet("config:groupes", groupesConfig);
+      if (!ok) showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  tbody.querySelectorAll("[data-toggleobjectifsvisibles]").forEach(chk => {
     chk.addEventListener("change", async () => {
       const n = chk.dataset.toggleobjectifsvisibles;
       groupesConfig[n].objectifsVisibles = chk.checked;
       const ok = await storageSet("config:groupes", groupesConfig);
       if (!ok) showToast("Erreur lors de la mise à jour.", true);
-    });
-  });
-  wrap.querySelectorAll("[data-togglegroupvisible]").forEach(chk => {
-    chk.addEventListener("change", async () => {
-      const n = chk.dataset.togglegroupvisible;
-      groupesConfig[n].visible = chk.checked;
-      const ok = await storageSet("config:groupes", groupesConfig);
-      if (ok) showToast(chk.checked ? `« ${n} » visible pour les élèves ✓` : `« ${n} » caché du menu élève ✓`);
-      else showToast("Erreur lors de la mise à jour.", true);
-    });
-  });
-  wrap.querySelectorAll("[data-remove-group]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      if (!(await customConfirm(`Retirer le groupe « ${btn.dataset.removeGroup} » ? Les élèves n'auront plus accès avec ce code.`))) return;
-      delete groupesConfig[btn.dataset.removeGroup];
-      await storageSet("config:groupes", groupesConfig);
-      loadAdminPanel();
-      showToast("Groupe retiré.");
     });
   });
 }
