@@ -649,9 +649,14 @@
               <input id="eleve" type="text" placeholder="Ex. Camille Tremblay">
               <div class="err">Le nom de l'élève est requis.</div>
             </div>
-            <div class="field">
+            <div class="field" id="f-groupe-eleve">
               <label for="groupeAffiche">Groupe</label>
               <input id="groupeAffiche" type="text" readonly>
+            </div>
+            <div class="field hidden" id="f-groupe-admin">
+              <label for="groupeAffiche-admin">Groupe destinataire *</label>
+              <select id="groupeAffiche-admin"><option value="">— Choisir un groupe —</option></select>
+              <div class="err">Choisissez le groupe destinataire.</div>
             </div>
           </div>
         </div>
@@ -667,7 +672,7 @@
           <button class="btn btn-primary" id="submit-btn" type="button">Générer la fiche (.docx)</button>
           <span id="submit-status" style="font-size:13px;color:var(--ink-soft);"></span>
         </div>
-        <p class="privacy-note">Cette fiche est ajoutée au répertoire de votre groupe uniquement — visible par les personnes ayant le code de votre groupe.</p>
+        <p class="privacy-note">Cette fiche est ajoutée au répertoire du groupe sélectionné.</p>
       </div>
 
       <div class="preview">
@@ -1023,11 +1028,14 @@ function safeKeyPart(s){
   let xml = await zip.file("word/document.xml").async("string");
 
   const interpreteAnnee = [entry.interprete, entry.annee].filter(Boolean).join(", ");
+  // Recalculée à partir des valeurs actuelles de parolier/compositeur (jamais figée),
+  // comme interpreteAnnee ci-dessus — corrige le même bogue déjà réglé côté Toutil Solo.
+  const auteursDisplay = (entry.paroliers || entry.compositeurs) ? `${entry.paroliers || "—"} / ${entry.compositeurs || "—"}` : "—";
 
   const applyTokens = (str) => {
     str = str.split("@@TITRE@@").join(escXml(entry.titre));
     str = str.split("@@INTERPRETE_ANNEE@@").join(escXml(interpreteAnnee || "—"));
-    str = str.split("@@AUTEURS@@").join(escXml(entry.auteurs || "—"));
+    str = str.split("@@AUTEURS@@").join(escXml(auteursDisplay));
     str = str.split("@@TON_ORIGINE@@").join(escXml(entry.tonOrigine || "—"));
     str = str.split("@@TON_CHOISIE@@").join(escXml(entry.tonChoisie || "—"));
     str = str.split("@@BPM_ORIGINAL@@").join(escXml(entry.bpmOriginal || "—"));
@@ -1302,7 +1310,7 @@ function buildTabsForSession(){
   tabs.innerHTML = "";
   const defs = (session.type === "eleve" || session.type === "assistant")
     ? [["inscription","M'inscrire"],["form","Soumettre une chanson"],["mygroup","QG du groupe"]]
-    : [["admin","Administration"],["inventory","Vue d'ensemble"]];
+    : [["admin","Administration"],["inventory","Vue d'ensemble"],["form","Soumettre une chanson"]];
   defs.forEach(([key, label], i) => {
     const btn = document.createElement("button");
     btn.className = "tab-btn" + (i === 0 ? " active" : "");
@@ -1342,6 +1350,25 @@ function activateTab(key){
   if (key === "mygroup") loadMyGroupPanel();
   if (key === "inventory") { loadInventory(); loadAdminRessources(); loadInventoryGroupSelects(); }
   if (key === "admin") loadAdminPanel();
+  if (key === "form") {
+    const isAdmin = session.type === "admin";
+    document.getElementById("f-groupe-eleve").classList.toggle("hidden", isAdmin);
+    document.getElementById("f-groupe-admin").classList.toggle("hidden", !isAdmin);
+    if (isAdmin) loadFormGroupSelect();
+    renderSections();
+    updatePreview();
+  }
+}
+
+/* Remplit le menu déroulant « Groupe destinataire » de l'onglet admin Soumettre une chanson. */
+async function loadFormGroupSelect(){
+  const sel = document.getElementById("groupeAffiche-admin");
+  if (!sel) return;
+  const current = sel.value;
+  groupesConfig = (await storageGet("config:groupes")) || {};
+  const names = Object.keys(groupesConfig).sort();
+  sel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
+  sel.value = current;
 }
 
 function enterApp(){
@@ -1387,6 +1414,7 @@ const els = {
   bpmOriginal: document.getElementById("bpmOriginal"),
   bpmChoisi: document.getElementById("bpmChoisi"),
   eleve: document.getElementById("eleve"),
+  groupeAdmin: document.getElementById("groupeAffiche-admin"),
 };
 
 function renderSections(){
@@ -1488,6 +1516,11 @@ function validateForm(){
     if (!el.value.trim()) { wrap.classList.add("invalid"); ok = false; }
     else wrap.classList.remove("invalid");
   });
+  if (session.type === "admin"){
+    const wrap = document.getElementById("f-groupe-admin");
+    if (!els.groupeAdmin.value.trim()) { wrap.classList.add("invalid"); ok = false; }
+    else wrap.classList.remove("invalid");
+  }
   return ok;
 }
 
@@ -1511,7 +1544,7 @@ document.getElementById("submit-btn").addEventListener("click", async () => {
     tonOrigine: els.tonOrigine.value.trim(),
     tonChoisie: els.tonChoisie.value.trim(),
     eleve: els.eleve.value.trim(),
-    groupe: session.groupe,
+    groupe: (session.type === "admin") ? els.groupeAdmin.value : session.groupe,
     lienChante: els.lienChante.value.trim(),
     lienAccompagnement: els.lienAccompagnement.value.trim(),
     lienPartition: els.lienPartition.value.trim(),
