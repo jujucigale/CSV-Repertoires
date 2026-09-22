@@ -1335,7 +1335,9 @@ const DEFAULT_SUBTITLE = "Remplissez les informations de votre chanson — le do
 function updateAppSubtitle(key){
   const el = document.getElementById("app-subtitle");
   if (!el) return;
-  if ((session.type === "eleve" || session.type === "assistant") && ELEVE_SUBTITLES[key]){
+  // Le texte "form" (Soumettre une chanson) est partagé entre la vue élève et la vue admin.
+  // Les textes "inscription"/"mygroup" ne s'appliquent qu'à la vue élève (seule à avoir ces onglets).
+  if (ELEVE_SUBTITLES[key] && (key === "form" || session.type === "eleve" || session.type === "assistant")){
     el.textContent = ELEVE_SUBTITLES[key];
   } else {
     el.textContent = DEFAULT_SUBTITLE;
