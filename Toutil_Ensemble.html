@@ -649,9 +649,14 @@
               <input id="eleve" type="text" placeholder="Ex. Camille Tremblay">
               <div class="err">Le nom de l'élève est requis.</div>
             </div>
-            <div class="field">
+            <div class="field" id="f-groupe-eleve">
               <label for="groupeAffiche">Groupe</label>
               <input id="groupeAffiche" type="text" readonly>
+            </div>
+            <div class="field hidden" id="f-groupe-admin">
+              <label for="groupeAffiche-admin">Groupe destinataire *</label>
+              <select id="groupeAffiche-admin"><option value="">— Choisir un groupe —</option></select>
+              <div class="err">Choisissez le groupe destinataire.</div>
             </div>
           </div>
         </div>
@@ -667,7 +672,7 @@
           <button class="btn btn-primary" id="submit-btn" type="button">Générer la fiche (.docx)</button>
           <span id="submit-status" style="font-size:13px;color:var(--ink-soft);"></span>
         </div>
-        <p class="privacy-note">Cette fiche est ajoutée au répertoire de votre groupe uniquement — visible par les personnes ayant le code de votre groupe.</p>
+        <p class="privacy-note">Cette fiche est ajoutée au répertoire du groupe sélectionné.</p>
       </div>
 
       <div class="preview">
@@ -870,6 +875,19 @@
       </div>
       <div id="admin-coord-list" style="margin-top:12px;"></div>
     </div>
+
+    <div class="card">
+      <h2>Gestion des participantes et des participants au vote</h2>
+      <div class="note">Retirez ici une ou un élève de la liste de vote d'un groupe (par exemple, une ou un élève qui a quitté le cours ou qui ne peut plus voter). Ses pointages déjà entrés pour ce groupe seront aussi effacés. Ceci ne supprime pas sa fiche de coordonnées ni son objectif.</div>
+      <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+        <div class="field" style="max-width:300px;">
+          <label for="admin-votes-group-select">Groupe à afficher</label>
+          <select id="admin-votes-group-select"><option value="">— Choisir un groupe —</option></select>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="admin-votes-refresh-btn" type="button" title="Recharger la liste de vote de ce groupe.">Actualiser</button>
+      </div>
+      <div id="admin-votes-list" style="margin-top:12px;"></div>
+    </div>
   </div>
 
   <!-- ===================== ONGLET ADMINISTRATION (admin) ===================== -->
@@ -911,6 +929,22 @@
             </tr>
           </thead>
           <tbody id="groups-visibility-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Permissions par groupe</h2>
+      <div class="note">Contrôlez ici, groupe par groupe, qui peut effectuer certaines actions — distinct des permissions Horaire ci-dessous, qui s'appliquent à toute l'appli. D'autres permissions pourront s'ajouter ici avec le temps. Édition des chansons : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM) — l'admin peut toujours tout modifier, quel que soit ce réglage.</div>
+      <div class="table-wrap" style="margin-top:8px;">
+        <table id="groups-permissions-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--border);">Groupe</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Édition des chansons</th>
+            </tr>
+          </thead>
+          <tbody id="groups-permissions-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -1023,11 +1057,14 @@ function safeKeyPart(s){
   let xml = await zip.file("word/document.xml").async("string");
 
   const interpreteAnnee = [entry.interprete, entry.annee].filter(Boolean).join(", ");
+  // Recalculée à partir des valeurs actuelles de parolier/compositeur (jamais figée),
+  // comme interpreteAnnee ci-dessus — corrige le même bogue déjà réglé côté Toutil Solo.
+  const auteursDisplay = (entry.paroliers || entry.compositeurs) ? `${entry.paroliers || "—"} / ${entry.compositeurs || "—"}` : "—";
 
   const applyTokens = (str) => {
     str = str.split("@@TITRE@@").join(escXml(entry.titre));
     str = str.split("@@INTERPRETE_ANNEE@@").join(escXml(interpreteAnnee || "—"));
-    str = str.split("@@AUTEURS@@").join(escXml(entry.auteurs || "—"));
+    str = str.split("@@AUTEURS@@").join(escXml(auteursDisplay));
     str = str.split("@@TON_ORIGINE@@").join(escXml(entry.tonOrigine || "—"));
     str = str.split("@@TON_CHOISIE@@").join(escXml(entry.tonChoisie || "—"));
     str = str.split("@@BPM_ORIGINAL@@").join(escXml(entry.bpmOriginal || "—"));
@@ -1302,7 +1339,7 @@ function buildTabsForSession(){
   tabs.innerHTML = "";
   const defs = (session.type === "eleve" || session.type === "assistant")
     ? [["inscription","M'inscrire"],["form","Soumettre une chanson"],["mygroup","QG du groupe"]]
-    : [["admin","Administration"],["inventory","Vue d'ensemble"]];
+    : [["admin","Administration"],["inventory","Vue d'ensemble"],["form","Soumettre une chanson"]];
   defs.forEach(([key, label], i) => {
     const btn = document.createElement("button");
     btn.className = "tab-btn" + (i === 0 ? " active" : "");
@@ -1327,7 +1364,9 @@ const DEFAULT_SUBTITLE = "Remplissez les informations de votre chanson — le do
 function updateAppSubtitle(key){
   const el = document.getElementById("app-subtitle");
   if (!el) return;
-  if ((session.type === "eleve" || session.type === "assistant") && ELEVE_SUBTITLES[key]){
+  // Le texte "form" (Soumettre une chanson) est partagé entre la vue élève et la vue admin.
+  // Les textes "inscription"/"mygroup" ne s'appliquent qu'à la vue élève (seule à avoir ces onglets).
+  if (ELEVE_SUBTITLES[key] && (key === "form" || session.type === "eleve" || session.type === "assistant")){
     el.textContent = ELEVE_SUBTITLES[key];
   } else {
     el.textContent = DEFAULT_SUBTITLE;
@@ -1342,6 +1381,25 @@ function activateTab(key){
   if (key === "mygroup") loadMyGroupPanel();
   if (key === "inventory") { loadInventory(); loadAdminRessources(); loadInventoryGroupSelects(); }
   if (key === "admin") loadAdminPanel();
+  if (key === "form") {
+    const isAdmin = session.type === "admin";
+    document.getElementById("f-groupe-eleve").classList.toggle("hidden", isAdmin);
+    document.getElementById("f-groupe-admin").classList.toggle("hidden", !isAdmin);
+    if (isAdmin) loadFormGroupSelect();
+    renderSections();
+    updatePreview();
+  }
+}
+
+/* Remplit le menu déroulant « Groupe destinataire » de l'onglet admin Soumettre une chanson. */
+async function loadFormGroupSelect(){
+  const sel = document.getElementById("groupeAffiche-admin");
+  if (!sel) return;
+  const current = sel.value;
+  groupesConfig = (await storageGet("config:groupes")) || {};
+  const names = Object.keys(groupesConfig).sort();
+  sel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
+  sel.value = current;
 }
 
 function enterApp(){
@@ -1387,6 +1445,7 @@ const els = {
   bpmOriginal: document.getElementById("bpmOriginal"),
   bpmChoisi: document.getElementById("bpmChoisi"),
   eleve: document.getElementById("eleve"),
+  groupeAdmin: document.getElementById("groupeAffiche-admin"),
 };
 
 function renderSections(){
@@ -1488,6 +1547,11 @@ function validateForm(){
     if (!el.value.trim()) { wrap.classList.add("invalid"); ok = false; }
     else wrap.classList.remove("invalid");
   });
+  if (session.type === "admin"){
+    const wrap = document.getElementById("f-groupe-admin");
+    if (!els.groupeAdmin.value.trim()) { wrap.classList.add("invalid"); ok = false; }
+    else wrap.classList.remove("invalid");
+  }
   return ok;
 }
 
@@ -1511,7 +1575,7 @@ document.getElementById("submit-btn").addEventListener("click", async () => {
     tonOrigine: els.tonOrigine.value.trim(),
     tonChoisie: els.tonChoisie.value.trim(),
     eleve: els.eleve.value.trim(),
-    groupe: session.groupe,
+    groupe: (session.type === "admin") ? els.groupeAdmin.value : session.groupe,
     lienChante: els.lienChante.value.trim(),
     lienAccompagnement: els.lienAccompagnement.value.trim(),
     lienPartition: els.lienPartition.value.trim(),
@@ -1636,6 +1700,13 @@ async function loadMyGroupChansons(){
     const selectCell = (e, field, options) => `<select data-editfield-select="${field}" data-edit-id="${e.id}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${(options||statusOptions).map(o => `<option value="${escXml(o)}" ${e[field] === o ? "selected" : ""}>${o || "— Non déterminé —"}</option>`).join("")}</select>`;
     const raisonCell = (e) => `<button class="btn btn-ghost btn-sm" data-raison-id="${e.id}">📝 ${e.raisonChoix ? "Voir/modifier" : "Ajouter"}</button>`;
 
+    // Le titre et les autres infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s),
+    // année, tonalités, BPM) ne sont modifiables ici que si l'admin l'a permis pour ce groupe.
+    const canEditMeta = canEditByGroupPerm(session.groupe, "chanson_edit", roleFromSession());
+    const metaCell = (e, field, width, placeholder) => canEditMeta
+      ? textCell(e, field, width, placeholder)
+      : `<span>${escXml(e[field] || "—")}</span>`;
+
     const headers = ["Titre","Version chantée","Accompagnement","Statut version chantée","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi"]
       .concat(myGroupVoteNames)
       .concat(myGroupVoteNames.length ? ["Total intérêt"] : [])
@@ -1643,19 +1714,19 @@ async function loadMyGroupChansons(){
 
     const sections = groupEntriesByVisee(entries);
     const rowHtml = (e) => `<tr>
-        <td class="col-sticky">${escXml(e.titre)}</td>
+        <td class="col-sticky">${metaCell(e, "titre", 130, "Titre de la chanson")}</td>
         <td class="col-sticky2">${linkCell(e, "lienChante", "Version chantée")}</td>
         <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
         <td>${selectCell(e, "statutVersionChantee")}</td>
         <td>${selectCell(e, "statutTrame")}</td>
-        <td>${textCell(e, "interprete", 110)}</td>
-        <td>${textCell(e, "paroliers", 110)}</td>
-        <td>${textCell(e, "compositeurs", 110)}</td>
-        <td>${textCell(e, "annee", 70)}</td>
-        <td>${textCell(e, "tonOrigine", 100)}</td>
-        <td>${textCell(e, "tonChoisie", 100)}</td>
-        <td>${textCell(e, "bpmOriginal", 70)}</td>
-        <td>${textCell(e, "bpmChoisi", 70)}</td>
+        <td>${metaCell(e, "interprete", 110)}</td>
+        <td>${metaCell(e, "paroliers", 110)}</td>
+        <td>${metaCell(e, "compositeurs", 110)}</td>
+        <td>${metaCell(e, "annee", 70)}</td>
+        <td>${metaCell(e, "tonOrigine", 100)}</td>
+        <td>${metaCell(e, "tonChoisie", 100)}</td>
+        <td>${metaCell(e, "bpmOriginal", 70)}</td>
+        <td>${metaCell(e, "bpmChoisi", 70)}</td>
         ${myGroupVoteNames.map(n => `<td class="col-vote"><input type="number" min="0" max="5" title="${escXml(voteTip)}" style="width:52px;padding:5px 6px;border:1px solid var(--border);border-radius:5px;" data-vote-id="${e.id}" data-vote-name="${escXml(n)}" value="${(e.votes && e.votes[n] != null) ? e.votes[n] : ""}"></td>`).join("")}
         ${myGroupVoteNames.length ? `<td class="col-vote"><strong data-total-id="${e.id}">${totalOf(e)}</strong></td>` : ""}
         <td>${textCell(e, "proposePar", 100)}</td>
@@ -1726,7 +1797,15 @@ async function loadMyGroupChansons(){
         const field = inp.dataset.editfieldText, id = inp.dataset.editId;
         const entry = myGroupEntries.find(e => e.id === id);
         if (!entry) return;
-        entry[field] = inp.value.trim();
+        const newVal = inp.value.trim();
+        if (field === "titre" && !newVal){
+          showToast("Le titre ne peut pas être vide.", true);
+          inp.value = entry.titre || "";
+          return;
+        }
+        entry[field] = newVal;
+        // Comme en vue admin : le nom du fichier .docx se recalcule dès que le titre ou l'interprète change.
+        if (field === "titre" || field === "interprete") entry.nomFichier = buildFileName(entry);
         entry.dateMaj = new Date().toISOString();
         const ok = await storageSet("chanson:" + entry.id, entry);
         if (ok){ const majCell = wrap.querySelector(`[data-maj-id="${id}"]`); if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj); }
@@ -1830,6 +1909,24 @@ function hasPerm(key, role){
 function roleFromSession(){
   if (!session) return "eleve";
   return session.type === "admin" ? "admin" : session.type === "assistant" ? "assistant" : "eleve";
+}
+/* ---------------- Permissions par groupe (distinctes des permissions Horaire ci-dessus, qui
+   sont globales à toute l'appli). Chaque groupe peut avoir son propre niveau pour chaque clé :
+   "eleve" (tout le monde, y compris élève), "assistant" (admin + assistant·e), "admin" (admin seulement).
+   Conçu pour accueillir d'autres clés plus tard (ex. les permissions Horaire, si on les rend un jour
+   spécifiques par groupe) sans changer la structure. ---------------- */
+const GROUP_PERM_DEFAULTS = { chanson_edit: "eleve" };
+function groupPermTier(groupe, key){
+  const cfg = groupesConfig[groupe];
+  const p = cfg && cfg.permissionsGroupe;
+  return (p && p[key]) || GROUP_PERM_DEFAULTS[key] || "eleve";
+}
+function canEditByGroupPerm(groupe, key, role){
+  if (role === "admin") return true;
+  const tier = groupPermTier(groupe, key);
+  if (tier === "eleve") return true;
+  if (tier === "assistant") return role === "assistant";
+  return false; // tier === "admin"
 }
 const SUIVI_KEYS = new Set(["suivi_admin_ajouter","suivi_admin_cocher","suivi_progres","suivi_pedagogique"]);
 function buildHoraireCtx(role, contenuVisible){
@@ -2843,7 +2940,7 @@ function renderInventoryTable(entries){
 
   const sections = groupEntriesByVisee(filtered);
   const rowHtml = (e) => `<tr>
-      <td class="col-sticky">${escXml(e.titre)}</td>
+      <td class="col-sticky">${textCell(e, "titre", 150, "Titre de la chanson")}</td>
       <td class="col-sticky2">${linkCell(e, "lienChante", "Version chantée")}</td>
       <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
       <td>${selectCell(e, "statutVersionChantee")}</td>
@@ -2920,7 +3017,16 @@ function renderInventoryTable(entries){
       const field = inp.dataset.editfieldText, id = inp.dataset.editId;
       const entry = allEntries.find(e => e.id === id);
       if (!entry) return;
-      entry[field] = inp.value.trim();
+      const newVal = inp.value.trim();
+      if (field === "titre" && !newVal){
+        showToast("Le titre ne peut pas être vide.", true);
+        inp.value = entry.titre || "";
+        return;
+      }
+      entry[field] = newVal;
+      // Le nom du fichier .docx (figé à la première soumission) est recalculé dès que le
+      // titre ou l'interprète change, pour que le fichier téléchargé reflète les infos actuelles.
+      if (field === "titre" || field === "interprete") entry.nomFichier = buildFileName(entry);
       entry.dateMaj = new Date().toISOString();
       const ok = await storageSet("chanson:" + entry.id, entry);
       if (ok){ const majCell = wrap.querySelector(`[data-maj-id="${id}"]`); if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj); }
@@ -3360,7 +3466,80 @@ async function loadInventoryGroupSelects(){
     // fiche aurait été soumise par un·e élève depuis le dernier chargement de cet onglet.
     if (coordCurrent) loadAdminCoordList(coordCurrent);
   }
+
+  const votesSel = document.getElementById("admin-votes-group-select");
+  if (votesSel){
+    const votesCurrent = votesSel.value;
+    votesSel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
+    votesSel.value = votesCurrent;
+    if (votesCurrent) loadAdminVotesList(votesCurrent);
+  }
 }
+
+/* ---------------- Classement de vote — gestion des participant·e·s (vue admin) ---------------- */
+async function loadAdminVotesList(groupe){
+  const wrap = document.getElementById("admin-votes-list");
+  if (!wrap) return;
+  if (!groupe){ wrap.innerHTML = ""; return; }
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const names = (await storageGet("voteNames:" + safeKeyPart(groupe))) || [];
+    if (!names.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucun·e participant·e inscrit·e au tableau de vote de ce groupe.</p>';
+      return;
+    }
+    wrap.innerHTML = names.map(n => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span>${escXml(n)}</span>
+        <button class="btn btn-ghost btn-sm admin-votes-remove-btn" type="button" data-name="${escXml(n)}" data-groupe="${escXml(groupe)}">Retirer</button>
+      </div>
+    `).join("");
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Erreur lors du chargement.</p>';
+  }
+}
+
+document.getElementById("admin-votes-group-select").addEventListener("change", (e) => {
+  loadAdminVotesList(e.target.value);
+});
+document.getElementById("admin-votes-refresh-btn").addEventListener("click", () => {
+  loadAdminVotesList(document.getElementById("admin-votes-group-select").value);
+});
+document.getElementById("admin-votes-list").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".admin-votes-remove-btn");
+  if (!btn) return;
+  const name = btn.dataset.name;
+  const groupe = btn.dataset.groupe;
+  if (!confirm(`Retirer « ${name} » du classement de vote du groupe « ${groupe} »?\n\nSes pointages déjà entrés pour ce groupe seront aussi effacés. Sa fiche de coordonnées et son objectif ne seront pas touchés.`)) return;
+  btn.disabled = true;
+  try {
+    const key = "voteNames:" + safeKeyPart(groupe);
+    const current = (await storageGet(key)) || [];
+    const updated = current.filter(n => n !== name);
+    const ok = await storageSet(key, updated);
+    if (!ok){ showToast("Erreur lors du retrait. Réessayez.", true); btn.disabled = false; return; }
+
+    // Efface aussi les pointages de cette personne dans les chansons du groupe.
+    const listRes = await window.storage.list("chanson:", true);
+    const keys = (listRes && listRes.keys) || [];
+    for (const k of keys) {
+      const entry = await storageGet(k);
+      if (entry && entry.groupe === groupe && entry.votes && Object.prototype.hasOwnProperty.call(entry.votes, name)){
+        delete entry.votes[name];
+        await storageSet(k, entry);
+      }
+    }
+
+    if (myGroupVoteNames && session.groupe === groupe) myGroupVoteNames = updated;
+    showToast(`« ${name} » retiré·e du classement de vote ✓`);
+    loadAdminVotesList(groupe);
+  } catch(err){
+    console.error(err);
+    showToast("Erreur lors du retrait. Réessayez.", true);
+    btn.disabled = false;
+  }
+});
 
 /* ---------------- Coordonnées — vue admin (édition/suppression sans code) ---------------- */
 let adminCoordRows = [];
@@ -3624,6 +3803,7 @@ function renderGroupsList(){
     });
   }
   renderGroupsVisibilityTable();
+  renderGroupsPermissionsTable();
 }
 
 function renderGroupsVisibilityTable(){
@@ -3676,6 +3856,38 @@ function renderGroupsVisibilityTable(){
     chk.addEventListener("change", async () => {
       const n = chk.dataset.toggleobjectifsvisibles;
       groupesConfig[n].objectifsVisibles = chk.checked;
+      const ok = await storageSet("config:groupes", groupesConfig);
+      if (!ok) showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+}
+
+/* Table des permissions par groupe (distincte de la visibilité) — conçue pour accueillir
+   d'autres permissions par groupe avec le temps, une colonne à la fois. */
+function renderGroupsPermissionsTable(){
+  const tbody = document.getElementById("groups-permissions-tbody");
+  if (!tbody) return;
+  const names = Object.keys(groupesConfig).sort();
+  if (!names.length){
+    tbody.innerHTML = `<tr><td colspan="2" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
+    return;
+  }
+  const CHANSON_EDIT_LABELS = { admin: "Admin. seulement", assistant: "Admin. + assistant·e", eleve: "Tout le monde (incl. élève)" };
+  const chansonEditSelect = (n) => {
+    const current = groupPermTier(n, "chanson_edit");
+    return `<select data-chansonedit-tier="${escXml(n)}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${Object.keys(CHANSON_EDIT_LABELS).map(k => `<option value="${k}" ${k === current ? "selected" : ""}>${CHANSON_EDIT_LABELS[k]}</option>`).join("")}</select>`;
+  };
+  tbody.innerHTML = names.map(n => `
+    <tr data-permissions-row="${escXml(n)}">
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">${escXml(n)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${chansonEditSelect(n)}</td>
+    </tr>`).join("");
+
+  tbody.querySelectorAll("[data-chansonedit-tier]").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      const n = sel.dataset.chansoneditTier;
+      groupesConfig[n].permissionsGroupe = groupesConfig[n].permissionsGroupe || {};
+      groupesConfig[n].permissionsGroupe.chanson_edit = sel.value;
       const ok = await storageSet("config:groupes", groupesConfig);
       if (!ok) showToast("Erreur lors de la mise à jour.", true);
     });
