@@ -471,7 +471,7 @@
         </div>
         <div class="field">
           <label for="gate-admin-password">Mot de passe</label>
-          <input id="gate-admin-password" type="password" placeholder="Au moins 6 caractères">
+          <input id="gate-admin-password" type="password" placeholder="Au moins 6&nbsp;caractères">
         </div>
         <button class="btn btn-ghost btn-block" id="gate-admin-btn" type="button">Se connecter</button>
         <button class="btn btn-ghost btn-block" id="gate-admin-create-btn" type="button" style="margin-top:8px;">Créer mon compte (adresse déjà autorisée)</button>
@@ -688,7 +688,7 @@
   <div class="panel" id="panel-inscription">
     <div class="card">
       <h2>Coordonnées et objectifs</h2>
-      <div class="note">Les coordonnées téléphonique et courriel ne s'afficheront pas directement dans l'appli. Conditionnellement à votre autorisation de partage, elle s'afficheront dans l'export Excel spécifique à votre groupe. Si vous n'autorisez pas cet affichage, seule votre enseignante ou seul ou votre enseignant y aura accès.</div>
+      <div class="note">Les coordonnées téléphoniques et courriels ne s'afficheront pas directement dans l'application. Conditionnellement à votre autorisation d'affichage explicite, elles s'afficheront dans l'export Excel spécifique à votre groupe. Si vous n'autorisez pas cet affichage, seule la personne qui enseigne aura accès à vos informations.</div>
       <h3>Coordonnées de l'élève</h3>
       <div class="row3">
         <div class="field"><label for="coord-nom">Nom, prénom</label><input id="coord-nom" type="text"></div>
@@ -696,22 +696,22 @@
         <div class="field"><label for="coord-telephone">Téléphone</label><input id="coord-telephone" type="tel"></div>
       </div>
       <div class="field" style="max-width:240px;">
-        <label for="coord-pin">Choisissez un code personnel (4 chiffres)</label>
+        <label for="coord-pin">Choisissez un code personnel (4&nbsp;chiffres)</label>
         <input id="coord-pin" type="password" maxlength="4" placeholder="Ex. 1234">
       </div>
-      <div class="note" style="margin-top:-8px;">Ce code vous permettra de retrouver et modifier votre fiche plus tard, sans dépendre de votre enseignante — gardez-le en mémoire.</div>
+      <div class="note" style="margin-top:-8px;">Ce code vous permettra de retrouver et de modifier, au besoin, vos coordonnées et objectifs ainsi que vos choix d'autorisations d'affichage dans la liste fournie à votre groupe. Gardez ce code en mémoire.</div>
       <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
         <input type="checkbox" id="coord-partager-groupe" style="width:auto;margin-top:3px;">
-        <label for="coord-partager-groupe" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon nom, mon courriel et mon téléphone (facultatif — sert uniquement à l'export Excel de l'enseignante, décoché par défaut).</label>
+        <label for="coord-partager-groupe" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Afficher mon nom, mon courriel et mon téléphone dans l'export Excel partagé au groupe. Par défaut, les coordonnées ne sont rendues disponibles qu'à l'enseignante ou à l'enseignant.</label>
       </div>
       <div class="field"><label for="coord-objectif">Objectif pour la session</label><textarea id="coord-objectif" rows="3" placeholder="Ex. Travailler la justesse, préparer une chanson pour le spectacle…"></textarea></div>
       <div class="field" style="display:flex;align-items:flex-start;gap:8px;">
         <input type="checkbox" id="coord-objectif-partage" style="width:auto;margin-top:3px;">
-        <label for="coord-objectif-partage" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Partager mon objectif avec le reste de mon groupe (visible dans l'onglet QG du groupe, et dans l'Excel de groupe — sinon, il reste visible seulement par votre enseignante).</label>
+        <label for="coord-objectif-partage" style="text-transform:none;font-weight:500;font-size:13.5px;letter-spacing:normal;color:var(--ink);">Communiquer mon objectif aux élèves de mon groupe (sera alors visible dans l'onglet QG du groupe, et dans l'Export Excel de votre groupe — sinon, il reste visible seulement par l'enseignante ou l'enseignant).</label>
       </div>
       <div class="field"><label for="coord-allergies">Allergies (confidentiel)</label><input id="coord-allergies" type="text" placeholder="Ex. Aucune, ou : arachides"></div>
       <h3>Adulte(s) ou parent(s) responsable(s) ou contact(s) d'urgence (confidentiel)</h3>
-      <div class="note" style="margin-bottom:10px;">Vous pouvez ajouter plus d'une personne. Cochez si elle est parent/adulte responsable, contact d'urgence, ou les deux. Ces informations ne sont jamais visibles par les autres élèves du groupe.</div>
+      <div class="note" style="margin-bottom:10px;">Vous pouvez ajouter plus d'une personne. Indiquez s'il s'agit d'un parent/adulte responsable, d'un contact d'urgence, ou les deux. Ces informations ne seront pas visibles pour les autres élèves du groupe.</div>
       <div id="coord-contacts-draft"></div>
       <div class="row3">
         <div class="field"><label for="coord-contact-nom">Nom, prénom</label><input id="coord-contact-nom" type="text"></div>
@@ -727,10 +727,10 @@
       <span id="coord-status" style="font-size:13px;color:var(--ink-soft);margin-left:10px;"></span>
 
       <h3 style="margin-top:24px;">Modifier mes coordonnées ou mon objectif</h3>
-      <div class="note" style="margin-bottom:10px;">Entrez votre nom et votre code personnel pour retrouver votre fiche et la modifier — y compris changer d'avis sur le partage.<br>Nom ou code oublié? Communique avec la personne qui t'enseigne pour récupérer l'information.</div>
+      <div class="note" style="margin-bottom:10px;">Entrez votre nom et votre code personnel pour retrouver votre fiche et la modifier ou pour changer les autorisations d'affichage de vos informations.<br>Nom ou code oublié? Communiquez avec l'enseignante ou l'enseignant responsable pour récupérer l'information.</div>
       <div class="row3">
         <div class="field"><label for="coord-lookup-nom">Nom, prénom</label><input id="coord-lookup-nom" type="text"></div>
-        <div class="field"><label for="coord-lookup-pin">Code personnel (4 chiffres)</label><input id="coord-lookup-pin" type="password" maxlength="4"></div>
+        <div class="field"><label for="coord-lookup-pin">Code personnel (4&nbsp;chiffres)</label><input id="coord-lookup-pin" type="password" maxlength="4"></div>
         <div class="field" style="display:flex;align-items:flex-end;"><button class="btn btn-ghost" id="coord-lookup-btn" type="button">Retrouver ma fiche</button></div>
       </div>
       <span id="coord-lookup-status" style="font-size:13px;color:var(--ink-soft);"></span>
@@ -759,7 +759,7 @@
       <div id="mygroup-horaire-wrap"><div class="loading-state">Chargement…</div></div>
 
       <h3>Objectifs des élèves du groupe</h3>
-      <div class="note">Objectifs communiqué par les élèves de votre groupe pour la session en cours</div>
+      <div class="note">Objectifs communiqués par les élèves de votre groupe pour la session en cours.</div>
       <div id="objectifs-list"></div>
     </div>
   </div>
@@ -936,7 +936,7 @@
 
 </div>
 
-<div class="app-footer">© 2026 Judith Beauchamp — Toutil Ensemble — mise à jour le 15 septembre 2026</div>
+<div class="app-footer">© 2026 Judith Beauchamp — Toutil Ensemble — mise à jour le 15&nbsp;septembre 2026</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1224,7 +1224,7 @@ document.getElementById("gate-admin-create-btn").addEventListener("click", async
   const errEl = document.getElementById("gate-admin-err");
   if (!email || !password || password.length < 6){
     errEl.style.color = "var(--danger)";
-    errEl.textContent = "Entrez un courriel valide et un mot de passe d'au moins 6 caractères.";
+    errEl.textContent = "Entrez un courriel valide et un mot de passe d'au moins 6 caractères.";
     return;
   }
   if (!isAllowedAdmin(email)){
@@ -2349,7 +2349,7 @@ document.getElementById("coord-add-btn").addEventListener("click", async () => {
   const pin = document.getElementById("coord-pin").value.trim();
   const status = document.getElementById("coord-status");
   if (!nom || !/^[0-9]{4}$/.test(pin)){
-    showToast("Nom requis, et code personnel = 4 chiffres.", true);
+    showToast("Nom requis, et code personnel = 4 chiffres.", true);
     return;
   }
   // Si des champs de contact sont remplis mais n'ont pas été ajoutés via le bouton, on les ajoute automatiquement.
@@ -2401,7 +2401,7 @@ document.getElementById("coord-lookup-btn").addEventListener("click", async () =
   const editWrap = document.getElementById("coord-self-edit-wrap");
   editWrap.innerHTML = "";
   if (!nom || !/^[0-9]{4}$/.test(pin)){
-    status.textContent = "Entrez votre nom et votre code à 4 chiffres.";
+    status.textContent = "Entrez votre nom et votre code à 4 chiffres.";
     return;
   }
   status.textContent = "Recherche en cours…";
