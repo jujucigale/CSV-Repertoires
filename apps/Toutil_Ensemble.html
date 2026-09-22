@@ -916,7 +916,7 @@
         <button class="btn btn-primary btn-sm" id="add-group-btn" type="button">Ajouter</button>
       </div>
       <h3 style="margin-top:22px;">Visible sur l'interface élèves</h3>
-      <div class="note">Groupe : visible ou non dans le menu déroulant avant la connexion. Contenu horaire : affiche le déroulement détaillé de l'horaire pour ce groupe. Coordonnées : affiche, dans l'export Excel des élèves, les coordonnées de ceux qui ont donné leur consentement (toujours visibles dans l'export admin et la fiche web admin). Objectifs : affiche les objectifs partagés, à l'écran et dans l'export Excel des élèves. Édition des chansons : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM) — l'admin peut toujours tout modifier, quel que soit ce réglage.</div>
+      <div class="note">Groupe : visible ou non dans le menu déroulant avant la connexion. Contenu horaire : affiche le déroulement détaillé de l'horaire pour ce groupe. Coordonnées : affiche, dans l'export Excel des élèves, les coordonnées de ceux qui ont donné leur consentement (toujours visibles dans l'export admin et la fiche web admin). Objectifs : affiche les objectifs partagés, à l'écran et dans l'export Excel des élèves.</div>
       <div class="table-wrap" style="margin-top:8px;">
         <table id="groups-visibility-table" style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
@@ -926,10 +926,25 @@
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Contenu horaire</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Coordonnées</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Objectifs</th>
-              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Édition des chansons</th>
             </tr>
           </thead>
           <tbody id="groups-visibility-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Permissions par groupe</h2>
+      <div class="note">Contrôlez ici, groupe par groupe, qui peut effectuer certaines actions — distinct des permissions Horaire ci-dessous, qui s'appliquent à toute l'appli. D'autres permissions pourront s'ajouter ici avec le temps. Édition des chansons : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM) — l'admin peut toujours tout modifier, quel que soit ce réglage.</div>
+      <div class="table-wrap" style="margin-top:8px;">
+        <table id="groups-permissions-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--border);">Groupe</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Édition des chansons</th>
+            </tr>
+          </thead>
+          <tbody id="groups-permissions-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -3788,6 +3803,7 @@ function renderGroupsList(){
     });
   }
   renderGroupsVisibilityTable();
+  renderGroupsPermissionsTable();
 }
 
 function renderGroupsVisibilityTable(){
@@ -3795,15 +3811,10 @@ function renderGroupsVisibilityTable(){
   if (!tbody) return;
   const names = Object.keys(groupesConfig).sort();
   if (!names.length){
-    tbody.innerHTML = `<tr><td colspan="6" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
     return;
   }
   const cb = (attr, n, checked) => `<input type="checkbox" ${attr}="${escXml(n)}" ${checked ? "checked" : ""} style="width:auto;">`;
-  const CHANSON_EDIT_LABELS = { admin: "Admin. seulement", assistant: "Admin. + assistant·e", eleve: "Tout le monde (incl. élève)" };
-  const chansonEditSelect = (n) => {
-    const current = groupPermTier(n, "chanson_edit");
-    return `<select data-chansonedit-tier="${escXml(n)}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${Object.keys(CHANSON_EDIT_LABELS).map(k => `<option value="${k}" ${k === current ? "selected" : ""}>${CHANSON_EDIT_LABELS[k]}</option>`).join("")}</select>`;
-  };
   tbody.innerHTML = names.map(n => {
     const cfg = groupesConfig[n];
     return `
@@ -3813,7 +3824,6 @@ function renderGroupsVisibilityTable(){
       <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-togglevisible", n, cfg.contenuVisible)}</td>
       <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-togglecoordvisibles", n, cfg.coordonneesVisibles !== false)}</td>
       <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-toggleobjectifsvisibles", n, cfg.objectifsVisibles !== false)}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${chansonEditSelect(n)}</td>
     </tr>`;
   }).join("");
 
@@ -3850,6 +3860,29 @@ function renderGroupsVisibilityTable(){
       if (!ok) showToast("Erreur lors de la mise à jour.", true);
     });
   });
+}
+
+/* Table des permissions par groupe (distincte de la visibilité) — conçue pour accueillir
+   d'autres permissions par groupe avec le temps, une colonne à la fois. */
+function renderGroupsPermissionsTable(){
+  const tbody = document.getElementById("groups-permissions-tbody");
+  if (!tbody) return;
+  const names = Object.keys(groupesConfig).sort();
+  if (!names.length){
+    tbody.innerHTML = `<tr><td colspan="2" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
+    return;
+  }
+  const CHANSON_EDIT_LABELS = { admin: "Admin. seulement", assistant: "Admin. + assistant·e", eleve: "Tout le monde (incl. élève)" };
+  const chansonEditSelect = (n) => {
+    const current = groupPermTier(n, "chanson_edit");
+    return `<select data-chansonedit-tier="${escXml(n)}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${Object.keys(CHANSON_EDIT_LABELS).map(k => `<option value="${k}" ${k === current ? "selected" : ""}>${CHANSON_EDIT_LABELS[k]}</option>`).join("")}</select>`;
+  };
+  tbody.innerHTML = names.map(n => `
+    <tr data-permissions-row="${escXml(n)}">
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">${escXml(n)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${chansonEditSelect(n)}</td>
+    </tr>`).join("");
+
   tbody.querySelectorAll("[data-chansonedit-tier]").forEach(sel => {
     sel.addEventListener("change", async () => {
       const n = sel.dataset.chansoneditTier;
