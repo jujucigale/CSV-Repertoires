@@ -2891,7 +2891,7 @@ function renderInventoryTable(entries){
 
   const sections = groupEntriesByVisee(filtered);
   const rowHtml = (e) => `<tr>
-      <td class="col-sticky">${escXml(e.titre)}</td>
+      <td class="col-sticky">${textCell(e, "titre", 150, "Titre de la chanson")}</td>
       <td class="col-sticky2">${linkCell(e, "lienChante", "Version chantée")}</td>
       <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
       <td>${selectCell(e, "statutVersionChantee")}</td>
@@ -2968,7 +2968,16 @@ function renderInventoryTable(entries){
       const field = inp.dataset.editfieldText, id = inp.dataset.editId;
       const entry = allEntries.find(e => e.id === id);
       if (!entry) return;
-      entry[field] = inp.value.trim();
+      const newVal = inp.value.trim();
+      if (field === "titre" && !newVal){
+        showToast("Le titre ne peut pas être vide.", true);
+        inp.value = entry.titre || "";
+        return;
+      }
+      entry[field] = newVal;
+      // Le nom du fichier .docx (figé à la première soumission) est recalculé dès que le
+      // titre ou l'interprète change, pour que le fichier téléchargé reflète les infos actuelles.
+      if (field === "titre" || field === "interprete") entry.nomFichier = buildFileName(entry);
       entry.dateMaj = new Date().toISOString();
       const ok = await storageSet("chanson:" + entry.id, entry);
       if (ok){ const majCell = wrap.querySelector(`[data-maj-id="${id}"]`); if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj); }
