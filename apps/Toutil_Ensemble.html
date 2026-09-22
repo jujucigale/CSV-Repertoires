@@ -916,7 +916,7 @@
         <button class="btn btn-primary btn-sm" id="add-group-btn" type="button">Ajouter</button>
       </div>
       <h3 style="margin-top:22px;">Visible sur l'interface élèves</h3>
-      <div class="note">Groupe : visible ou non dans le menu déroulant avant la connexion. Contenu horaire : affiche le déroulement détaillé de l'horaire pour ce groupe. Coordonnées : affiche, dans l'export Excel des élèves, les coordonnées de ceux qui ont donné leur consentement (toujours visibles dans l'export admin et la fiche web admin). Objectifs : affiche les objectifs partagés, à l'écran et dans l'export Excel des élèves.</div>
+      <div class="note">Groupe : visible ou non dans le menu déroulant avant la connexion. Contenu horaire : affiche le déroulement détaillé de l'horaire pour ce groupe. Coordonnées : affiche, dans l'export Excel des élèves, les coordonnées de ceux qui ont donné leur consentement (toujours visibles dans l'export admin et la fiche web admin). Objectifs : affiche les objectifs partagés, à l'écran et dans l'export Excel des élèves. Édition des chansons : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM) — l'admin peut toujours tout modifier, quel que soit ce réglage.</div>
       <div class="table-wrap" style="margin-top:8px;">
         <table id="groups-visibility-table" style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
@@ -926,6 +926,7 @@
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Contenu horaire</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Coordonnées</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Objectifs</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Édition des chansons</th>
             </tr>
           </thead>
           <tbody id="groups-visibility-tbody"></tbody>
@@ -1684,6 +1685,13 @@ async function loadMyGroupChansons(){
     const selectCell = (e, field, options) => `<select data-editfield-select="${field}" data-edit-id="${e.id}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${(options||statusOptions).map(o => `<option value="${escXml(o)}" ${e[field] === o ? "selected" : ""}>${o || "— Non déterminé —"}</option>`).join("")}</select>`;
     const raisonCell = (e) => `<button class="btn btn-ghost btn-sm" data-raison-id="${e.id}">📝 ${e.raisonChoix ? "Voir/modifier" : "Ajouter"}</button>`;
 
+    // Le titre et les autres infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s),
+    // année, tonalités, BPM) ne sont modifiables ici que si l'admin l'a permis pour ce groupe.
+    const canEditMeta = canEditByGroupPerm(session.groupe, "chanson_edit", roleFromSession());
+    const metaCell = (e, field, width, placeholder) => canEditMeta
+      ? textCell(e, field, width, placeholder)
+      : `<span>${escXml(e[field] || "—")}</span>`;
+
     const headers = ["Titre","Version chantée","Accompagnement","Statut version chantée","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi"]
       .concat(myGroupVoteNames)
       .concat(myGroupVoteNames.length ? ["Total intérêt"] : [])
@@ -1691,19 +1699,19 @@ async function loadMyGroupChansons(){
 
     const sections = groupEntriesByVisee(entries);
     const rowHtml = (e) => `<tr>
-        <td class="col-sticky">${escXml(e.titre)}</td>
+        <td class="col-sticky">${metaCell(e, "titre", 130, "Titre de la chanson")}</td>
         <td class="col-sticky2">${linkCell(e, "lienChante", "Version chantée")}</td>
         <td>${linkCell(e, "lienAccompagnement", "Accompagnement")}</td>
         <td>${selectCell(e, "statutVersionChantee")}</td>
         <td>${selectCell(e, "statutTrame")}</td>
-        <td>${textCell(e, "interprete", 110)}</td>
-        <td>${textCell(e, "paroliers", 110)}</td>
-        <td>${textCell(e, "compositeurs", 110)}</td>
-        <td>${textCell(e, "annee", 70)}</td>
-        <td>${textCell(e, "tonOrigine", 100)}</td>
-        <td>${textCell(e, "tonChoisie", 100)}</td>
-        <td>${textCell(e, "bpmOriginal", 70)}</td>
-        <td>${textCell(e, "bpmChoisi", 70)}</td>
+        <td>${metaCell(e, "interprete", 110)}</td>
+        <td>${metaCell(e, "paroliers", 110)}</td>
+        <td>${metaCell(e, "compositeurs", 110)}</td>
+        <td>${metaCell(e, "annee", 70)}</td>
+        <td>${metaCell(e, "tonOrigine", 100)}</td>
+        <td>${metaCell(e, "tonChoisie", 100)}</td>
+        <td>${metaCell(e, "bpmOriginal", 70)}</td>
+        <td>${metaCell(e, "bpmChoisi", 70)}</td>
         ${myGroupVoteNames.map(n => `<td class="col-vote"><input type="number" min="0" max="5" title="${escXml(voteTip)}" style="width:52px;padding:5px 6px;border:1px solid var(--border);border-radius:5px;" data-vote-id="${e.id}" data-vote-name="${escXml(n)}" value="${(e.votes && e.votes[n] != null) ? e.votes[n] : ""}"></td>`).join("")}
         ${myGroupVoteNames.length ? `<td class="col-vote"><strong data-total-id="${e.id}">${totalOf(e)}</strong></td>` : ""}
         <td>${textCell(e, "proposePar", 100)}</td>
@@ -1774,7 +1782,15 @@ async function loadMyGroupChansons(){
         const field = inp.dataset.editfieldText, id = inp.dataset.editId;
         const entry = myGroupEntries.find(e => e.id === id);
         if (!entry) return;
-        entry[field] = inp.value.trim();
+        const newVal = inp.value.trim();
+        if (field === "titre" && !newVal){
+          showToast("Le titre ne peut pas être vide.", true);
+          inp.value = entry.titre || "";
+          return;
+        }
+        entry[field] = newVal;
+        // Comme en vue admin : le nom du fichier .docx se recalcule dès que le titre ou l'interprète change.
+        if (field === "titre" || field === "interprete") entry.nomFichier = buildFileName(entry);
         entry.dateMaj = new Date().toISOString();
         const ok = await storageSet("chanson:" + entry.id, entry);
         if (ok){ const majCell = wrap.querySelector(`[data-maj-id="${id}"]`); if (majCell) majCell.textContent = fmtDateTime(entry.dateMaj); }
@@ -1878,6 +1894,24 @@ function hasPerm(key, role){
 function roleFromSession(){
   if (!session) return "eleve";
   return session.type === "admin" ? "admin" : session.type === "assistant" ? "assistant" : "eleve";
+}
+/* ---------------- Permissions par groupe (distinctes des permissions Horaire ci-dessus, qui
+   sont globales à toute l'appli). Chaque groupe peut avoir son propre niveau pour chaque clé :
+   "eleve" (tout le monde, y compris élève), "assistant" (admin + assistant·e), "admin" (admin seulement).
+   Conçu pour accueillir d'autres clés plus tard (ex. les permissions Horaire, si on les rend un jour
+   spécifiques par groupe) sans changer la structure. ---------------- */
+const GROUP_PERM_DEFAULTS = { chanson_edit: "eleve" };
+function groupPermTier(groupe, key){
+  const cfg = groupesConfig[groupe];
+  const p = cfg && cfg.permissionsGroupe;
+  return (p && p[key]) || GROUP_PERM_DEFAULTS[key] || "eleve";
+}
+function canEditByGroupPerm(groupe, key, role){
+  if (role === "admin") return true;
+  const tier = groupPermTier(groupe, key);
+  if (tier === "eleve") return true;
+  if (tier === "assistant") return role === "assistant";
+  return false; // tier === "admin"
 }
 const SUIVI_KEYS = new Set(["suivi_admin_ajouter","suivi_admin_cocher","suivi_progres","suivi_pedagogique"]);
 function buildHoraireCtx(role, contenuVisible){
@@ -3761,10 +3795,15 @@ function renderGroupsVisibilityTable(){
   if (!tbody) return;
   const names = Object.keys(groupesConfig).sort();
   if (!names.length){
-    tbody.innerHTML = `<tr><td colspan="5" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
     return;
   }
   const cb = (attr, n, checked) => `<input type="checkbox" ${attr}="${escXml(n)}" ${checked ? "checked" : ""} style="width:auto;">`;
+  const CHANSON_EDIT_LABELS = { admin: "Admin. seulement", assistant: "Admin. + assistant·e", eleve: "Tout le monde (incl. élève)" };
+  const chansonEditSelect = (n) => {
+    const current = groupPermTier(n, "chanson_edit");
+    return `<select data-chansonedit-tier="${escXml(n)}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${Object.keys(CHANSON_EDIT_LABELS).map(k => `<option value="${k}" ${k === current ? "selected" : ""}>${CHANSON_EDIT_LABELS[k]}</option>`).join("")}</select>`;
+  };
   tbody.innerHTML = names.map(n => {
     const cfg = groupesConfig[n];
     return `
@@ -3774,6 +3813,7 @@ function renderGroupsVisibilityTable(){
       <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-togglevisible", n, cfg.contenuVisible)}</td>
       <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-togglecoordvisibles", n, cfg.coordonneesVisibles !== false)}</td>
       <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${cb("data-toggleobjectifsvisibles", n, cfg.objectifsVisibles !== false)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${chansonEditSelect(n)}</td>
     </tr>`;
   }).join("");
 
@@ -3806,6 +3846,15 @@ function renderGroupsVisibilityTable(){
     chk.addEventListener("change", async () => {
       const n = chk.dataset.toggleobjectifsvisibles;
       groupesConfig[n].objectifsVisibles = chk.checked;
+      const ok = await storageSet("config:groupes", groupesConfig);
+      if (!ok) showToast("Erreur lors de la mise à jour.", true);
+    });
+  });
+  tbody.querySelectorAll("[data-chansonedit-tier]").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      const n = sel.dataset.chansoneditTier;
+      groupesConfig[n].permissionsGroupe = groupesConfig[n].permissionsGroupe || {};
+      groupesConfig[n].permissionsGroupe.chanson_edit = sel.value;
       const ok = await storageSet("config:groupes", groupesConfig);
       if (!ok) showToast("Erreur lors de la mise à jour.", true);
     });
