@@ -875,6 +875,19 @@
       </div>
       <div id="admin-coord-list" style="margin-top:12px;"></div>
     </div>
+
+    <div class="card">
+      <h2>Gestion des participantes et des participants au vote</h2>
+      <div class="note">Retirez ici une ou un élève de la liste de vote d'un groupe (par exemple, une ou un élève qui a quitté le cours ou qui ne peut plus voter). Ses pointages déjà entrés pour ce groupe seront aussi effacés. Ceci ne supprime pas sa fiche de coordonnées ni son objectif.</div>
+      <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+        <div class="field" style="max-width:300px;">
+          <label for="admin-votes-group-select">Groupe à afficher</label>
+          <select id="admin-votes-group-select"><option value="">— Choisir un groupe —</option></select>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="admin-votes-refresh-btn" type="button" title="Recharger la liste de vote de ce groupe.">Actualiser</button>
+      </div>
+      <div id="admin-votes-list" style="margin-top:12px;"></div>
+    </div>
   </div>
 
   <!-- ===================== ONGLET ADMINISTRATION (admin) ===================== -->
@@ -3395,7 +3408,80 @@ async function loadInventoryGroupSelects(){
     // fiche aurait été soumise par un·e élève depuis le dernier chargement de cet onglet.
     if (coordCurrent) loadAdminCoordList(coordCurrent);
   }
+
+  const votesSel = document.getElementById("admin-votes-group-select");
+  if (votesSel){
+    const votesCurrent = votesSel.value;
+    votesSel.innerHTML = '<option value="">— Choisir un groupe —</option>' + names.map(n => `<option value="${escXml(n)}">${escXml(n)}</option>`).join("");
+    votesSel.value = votesCurrent;
+    if (votesCurrent) loadAdminVotesList(votesCurrent);
+  }
 }
+
+/* ---------------- Classement de vote — gestion des participant·e·s (vue admin) ---------------- */
+async function loadAdminVotesList(groupe){
+  const wrap = document.getElementById("admin-votes-list");
+  if (!wrap) return;
+  if (!groupe){ wrap.innerHTML = ""; return; }
+  wrap.innerHTML = '<div class="loading-state">Chargement…</div>';
+  try {
+    const names = (await storageGet("voteNames:" + safeKeyPart(groupe))) || [];
+    if (!names.length){
+      wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">Aucun·e participant·e inscrit·e au tableau de vote de ce groupe.</p>';
+      return;
+    }
+    wrap.innerHTML = names.map(n => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span>${escXml(n)}</span>
+        <button class="btn btn-ghost btn-sm admin-votes-remove-btn" type="button" data-name="${escXml(n)}" data-groupe="${escXml(groupe)}">Retirer</button>
+      </div>
+    `).join("");
+  } catch(e){
+    console.error(e);
+    wrap.innerHTML = '<p style="color:var(--danger);font-size:13.5px;">Erreur lors du chargement.</p>';
+  }
+}
+
+document.getElementById("admin-votes-group-select").addEventListener("change", (e) => {
+  loadAdminVotesList(e.target.value);
+});
+document.getElementById("admin-votes-refresh-btn").addEventListener("click", () => {
+  loadAdminVotesList(document.getElementById("admin-votes-group-select").value);
+});
+document.getElementById("admin-votes-list").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".admin-votes-remove-btn");
+  if (!btn) return;
+  const name = btn.dataset.name;
+  const groupe = btn.dataset.groupe;
+  if (!confirm(`Retirer « ${name} » du classement de vote du groupe « ${groupe} »?\n\nSes pointages déjà entrés pour ce groupe seront aussi effacés. Sa fiche de coordonnées et son objectif ne seront pas touchés.`)) return;
+  btn.disabled = true;
+  try {
+    const key = "voteNames:" + safeKeyPart(groupe);
+    const current = (await storageGet(key)) || [];
+    const updated = current.filter(n => n !== name);
+    const ok = await storageSet(key, updated);
+    if (!ok){ showToast("Erreur lors du retrait. Réessayez.", true); btn.disabled = false; return; }
+
+    // Efface aussi les pointages de cette personne dans les chansons du groupe.
+    const listRes = await window.storage.list("chanson:", true);
+    const keys = (listRes && listRes.keys) || [];
+    for (const k of keys) {
+      const entry = await storageGet(k);
+      if (entry && entry.groupe === groupe && entry.votes && Object.prototype.hasOwnProperty.call(entry.votes, name)){
+        delete entry.votes[name];
+        await storageSet(k, entry);
+      }
+    }
+
+    if (myGroupVoteNames && session.groupe === groupe) myGroupVoteNames = updated;
+    showToast(`« ${name} » retiré·e du classement de vote ✓`);
+    loadAdminVotesList(groupe);
+  } catch(err){
+    console.error(err);
+    showToast("Erreur lors du retrait. Réessayez.", true);
+    btn.disabled = false;
+  }
+});
 
 /* ---------------- Coordonnées — vue admin (édition/suppression sans code) ---------------- */
 let adminCoordRows = [];
