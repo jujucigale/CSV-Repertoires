@@ -1114,7 +1114,7 @@
   </div>
 </div>
 
-<div class="modal-overlay hidden" id="preview-fullwidth-overlay" style="align-items:flex-start;overflow-y:auto;padding:30px 20px;">
+<div class="modal-overlay hidden" id="preview-fullwidth-overlay" style="align-items:flex-start;overflow-y:auto;padding:30px 20px;z-index:200;">
   <div style="background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);width:100%;max-width:850px;margin:0 auto;padding:0;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);">
       <strong style="font-size:14px;">Aperçu à la largeur réelle de la page</strong>
@@ -1738,10 +1738,22 @@ document.getElementById("fe-legend-add-btn").addEventListener("click", () => {
 });
 
 /* ---- Aperçu (copie annotée) ---- */
+function feMetaPreviewHtml(){
+  const e = feCurrentEntry || {};
+  const meta1 = [e.interprete, e.annee].filter(Boolean).join(", ");
+  const auteursDisplay = (e.paroliers || e.compositeurs) ? `${e.paroliers || "—"} / ${e.compositeurs || "—"}` : "—";
+  let html = "";
+  if (meta1) html += `<div class="preview-meta">${feEscHtml(meta1)}</div>`;
+  html += `<div class="preview-meta">Paroles et musique : ${feEscHtml(auteursDisplay)}</div>`;
+  html += `<div class="preview-meta">Tonalité d'origine : ${feEscHtml(e.tonOrigine || "—")}&nbsp;&nbsp;&nbsp;&nbsp;Tonalité choisie : ${feEscHtml(e.tonChoisie || "—")}</div>`;
+  html += `<div class="preview-meta">BPM original : ${feEscHtml(e.bpmOriginal || "—")}&nbsp;&nbsp;&nbsp;&nbsp;BPM choisi : ${feEscHtml(e.bpmChoisi || "—")}</div>`;
+  return html;
+}
 function feUpdatePreview(){
   const box = document.getElementById("fe-preview-doc");
   if (!box || !feCurrentEntry) return;
   let html = `<div class="fe-preview-title">${feEscHtml(feCurrentEntry.titre || "[Titre]")}</div>`;
+  html += feMetaPreviewHtml();
   if (feLegend.some(l => l.name.trim())){
     html += '<div style="border:1px solid #ccc;border-radius:6px;padding:8px 10px;margin:0 0 12px;background:#FAFAFA;">';
     html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#333;margin:0 0 5px;">Légende</div>';
@@ -2305,6 +2317,7 @@ function foUpdatePreview(){
   const box = document.getElementById("fo-preview-doc");
   if (!box || !feCurrentEntry) return;
   let html = `<div class="fe-preview-title">${feEscHtml(feCurrentEntry.titre || "[Titre]")}</div>`;
+  html += feMetaPreviewHtml();
   foSections.forEach(sec => {
     if (!sec.label && !(sec.lyrics || "").trim()) return;
     html += `<div class="fe-preview-chip">[${feEscHtml(sec.label || "Section")}]</div>`;
