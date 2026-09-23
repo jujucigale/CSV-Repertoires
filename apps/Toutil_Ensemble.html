@@ -935,13 +935,19 @@
 
     <div class="card">
       <h2>Permissions par groupe</h2>
-      <div class="note">Contrôlez ici, groupe par groupe, qui peut effectuer certaines actions — distinct des permissions Horaire ci-dessous, qui s'appliquent à toute l'appli. D'autres permissions pourront s'ajouter ici avec le temps. Édition des chansons : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM) — l'admin peut toujours tout modifier, quel que soit ce réglage.</div>
+      <div class="note">Contrôlez ici, groupe par groupe, qui peut effectuer certaines actions — distinct des permissions Horaire ci-dessous, qui s'appliquent à toute l'appli. D'autres permissions pourront s'ajouter ici avec le temps.<br>
+      <strong>Édition des chansons</strong> : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM).<br>
+      <strong>Modifier la copie originale</strong> : qui peut modifier le texte des paroles dans l'éditeur (copie originale et copie annotée, à venir).<br>
+      <strong>Verrouiller/déverrouiller</strong> : qui peut verrouiller ou déverrouiller une fiche pour empêcher sa modification — un réglage distinct de l'état verrouillé lui-même, qui se gère fiche par fiche.<br>
+      L'admin peut toujours tout faire, quel que soit ce réglage.</div>
       <div class="table-wrap" style="margin-top:8px;">
         <table id="groups-permissions-table" style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
             <tr>
               <th style="text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--border);">Groupe</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Édition des chansons</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Modifier la copie originale</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Verrouiller/déverrouiller</th>
             </tr>
           </thead>
           <tbody id="groups-permissions-tbody"></tbody>
@@ -1937,7 +1943,11 @@ function roleFromSession(){
    "eleve" (tout le monde, y compris élève), "assistant" (admin + assistant·e), "admin" (admin seulement).
    Conçu pour accueillir d'autres clés plus tard (ex. les permissions Horaire, si on les rend un jour
    spécifiques par groupe) sans changer la structure. ---------------- */
-const GROUP_PERM_DEFAULTS = { chanson_edit: "eleve" };
+const GROUP_PERM_DEFAULTS = {
+  chanson_edit: "eleve",
+  fiche_modifier: "assistant",   // modifier les paroles de la copie originale (éditeur annoté, à venir)
+  fiche_verrouiller: "admin",    // verrouiller/déverrouiller une fiche (l'état verrouillée/déverrouillée lui-même est par chanson, pas ici)
+};
 function groupPermTier(groupe, key){
   const cfg = groupesConfig[groupe];
   const p = cfg && cfg.permissionsGroupe;
@@ -3887,32 +3897,42 @@ function renderGroupsVisibilityTable(){
 
 /* Table des permissions par groupe (distincte de la visibilité) — conçue pour accueillir
    d'autres permissions par groupe avec le temps, une colonne à la fois. */
+const GROUP_PERM_TIER_LABELS = { admin: "Admin. seulement", assistant: "Admin. + assistant·e", eleve: "Tout le monde (incl. élève)" };
+// Une entrée par colonne du tableau des permissions par groupe. Pour en ajouter une nouvelle plus
+// tard : ajouter ici (clé + attribut data-* dédié) et une <th>/<td> dans le HTML de la carte.
+const GROUP_PERM_TABLE_COLUMNS = [
+  { key: "chanson_edit", dataAttr: "data-chansonedit-tier", dataProp: "chansoneditTier" },
+  { key: "fiche_modifier", dataAttr: "data-fichemodifier-tier", dataProp: "fichemodifierTier" },
+  { key: "fiche_verrouiller", dataAttr: "data-ficheverrouiller-tier", dataProp: "ficheverrouillerTier" },
+];
 function renderGroupsPermissionsTable(){
   const tbody = document.getElementById("groups-permissions-tbody");
   if (!tbody) return;
   const names = Object.keys(groupesConfig).sort();
+  const colCount = GROUP_PERM_TABLE_COLUMNS.length + 1;
   if (!names.length){
-    tbody.innerHTML = `<tr><td colspan="2" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${colCount}" style="padding:8px;color:var(--ink-soft);">Aucun groupe configuré.</td></tr>`;
     return;
   }
-  const CHANSON_EDIT_LABELS = { admin: "Admin. seulement", assistant: "Admin. + assistant·e", eleve: "Tout le monde (incl. élève)" };
-  const chansonEditSelect = (n) => {
-    const current = groupPermTier(n, "chanson_edit");
-    return `<select data-chansonedit-tier="${escXml(n)}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${Object.keys(CHANSON_EDIT_LABELS).map(k => `<option value="${k}" ${k === current ? "selected" : ""}>${CHANSON_EDIT_LABELS[k]}</option>`).join("")}</select>`;
+  const permSelect = (n, col) => {
+    const current = groupPermTier(n, col.key);
+    return `<select ${col.dataAttr}="${escXml(n)}" style="font-size:12.5px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;">${Object.keys(GROUP_PERM_TIER_LABELS).map(k => `<option value="${k}" ${k === current ? "selected" : ""}>${GROUP_PERM_TIER_LABELS[k]}</option>`).join("")}</select>`;
   };
   tbody.innerHTML = names.map(n => `
     <tr data-permissions-row="${escXml(n)}">
       <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">${escXml(n)}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${chansonEditSelect(n)}</td>
+      ${GROUP_PERM_TABLE_COLUMNS.map(col => `<td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${permSelect(n, col)}</td>`).join("")}
     </tr>`).join("");
 
-  tbody.querySelectorAll("[data-chansonedit-tier]").forEach(sel => {
-    sel.addEventListener("change", async () => {
-      const n = sel.dataset.chansoneditTier;
-      groupesConfig[n].permissionsGroupe = groupesConfig[n].permissionsGroupe || {};
-      groupesConfig[n].permissionsGroupe.chanson_edit = sel.value;
-      const ok = await storageSet("config:groupes", groupesConfig);
-      if (!ok) showToast("Erreur lors de la mise à jour.", true);
+  GROUP_PERM_TABLE_COLUMNS.forEach(col => {
+    tbody.querySelectorAll(`[${col.dataAttr}]`).forEach(sel => {
+      sel.addEventListener("change", async () => {
+        const n = sel.dataset[col.dataProp];
+        groupesConfig[n].permissionsGroupe = groupesConfig[n].permissionsGroupe || {};
+        groupesConfig[n].permissionsGroupe[col.key] = sel.value;
+        const ok = await storageSet("config:groupes", groupesConfig);
+        if (!ok) showToast("Erreur lors de la mise à jour.", true);
+      });
     });
   });
 }
