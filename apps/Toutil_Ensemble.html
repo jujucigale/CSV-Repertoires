@@ -1419,6 +1419,27 @@ function enterApp(){
   else { loadAdminPanel(); }
 }
 
+/* ---------------- Modèle de données — copie annotée des paroles (portage depuis Solo) ----------------
+   Étape 1 du plan de portage : on ajoute ici les champs nécessaires à l'éditeur copie originale /
+   copie annotée, sans toucher à l'interface. Les entrées existantes n'ont pas ces champs — on les
+   ajoute par défaut à la lecture (normalizeChansonEntry), pas par migration en bloc. Les nouvelles
+   entrées les reçoivent dès la création (submission + copie vers un autre groupe). */
+function normalizeSection(s){
+  return {
+    label: s.label || "",
+    lyrics: s.lyrics || "",
+    lyricsAnnotee: (s.lyricsAnnotee != null) ? s.lyricsAnnotee : (s.lyrics || ""),
+    noteAnnotee: s.noteAnnotee || "",
+    scellee: !!s.scellee,
+  };
+}
+function normalizeChansonEntry(e){
+  if (!e) return e;
+  e.sections = Array.isArray(e.sections) ? e.sections.map(normalizeSection) : [];
+  e.verrouillee = !!e.verrouillee;
+  return e;
+}
+
 /* ---------------- État du formulaire (sections de paroles) ---------------- */
 let sections = [
   { id: genId(), label: "Couplet 1", lyrics: "" },
@@ -1588,7 +1609,8 @@ document.getElementById("submit-btn").addEventListener("click", async () => {
     statutVersionChantee: els.statutVersionChantee.value,
     bpmOriginal: els.bpmOriginal.value.trim(),
     bpmChoisi: els.bpmChoisi.value.trim(),
-    sections: sections.map(s => ({ label: s.label, lyrics: s.lyrics })),
+    sections: sections.map(s => normalizeSection({ label: s.label, lyrics: s.lyrics })),
+    verrouillee: false,
     typeFichier: "Paroles",
     dateAjout: new Date().toISOString(),
   };
@@ -1671,7 +1693,7 @@ async function loadMyGroupChansons(){
     const entries = [];
     for (const k of keys) {
       const e = await storageGet(k);
-      if (e && e.groupe === session.groupe) entries.push(e);
+      if (e && e.groupe === session.groupe) entries.push(normalizeChansonEntry(e));
     }
     myGroupEntries = entries;
     myGroupVoteNames = (await storageGet("voteNames:" + safeKeyPart(session.groupe))) || [];
@@ -2892,7 +2914,7 @@ async function loadInventory(){
     const entries = [];
     for (const k of keys) {
       const e = await storageGet(k);
-      if (e) entries.push(e);
+      if (e) entries.push(normalizeChansonEntry(e));
     }
     entries.sort((a,b) => (b.dateAjout||"").localeCompare(a.dateAjout||""));
     allEntries = entries;
@@ -3080,7 +3102,8 @@ function renderInventoryTable(entries){
         votes: {},
         dateAjout: new Date().toISOString(),
         dateMaj: null,
-        sections: (entry.sections || []).map(s => ({ label: s.label, lyrics: s.lyrics })),
+        verrouillee: false,
+        sections: (entry.sections || []).map(s => normalizeSection({ label: s.label, lyrics: s.lyrics })),
       });
       copie.nomFichier = buildFileName(copie);
 
@@ -4142,7 +4165,7 @@ async function handleAutoDownloadFromUrl(){
   const id = params.get("dl");
   if (!id) return;
   try {
-    const entry = await storageGet("chanson:" + id);
+    const entry = normalizeChansonEntry(await storageGet("chanson:" + id));
     if (!entry){ showToast("Fichier introuvable (il a peut-être été supprimé du répertoire).", true); return; }
     const blob = await generateDocxBlob(entry);
     downloadBlob(blob, entry.nomFichier || buildFileName(entry));
