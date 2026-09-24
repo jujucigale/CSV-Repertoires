@@ -984,8 +984,9 @@
     <div class="card">
       <h2>Permissions par groupe</h2>
       <div class="note">Contrôlez ici, groupe par groupe, qui peut effectuer certaines actions — distinct des permissions Horaire ci-dessous, qui s'appliquent à toute l'appli. D'autres permissions pourront s'ajouter ici avec le temps.<br>
-      <strong>Édition des chansons</strong> : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM).<br>
-      <strong>Modifier la copie originale</strong> : qui peut modifier le texte des paroles dans l'éditeur (copie originale et copie annotée, à venir).<br>
+      <strong>Édition des métadonnées</strong> : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM) — pas le texte des paroles.<br>
+      <strong>Modifier la copie originale</strong> : qui peut modifier le texte des paroles dans l'éditeur (copie originale), ainsi que la structure des sections (ajouter/retirer), qui reste partagée avec la copie annotée.<br>
+      <strong>Annoter la fiche</strong> : qui peut modifier la copie annotée — mise en forme, symboles, notes d'interprétation et légende des élèves.<br>
       <strong>Verrouiller/déverrouiller</strong> : qui peut verrouiller ou déverrouiller une fiche pour empêcher sa modification — un réglage distinct de l'état verrouillé lui-même, qui se gère fiche par fiche.<br>
       L'admin peut toujours tout faire, quel que soit ce réglage.</div>
       <div class="table-wrap" style="margin-top:8px;">
@@ -993,8 +994,9 @@
           <thead>
             <tr>
               <th style="text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--border);">Groupe</th>
-              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Édition des chansons</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Édition des métadonnées</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Modifier la copie originale</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Annoter la fiche</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Verrouiller/déverrouiller</th>
             </tr>
           </thead>
@@ -1704,6 +1706,9 @@ function feSwatchRow(onPick, includeEraser){
 function feRenderLegend(){
   const wrap = document.getElementById("fe-legend-list");
   wrap.innerHTML = "";
+  const canAnnotate = feCanEditAnnotated();
+  const addBtn = document.getElementById("fe-legend-add-btn");
+  if (addBtn) addBtn.classList.toggle("hidden", !canAnnotate);
   if (!feLegend.length){
     const p = document.createElement("p");
     p.style.cssText = "font-size:12.5px;color:var(--ink-soft);margin:0;";
@@ -1715,22 +1720,27 @@ function feRenderLegend(){
     row.className = "fe-legend-row";
     const dot = document.createElement("button");
     dot.type = "button"; dot.className = "fe-legend-dot"; dot.style.background = entry.color; dot.title = "Changer la couleur";
+    dot.disabled = !canAnnotate;
     dot.onclick = () => {
+      if (!canAnnotate) return;
       const idx = FE_HIGHLIGHT_COLORS.indexOf(entry.color);
       entry.color = FE_HIGHLIGHT_COLORS[(idx + 1) % FE_HIGHLIGHT_COLORS.length];
       feRenderLegend(); feUpdatePreview();
     };
     const nameInput = document.createElement("input");
     nameInput.type = "text"; nameInput.value = entry.name; nameInput.placeholder = "Prénom(s) — ex. : Léa, Noah, Mia";
+    nameInput.disabled = !canAnnotate;
     nameInput.oninput = (e) => { entry.name = e.target.value; feUpdatePreview(); };
     const removeBtn = document.createElement("button");
     removeBtn.type = "button"; removeBtn.className = "fe-legend-remove"; removeBtn.innerHTML = "&times;"; removeBtn.title = "Retirer";
-    removeBtn.onclick = () => { feLegend = feLegend.filter(l => l.id !== entry.id); feRenderLegend(); feUpdatePreview(); };
+    removeBtn.disabled = !canAnnotate;
+    removeBtn.onclick = () => { if (!canAnnotate) return; feLegend = feLegend.filter(l => l.id !== entry.id); feRenderLegend(); feUpdatePreview(); };
     row.appendChild(dot); row.appendChild(nameInput); row.appendChild(removeBtn);
     wrap.appendChild(row);
   });
 }
 document.getElementById("fe-legend-add-btn").addEventListener("click", () => {
+  if (!feCanEditAnnotated()) return;
   const used = feLegend.map(l => l.color);
   const nextColor = FE_HIGHLIGHT_COLORS.find(c => !used.includes(c)) || FE_HIGHLIGHT_COLORS[feLegend.length % FE_HIGHLIGHT_COLORS.length];
   feLegend.push({ id: feGenId(), name: "", color: nextColor });
@@ -1931,6 +1941,9 @@ function feRenderSections(){
   wrap.innerHTML = "";
   const addBtn = document.getElementById("fe-add-section-btn");
   if (addBtn) addBtn.classList.toggle("hidden", !feCanEditStructure());
+  const canAnnotate = feCanEditAnnotated();
+  const feSaveBtn = document.getElementById("fe-save-btn");
+  if (feSaveBtn) feSaveBtn.classList.toggle("hidden", !canAnnotate);
   feSections.forEach((sec, idx) => {
     wrap.appendChild(feMakeInsertConnector(idx));
     const block = document.createElement("div");
@@ -1944,8 +1957,11 @@ function feRenderSections(){
     const clearFormatBtn = document.createElement("button");
     clearFormatBtn.type = "button"; clearFormatBtn.className = "btn btn-ghost btn-sm";
     clearFormatBtn.textContent = "🧹 Retirer la mise en forme";
+    clearFormatBtn.disabled = !canAnnotate;
+    clearFormatBtn.title = canAnnotate ? "" : "Nécessite la permission d'annoter la fiche";
     let clearArmed = false;
     clearFormatBtn.onclick = () => {
+      if (!canAnnotate) return;
       if (!clearArmed){ clearArmed = true; clearFormatBtn.textContent = "Confirmer ?"; setTimeout(() => { clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme"; }, 2500); return; }
       clearArmed = false; clearFormatBtn.textContent = "🧹 Retirer la mise en forme";
       // Réinitialise complètement la section annotée à partir des paroles originales (texte brut) —
@@ -1985,6 +2001,7 @@ function feRenderSections(){
     noteLabel.textContent = "Note d'interprétation (facultatif) — avant le texte";
     const noteTextarea = document.createElement("textarea");
     noteTextarea.value = sec.note; noteTextarea.placeholder = "Ex. Respire ici avant le contre-ut...";
+    noteTextarea.disabled = !canAnnotate;
     noteTextarea.oninput = (e) => { sec.note = e.target.value; sec.pristine = false; feUpdatePreview(); };
     noteWrap.appendChild(noteLabel); noteWrap.appendChild(noteTextarea);
     block.appendChild(noteWrap);
@@ -2193,11 +2210,12 @@ function feRenderSections(){
     gVoix.appendChild(mkBtn("♀", "Voix — répartition (♀)", "♀", "color:#103243;font-weight:700;"));
     toolbar.appendChild(gVoix);
 
+    toolbar.classList.toggle("hidden", !canAnnotate);
     block.appendChild(toolbar);
 
     const editable = document.createElement("div");
     editable.className = "fe-lyrics-edit";
-    editable.contentEditable = "true";
+    editable.contentEditable = canAnnotate ? "true" : "false";
     editable.dataset.sectionId = sec.id;
     editable.innerHTML = sec.html || "";
     editable.addEventListener("paste", feHandlePaste);
@@ -2330,6 +2348,9 @@ function feRole(){ return roleFromSession(); }
 
 function feCanEditOriginal(){ return feCurrentEntry ? canEditByGroupPerm(feCurrentEntry.groupe, "fiche_modifier", feRole()) : false; }
 function feCanLock(){ return feCurrentEntry ? canEditByGroupPerm(feCurrentEntry.groupe, "fiche_verrouiller", feRole()) : false; }
+// Contrôle distinct pour la copie annotée elle-même (mise en forme, symboles, notes, légende) —
+// indépendant de fiche_modifier, qui ne gouverne que la copie originale et la structure des sections.
+function feCanEditAnnotated(){ return feCurrentEntry ? canEditByGroupPerm(feCurrentEntry.groupe, "fiche_annoter", feRole()) : false; }
 // Ajouter/insérer/retirer une section change la structure de la fiche originale (les deux
 // copies restent alignées section par section) — soumis aux mêmes permissions et au même
 // verrouillage que la modification de la copie originale, peu importe l'onglet utilisé.
@@ -2378,6 +2399,7 @@ document.getElementById("fo-save-btn").addEventListener("click", async () => {
   if (ok && feOnClose) feOnClose();
 });
 document.getElementById("fe-save-btn").addEventListener("click", async () => {
+  if (!feCanEditAnnotated()) return;
   if (feCanEditStructure()){
     feCurrentEntry.sections = foSections.map(s => ({ label: s.label, lyrics: s.lyrics }));
   }
@@ -3337,8 +3359,9 @@ function roleFromSession(){
    Conçu pour accueillir d'autres clés plus tard (ex. les permissions Horaire, si on les rend un jour
    spécifiques par groupe) sans changer la structure. ---------------- */
 const GROUP_PERM_DEFAULTS = {
-  chanson_edit: "eleve",
-  fiche_modifier: "assistant",   // modifier les paroles de la copie originale (éditeur annoté, à venir)
+  chanson_edit: "eleve",         // édition des métadonnées de la fiche (titre, interprète, année, etc. — pas les paroles)
+  fiche_modifier: "assistant",   // modifier les paroles de la copie originale + la structure des sections (partagée avec la copie annotée)
+  fiche_annoter: "eleve",        // modifier la copie annotée (mise en forme, symboles, notes, légende) — par défaut ouvert à tout le monde, comme avant l'ajout de ce réglage
   fiche_verrouiller: "admin",    // verrouiller/déverrouiller une fiche (l'état verrouillée/déverrouillée lui-même est par chanson, pas ici)
 };
 function groupPermTier(groupe, key){
@@ -5305,6 +5328,7 @@ const GROUP_PERM_TIER_LABELS = { admin: "Admin. seulement", assistant: "Admin. +
 const GROUP_PERM_TABLE_COLUMNS = [
   { key: "chanson_edit", dataAttr: "data-chansonedit-tier", dataProp: "chansoneditTier" },
   { key: "fiche_modifier", dataAttr: "data-fichemodifier-tier", dataProp: "fichemodifierTier" },
+  { key: "fiche_annoter", dataAttr: "data-ficheannoter-tier", dataProp: "ficheannoterTier" },
   { key: "fiche_verrouiller", dataAttr: "data-ficheverrouiller-tier", dataProp: "ficheverrouillerTier" },
 ];
 function renderGroupsPermissionsTable(){
