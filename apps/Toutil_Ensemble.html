@@ -987,16 +987,18 @@
       <strong>Édition des métadonnées</strong> : qui peut modifier, dans « QG du groupe », le titre et les infos d'en-tête de la fiche (interprète, parolier·ère(s), compositeur·rice(s), année, tonalités, BPM) — pas le texte des paroles.<br>
       <strong>Modifier la copie originale</strong> : qui peut modifier le texte des paroles dans l'éditeur (copie originale), ainsi que la structure des sections (ajouter/retirer), qui reste partagée avec la copie annotée.<br>
       <strong>Annoter la fiche</strong> : qui peut modifier la copie annotée — mise en forme, symboles, notes d'interprétation et légende des élèves.<br>
+      <strong>Copies intergroupe</strong> : qui peut copier une fiche de ce groupe vers un autre groupe (bouton « Copier », dans la Vue d'ensemble et dans QG du groupe).<br>
       <strong>Verrouiller/déverrouiller</strong> : qui peut verrouiller ou déverrouiller une fiche pour empêcher sa modification — un réglage distinct de l'état verrouillé lui-même, qui se gère fiche par fiche.<br>
       L'admin peut toujours tout faire, quel que soit ce réglage.</div>
       <div class="table-wrap" style="margin-top:8px;">
         <table id="groups-permissions-table" style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
             <tr>
-              <th style="text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--border);">Groupe</th>
+              <th class="col-sticky" style="text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--border);">Groupe</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Édition des métadonnées</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Modifier la copie originale</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Annoter la fiche</th>
+              <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Copies intergroupe</th>
               <th style="text-align:center;padding:6px 8px;border-bottom:1.5px solid var(--border);">Verrouiller/déverrouiller</th>
             </tr>
           </thead>
@@ -1036,6 +1038,7 @@
     <div class="field hidden" id="modal-input-wrap" style="margin-bottom:14px;">
       <input type="text" id="modal-input">
       <textarea id="modal-textarea" class="hidden" rows="7" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:14.5px;font-family:inherit;resize:vertical;"></textarea>
+      <select id="modal-select" class="hidden" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:14.5px;font-family:inherit;"></select>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn btn-ghost btn-sm" id="modal-cancel-btn" type="button">Annuler</button>
@@ -1259,29 +1262,39 @@ function showToast(msg, isError){
 /* ---------------- Fenêtre modale maison (remplace prompt()/confirm() natifs,
    souvent bloqués silencieusement dans les aperçus/iframes) ---------------- */
 let modalResolve = null;
-let modalMode = "none"; // "none" | "text" | "long"
-function showModal(message, mode, defaultValue){
+let modalMode = "none"; // "none" | "text" | "long" | "select"
+function showModal(message, mode, defaultValue, selectOptions){
   document.getElementById("modal-message").textContent = message;
   const inputWrap = document.getElementById("modal-input-wrap");
   const input = document.getElementById("modal-input");
   const textarea = document.getElementById("modal-textarea");
+  const select = document.getElementById("modal-select");
   modalMode = mode;
   if (mode === "text"){
     inputWrap.classList.remove("hidden");
     input.classList.remove("hidden");
     textarea.classList.add("hidden");
+    select.classList.add("hidden");
     input.value = defaultValue || "";
   } else if (mode === "long"){
     inputWrap.classList.remove("hidden");
     input.classList.add("hidden");
     textarea.classList.remove("hidden");
+    select.classList.add("hidden");
     textarea.value = defaultValue || "";
+  } else if (mode === "select"){
+    inputWrap.classList.remove("hidden");
+    input.classList.add("hidden");
+    textarea.classList.add("hidden");
+    select.classList.remove("hidden");
+    select.innerHTML = (selectOptions || []).map(o => `<option value="${escXml(o.value)}" ${o.value === defaultValue ? "selected" : ""}>${escXml(o.label)}</option>`).join("");
   } else {
     inputWrap.classList.add("hidden");
   }
   document.getElementById("modal-overlay").classList.remove("hidden");
   if (mode === "text") setTimeout(() => input.focus(), 30);
   if (mode === "long") setTimeout(() => textarea.focus(), 30);
+  if (mode === "select") setTimeout(() => select.focus(), 30);
   return new Promise(resolve => { modalResolve = resolve; });
 }
 function closeModal(result){
@@ -1297,9 +1310,14 @@ function customPromptLong(message, defaultValue){
 function customConfirm(message){
   return showModal(message, "none").then(r => r === true);
 }
+// options : [{value, label}, ...] — retourne la valeur choisie, ou null si annulé.
+function customSelectPrompt(message, options, defaultValue){
+  return showModal(message, "select", defaultValue, options);
+}
 document.getElementById("modal-ok-btn").addEventListener("click", () => {
   if (modalMode === "text") closeModal(document.getElementById("modal-input").value);
   else if (modalMode === "long") closeModal(document.getElementById("modal-textarea").value);
+  else if (modalMode === "select") closeModal(document.getElementById("modal-select").value);
   else closeModal(true);
 });
 document.getElementById("modal-cancel-btn").addEventListener("click", () => closeModal(null));
@@ -3145,7 +3163,7 @@ async function loadMyGroupChansons(){
     const headers = ["Titre","Version chantée","Accompagnement","Statut version chantée","Statut trame sonore","Interprète","Parolier(s)","Compositeur(s)","Année","Tonalité d'origine","Tonalité choisie","BPM original","BPM choisi"]
       .concat(myGroupVoteNames)
       .concat(myGroupVoteNames.length ? ["Total intérêt"] : [])
-      .concat(["Proposée par","Raison du choix","Chantée en classe par","Statut","","Paroles (v. originale)","Paroles (copie annotée)","Partition","Statut partition","Visée","Ajouté le","Dernière mise à jour"]);
+      .concat(["Proposée par","Raison du choix","Chantée en classe par","Statut","","Paroles (v. originale)","Paroles (copie annotée)","Partition","Statut partition","Visée","Copier","Ajouté le","Dernière mise à jour"]);
 
     const sections = groupEntriesByVisee(entries);
     const rowHtml = (e) => `<tr>
@@ -3174,6 +3192,7 @@ async function loadMyGroupChansons(){
         <td>${linkCell(e, "lienPartition", "Partition")}</td>
         <td>${selectCell(e, "statutPartition")}</td>
         <td>${selectCell(e, "visee", VISEE_OPTIONS)}</td>
+        <td style="white-space:nowrap;">${canCopyEntry(e) ? `<button class="btn btn-ghost btn-sm" data-action="copy" data-id="${e.id}">Copier</button>` : '<span style="color:var(--ink-soft);">—</span>'}</td>
         <td>${e.dateAjout ? new Date(e.dateAjout).toLocaleDateString('fr-CA') : "—"}</td>
         <td data-maj-id="${e.id}">${fmtDateTime(e.dateMaj)}</td>
       </tr>`;
@@ -3200,6 +3219,14 @@ async function loadMyGroupChansons(){
     });
     wrap.querySelectorAll('[data-action="fiche-annotee"]').forEach(btn => {
       btn.addEventListener("click", () => openFicheEditor(btn.dataset.id, () => loadMyGroupChansons(), "annotee"));
+    });
+    wrap.querySelectorAll('[data-action="copy"]').forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const entry = myGroupEntries.find(e => e.id === btn.dataset.id);
+        if (!entry || !canCopyEntry(entry)) return;
+        const ok = await copyEntryToGroupFlow(entry);
+        if (ok) loadMyGroupChansons();
+      });
     });
     wrap.querySelectorAll("[data-raison-id]").forEach(btn => {
       btn.addEventListener("click", async () => {
@@ -3363,6 +3390,7 @@ const GROUP_PERM_DEFAULTS = {
   fiche_modifier: "assistant",   // modifier les paroles de la copie originale + la structure des sections (partagée avec la copie annotée)
   fiche_annoter: "eleve",        // modifier la copie annotée (mise en forme, symboles, notes, légende) — par défaut ouvert à tout le monde, comme avant l'ajout de ce réglage
   fiche_verrouiller: "admin",    // verrouiller/déverrouiller une fiche (l'état verrouillée/déverrouillée lui-même est par chanson, pas ici)
+  fiche_copier: "admin",         // copier une fiche de ce groupe vers un autre groupe — admin seulement par défaut, pour ne pas ouvrir ça d'un coup à tous les groupes existants
 };
 function groupPermTier(groupe, key){
   const cfg = groupesConfig[groupe];
@@ -3375,6 +3403,37 @@ function canEditByGroupPerm(groupe, key, role){
   if (tier === "eleve") return true;
   if (tier === "assistant") return role === "assistant";
   return false; // tier === "admin"
+}
+function canCopyEntry(entry){
+  return entry ? canEditByGroupPerm(entry.groupe, "fiche_copier", roleFromSession()) : false;
+}
+// Flux de copie d'une fiche vers un autre groupe, partagé entre la Vue d'ensemble (admin) et
+// QG du groupe (élève/assistant·e) — un vrai menu déroulant plutôt qu'une boîte de texte libre,
+// pour éviter les fautes de frappe sur le nom du groupe cible.
+async function copyEntryToGroupFlow(entry){
+  const groupNames = Object.keys(groupesConfig).filter(n => n !== entry.groupe).sort();
+  if (!groupNames.length){ showToast("Aucun autre groupe vers lequel copier.", true); return false; }
+  const groupeDest = await customSelectPrompt(`Copier « ${entry.titre} » vers quel groupe ?`, groupNames.map(n => ({ value: n, label: n })));
+  if (!groupeDest) return false;
+  const copie = Object.assign({}, entry, {
+    id: genId(),
+    groupe: groupeDest,
+    eleve: "",
+    proposePar: "",
+    raisonChoix: "",
+    chanteePar: "",
+    visee: "",
+    votes: {},
+    dateAjout: new Date().toISOString(),
+    dateMaj: null,
+    locked: false,
+    annotation: undefined,
+    sections: (entry.sections || []).map(s => ({ label: s.label, lyrics: s.lyrics })),
+  });
+  copie.nomFichier = buildFileName(copie);
+  const ok = await storageSet("chanson:" + copie.id, copie);
+  showToast(ok ? `« ${entry.titre} » copiée vers ${groupeDest} ✓` : "Erreur lors de la copie.", !ok);
+  return ok;
 }
 const SUIVI_KEYS = new Set(["suivi_admin_ajouter","suivi_admin_cocher","suivi_progres","suivi_pedagogique"]);
 function buildHoraireCtx(role, contenuVisible){
@@ -4518,33 +4577,8 @@ function renderInventoryTable(entries){
     btn.addEventListener("click", async () => {
       const entry = allEntries.find(e => e.id === btn.dataset.id);
       if (!entry) return;
-      const groupNames = Object.keys(groupesConfig).filter(n => n !== entry.groupe);
-      if (!groupNames.length){ showToast("Aucun autre groupe vers lequel copier.", true); return; }
-      const dest = await customPrompt(`Copier « ${entry.titre} » vers quel groupe ? (${groupNames.join(", ")})`, "");
-      if (dest === null || !dest.trim()) return;
-      const groupeDest = dest.trim();
-      if (!groupesConfig[groupeDest]){ showToast(`Groupe « ${groupeDest} » introuvable.`, true); return; }
-
-      const copie = Object.assign({}, entry, {
-        id: genId(),
-        groupe: groupeDest,
-        eleve: "",
-        proposePar: "",
-        raisonChoix: "",
-        chanteePar: "",
-        visee: "",
-        votes: {},
-        dateAjout: new Date().toISOString(),
-        dateMaj: null,
-        locked: false,
-        annotation: undefined,
-        sections: (entry.sections || []).map(s => ({ label: s.label, lyrics: s.lyrics })),
-      });
-      copie.nomFichier = buildFileName(copie);
-
-      const ok = await storageSet("chanson:" + copie.id, copie);
-      if (ok){ showToast(`« ${entry.titre} » copiée vers ${groupeDest} ✓`); loadInventory(); }
-      else showToast("Erreur lors de la copie.", true);
+      const ok = await copyEntryToGroupFlow(entry);
+      if (ok) loadInventory();
     });
   });
   wrap.querySelectorAll('[data-action="del"]').forEach(btn => {
@@ -5329,6 +5363,7 @@ const GROUP_PERM_TABLE_COLUMNS = [
   { key: "chanson_edit", dataAttr: "data-chansonedit-tier", dataProp: "chansoneditTier" },
   { key: "fiche_modifier", dataAttr: "data-fichemodifier-tier", dataProp: "fichemodifierTier" },
   { key: "fiche_annoter", dataAttr: "data-ficheannoter-tier", dataProp: "ficheannoterTier" },
+  { key: "fiche_copier", dataAttr: "data-fichecopier-tier", dataProp: "fichecopierTier" },
   { key: "fiche_verrouiller", dataAttr: "data-ficheverrouiller-tier", dataProp: "ficheverrouillerTier" },
 ];
 function renderGroupsPermissionsTable(){
@@ -5346,7 +5381,7 @@ function renderGroupsPermissionsTable(){
   };
   tbody.innerHTML = names.map(n => `
     <tr data-permissions-row="${escXml(n)}">
-      <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">${escXml(n)}</td>
+      <td class="col-sticky" style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">${escXml(n)}</td>
       ${GROUP_PERM_TABLE_COLUMNS.map(col => `<td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">${permSelect(n, col)}</td>`).join("")}
     </tr>`).join("");
 
