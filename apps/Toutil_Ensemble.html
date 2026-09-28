@@ -412,7 +412,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
   import {
     getFirestore, doc, getDoc, setDoc, deleteDoc,
-    collection, getDocs
+    collection, getDocs, query, orderBy, startAt, endAt, documentId
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
   import {
     getAuth, signInAnonymously, signInWithEmailAndPassword,
@@ -447,9 +447,16 @@
       return { key, deleted: true };
     },
     async list(prefix){
-      const snap = await getDocs(collection(db, "storage"));
+      // Chantier 1 (sécurité) : requête ciblée par préfixe plutôt qu'un téléchargement
+      // de toute la collection "storage" filtré ensuite dans le navigateur. Réduit ce qui
+      // transite vers chaque visiteur·euse à ce qui concerne son propre groupe.
+      const colRef = collection(db, "storage");
+      const q = prefix
+        ? query(colRef, orderBy(documentId()), startAt(prefix), endAt(prefix + ""))
+        : colRef;
+      const snap = await getDocs(q);
       const keys = [];
-      snap.forEach(d => { if (!prefix || d.id.startsWith(prefix)) keys.push(d.id); });
+      snap.forEach(d => keys.push(d.id));
       return { keys, prefix };
     }
   };
